@@ -1384,6 +1384,27 @@ body {
   color: var(--ink-4);
   white-space: nowrap;
 }
+.ai-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ai-model-row select {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--ink-3);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ai-model-row select:focus { border-color: var(--warm-dim); color: var(--ink); }
 .ai-status {
   font-size: 9px;
   color: var(--ink-4);
@@ -1561,6 +1582,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-load" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-load" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="chamber-bottom-bar">
@@ -1737,6 +1769,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-map" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-map" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="chamber-bottom-bar">
@@ -1803,6 +1846,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-aim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-aim" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="chamber-bottom-bar">
@@ -1860,6 +1914,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-fire" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-fire" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="chamber-bottom-bar">
@@ -1905,6 +1970,17 @@ body {
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-reload" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+        </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-reload" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
         </div>
       </div>
     </div>
@@ -2058,6 +2134,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-train" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-train" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="chamber-bottom-bar">
@@ -2188,6 +2275,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-sim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-sim" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     </div>
@@ -2271,6 +2369,17 @@ body {
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-formulas" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+        </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-formulas" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
         </div>
       </div>
     </div>
@@ -2470,6 +2579,17 @@ body {
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-wiring" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
         </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-wiring" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
+        </div>
       </div>
     </div>
     </div>
@@ -2521,6 +2641,17 @@ body {
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-projects" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+        </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-projects" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
         </div>
       </div>
     </div>
@@ -2593,6 +2724,17 @@ body {
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-forge" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+        </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-forge" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
         </div>
       </div>
     </div>
@@ -2688,6 +2830,17 @@ body {
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
           <input type="text" id="ai-url-lens" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+        </div>
+        <div class="ai-model-row">
+          <span class="ai-config-label">Model</span>
+          <select id="ai-model-lens" onchange="saveAIModel(this.value)">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            <option value="qwen/qwen3-32b">Qwen3-32B</option>
+            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
+          </select>
         </div>
       </div>
     </div>
@@ -8254,6 +8407,18 @@ DR_KEYS.push('dr_custom_formulas');
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────
 
 const AI_WORKER_KEY = 'dr_ai_worker_url';
+const AI_MODEL_KEY = 'dr_ai_model';
+const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b';
+
+function getAIModel() {
+  return localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
+}
+
+function saveAIModel(val) {
+  localStorage.setItem(AI_MODEL_KEY, val);
+  // Sync all selects
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
+}
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
 
 // Per-chamber conversation history
@@ -8396,7 +8561,7 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
+        model: getAIModel(),
         messages: [
           { role: 'system', content: sys },
           ...aiHistory[ch]
@@ -8440,8 +8605,10 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 (function restoreAIPanels() {
   const states = getAIStates();
   const url = getWorkerUrl();
-  // Always populate all URL fields regardless of toggle state
+  // Always populate all URL fields and model selects regardless of toggle state
   document.querySelectorAll('[id^="ai-url-"]').forEach(inp => { inp.value = url; });
+  const savedModel = getAIModel();
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = savedModel; });
   Object.entries(states).forEach(([ch, on]) => {
     if (!on) return;
     const toggle = document.getElementById('ai-toggle-' + ch);

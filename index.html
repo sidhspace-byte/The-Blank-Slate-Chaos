@@ -1424,7 +1424,7 @@ body {
 <div id="ghost-layer"></div>
 
 <!-- ══ ENTRY ══ -->
-<div id="entry" class="screen on">
+<div id="entry" class="screen on" style="position:fixed;top:0;left:0;width:100vw;height:100vh;overflow:hidden;pointer-events:none;z-index:0;">
 
   <div class="entry-eyebrow" style="position:absolute;top:28px;left:36px;z-index:10;">
     the system
@@ -5841,18 +5841,19 @@ function orbInit() {
   ORB.nodes.forEach(n => {
     if (n.ring === 0) { ORB.angles[n.id] = 0; return; }
     const idx = ringIdx[n.ring] = (ringIdx[n.ring]||0);
-    ORB.angles[n.id] = (Math.PI*2 / ringCounts[n.ring]) * idx - Math.PI/2;
+    ORB.angles[n.id] = (Math.PI*2 / ringCounts[n.ring]) * idx + n.ring * 0.7;
     ringIdx[n.ring]++;
   });
 
   // Init connections
   orbInitConnections();
 
-  // On desktop, zoom out and shift left so orbs center
+  // On desktop, zoom out and center orbs
   if (window.innerWidth > 900) {
-    ORB.zoom = ORB.zoomTarget = 0.65;
-    ORB.pan.x = ORB.panTarget.x = -Math.round(window.innerWidth * 0.22);
-    ORB.pan.y = ORB.panTarget.y = 0;
+    ORB.zoom = ORB.zoomTarget = 0.6;
+    // Orbs cluster to right due to angle offsets — shift left to center the mass
+    ORB.pan.x = ORB.panTarget.x = -Math.round(window.innerWidth * 0.12);
+    ORB.pan.y = ORB.panTarget.y = Math.round(window.innerHeight * 0.04);
   }
 
   // Electrons — 3 per ring 1-4

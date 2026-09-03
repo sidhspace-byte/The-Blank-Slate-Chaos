@@ -1435,6 +1435,12 @@ body {
 
 
   <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
+  <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">
+    <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
+    <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
+    <input type="file" id="import-file-top" accept=".json" onchange="importAll(this)" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+    <div id="data-status-top" style="font-size:9px;color:rgba(180,140,90,0.6);letter-spacing:0.1em;"></div>
+  </div>
   <div id="orb-hint" style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(90,84,80,0.7);pointer-events:none;">scroll to zoom · click to enter</div>
 
 
@@ -5842,9 +5848,11 @@ function orbInit() {
   // Init connections
   orbInitConnections();
 
-  // On desktop, default zoom out so all orbs fit and appear centered
+  // On desktop, zoom out and shift left so orbs center
   if (window.innerWidth > 900) {
-    ORB.zoom = ORB.zoomTarget = 0.72;
+    ORB.zoom = ORB.zoomTarget = 0.65;
+    ORB.pan.x = ORB.panTarget.x = -Math.round(window.innerWidth * 0.22);
+    ORB.pan.y = ORB.panTarget.y = 0;
   }
 
   // Electrons — 3 per ring 1-4
@@ -8163,6 +8171,8 @@ function exportAll() {
 
   const s = document.getElementById('data-status');
   if (s) { s.textContent = 'File downloading…'; setTimeout(()=>s.textContent='',3000); }
+  const s2 = document.getElementById('data-status-top');
+  if (s2) { s2.textContent = 'downloading…'; setTimeout(()=>s2.textContent='',3000); }
 }
 
 function importAll(input) {

@@ -5835,12 +5835,17 @@ function orbInit() {
   ORB.nodes.forEach(n => {
     if (n.ring === 0) { ORB.angles[n.id] = 0; return; }
     const idx = ringIdx[n.ring] = (ringIdx[n.ring]||0);
-    ORB.angles[n.id] = (Math.PI*2 / ringCounts[n.ring]) * idx + n.ring * 0.7;
+    ORB.angles[n.id] = (Math.PI*2 / ringCounts[n.ring]) * idx - Math.PI/2;
     ringIdx[n.ring]++;
   });
 
   // Init connections
   orbInitConnections();
+
+  // On desktop, default zoom out so all orbs fit and appear centered
+  if (window.innerWidth > 900) {
+    ORB.zoom = ORB.zoomTarget = 0.72;
+  }
 
   // Electrons — 3 per ring 1-4
   for (let r=1; r<=4; r++) {

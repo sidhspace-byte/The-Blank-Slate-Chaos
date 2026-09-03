@@ -8413,7 +8413,8 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
       statusEl.textContent = 'Error: ' + (data.error.message || 'unknown');
       aiHistory[ch].pop(); // remove failed user msg
     } else {
-      const reply = data.choices?.[0]?.message?.content || '(no response)';
+      const msg = data.choices?.[0]?.message;
+      const reply = msg?.content || msg?.reasoning || '(no response)';
       aiHistory[ch].push({ role: 'assistant', content: reply });
       thinkingDiv.querySelector('.ai-msg-body').textContent = reply;
       thinkingDiv.classList.remove('thinking');

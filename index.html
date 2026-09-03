@@ -95,11 +95,16 @@ body {
   flex-direction: column;
   justify-content: center;
   min-height: 100vh;
-  max-width: 540px;
-  margin: 0 auto;
-  padding: 0 32px;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
   animation: rise 0.8s ease both;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   z-index: 2;
   pointer-events: none;
 }
@@ -5972,9 +5977,8 @@ function orbInit() {
 
 function orbResize() {
   if (!ORB.cv) return;
-  const rect = ORB.cv.getBoundingClientRect();
-  ORB.W = ORB.cv.width  = Math.round(rect.width)  || window.innerWidth;
-  ORB.H = ORB.cv.height = Math.round(rect.height) || window.innerHeight;
+  ORB.W = ORB.cv.width  = window.innerWidth;
+  ORB.H = ORB.cv.height = window.innerHeight;
 }
 
 function orbHitTest(clientX, clientY) {

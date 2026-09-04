@@ -1530,6 +1530,16 @@ body {
 <div id="ghost-layer"></div>
 
 <!-- ══ ENTRY ══ -->
+<div id="pw-gate">
+  <div class="pw-title">THE SYSTEM</div>
+  <div class="pw-form">
+    <div class="pw-setup" id="pw-setup-label"></div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
+    <div class="pw-err" id="pw-err"></div>
+    <button class="pw-btn" onclick="pwSubmit()">enter</button>
+  </div>
+  <div class="pw-hint" id="pw-hint"></div>
+</div>
 <div id="entry" class="screen on">
 
   <div class="entry-eyebrow" style="position:absolute;top:28px;left:36px;z-index:10;">
@@ -1540,16 +1550,6 @@ body {
   <span id="leg-word" style="display:none;"></span>
 
 
-  <div id="pw-gate">
-  <div class="pw-title">THE SYSTEM</div>
-  <div class="pw-form">
-    <div class="pw-setup" id="pw-setup-label"></div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
-    <div class="pw-err" id="pw-err"></div>
-    <button class="pw-btn" onclick="pwSubmit()">enter</button>
-  </div>
-  <div class="pw-hint" id="pw-hint"></div>
-</div>
 
 <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
   <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">

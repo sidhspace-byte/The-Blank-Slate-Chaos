@@ -1425,6 +1425,103 @@ body {
 .ai-status.err { color: var(--red); }
 #ch-lens .ch-name { color: var(--red); }
 .nav-tab[data-c="lens"]::after { background: var(--red); }
+
+/* ── PASSWORD GATE ── */
+#pw-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+#pw-gate.unlocked {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+.pw-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(180,140,80,0.4);
+  margin-bottom: 48px;
+}
+.pw-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 260px;
+}
+.pw-input {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(180,140,80,0.25);
+  color: rgba(200,160,90,0.9);
+  font-family: 'DM Mono', monospace;
+  font-size: 16px;
+  letter-spacing: 0.15em;
+  padding: 8px 0;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.pw-input:focus {
+  border-bottom-color: rgba(180,140,80,0.7);
+}
+.pw-input::placeholder {
+  color: rgba(180,140,80,0.2);
+  letter-spacing: 0.2em;
+  font-size: 12px;
+}
+.pw-btn {
+  background: none;
+  border: 1px solid rgba(180,140,80,0.3);
+  color: rgba(180,140,80,0.6);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.pw-btn:hover {
+  border-color: rgba(180,140,80,0.7);
+  color: rgba(180,140,80,1);
+}
+.pw-err {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(200,80,60,0.7);
+  min-height: 14px;
+  text-align: center;
+}
+.pw-hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: rgba(180,140,80,0.15);
+  margin-top: 48px;
+  text-align: center;
+  line-height: 1.8;
+}
+.pw-setup {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: rgba(180,140,80,0.3);
+  text-align: center;
+  margin-bottom: 8px;
+}
 </style>
 </head>
 <body>
@@ -1443,7 +1540,18 @@ body {
   <span id="leg-word" style="display:none;"></span>
 
 
-  <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
+  <div id="pw-gate">
+  <div class="pw-title">THE SYSTEM</div>
+  <div class="pw-form">
+    <div class="pw-setup" id="pw-setup-label"></div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
+    <div class="pw-err" id="pw-err"></div>
+    <button class="pw-btn" onclick="pwSubmit()">enter</button>
+  </div>
+  <div class="pw-hint" id="pw-hint"></div>
+</div>
+
+<canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
   <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
@@ -8684,6 +8792,200 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
       ensureWorkerConfig(ch);
     }
   });
+})();
+
+
+
+// ── PASSWORD GATE + CRYPTO ────────────────────────────────────────
+
+const PW_SALT_KEY   = 'dr_pw_salt';
+const PW_VERIFY_KEY = 'dr_pw_verify';
+const PW_URL_KEY    = 'dr_pw_url';   // encrypted Worker URL
+const PW_MODEL_KEY  = 'dr_pw_model'; // encrypted model pref
+const VERIFY_TEXT   = 'darkroom-verified';
+
+let _sessionKey = null; // CryptoKey held in memory only
+
+async function pwDeriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function pwEncrypt(key, plaintext) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  // Store as base64(iv) + '.' + base64(ct)
+  const b64 = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
+  return b64(iv) + '.' + b64(ct);
+}
+
+async function pwDecrypt(key, ciphertext) {
+  const [ivB64, ctB64] = ciphertext.split('.');
+  const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const iv = b64d(ivB64);
+  const ct = b64d(ctB64);
+  const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(dec);
+}
+
+function pwGetSalt() {
+  let s = localStorage.getItem(PW_SALT_KEY);
+  if (!s) {
+    const arr = crypto.getRandomValues(new Uint8Array(16));
+    s = btoa(String.fromCharCode(...arr));
+    localStorage.setItem(PW_SALT_KEY, s);
+  }
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+function pwIsFirstTime() {
+  return !localStorage.getItem(PW_VERIFY_KEY);
+}
+
+async function pwSubmit() {
+  const input = document.getElementById('pw-input');
+  const errEl = document.getElementById('pw-err');
+  const pw = input.value.trim();
+  if (!pw) { errEl.textContent = 'enter a passphrase'; return; }
+
+  errEl.textContent = '';
+  const salt = pwGetSalt();
+
+  try {
+    const key = await pwDeriveKey(pw, salt);
+
+    if (pwIsFirstTime()) {
+      // First time — set up: encrypt verify token + Worker URL if already in localStorage
+      const verifyEnc = await pwEncrypt(key, VERIFY_TEXT);
+      localStorage.setItem(PW_VERIFY_KEY, verifyEnc);
+
+      // Migrate existing plain Worker URL to encrypted
+      const existingUrl = localStorage.getItem(AI_WORKER_KEY) || '';
+      if (existingUrl) {
+        const urlEnc = await pwEncrypt(key, existingUrl);
+        localStorage.setItem(PW_URL_KEY, urlEnc);
+        localStorage.removeItem(AI_WORKER_KEY); // remove plain version
+      }
+
+      // Migrate existing model pref
+      const existingModel = localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
+      const modelEnc = await pwEncrypt(key, existingModel);
+      localStorage.setItem(PW_MODEL_KEY, modelEnc);
+      localStorage.removeItem(AI_MODEL_KEY);
+
+      _sessionKey = key;
+      await pwUnlock(key);
+
+    } else {
+      // Verify password
+      const verifyEnc = localStorage.getItem(PW_VERIFY_KEY);
+      try {
+        const verified = await pwDecrypt(key, verifyEnc);
+        if (verified !== VERIFY_TEXT) throw new Error('wrong');
+        _sessionKey = key;
+        await pwUnlock(key);
+      } catch {
+        errEl.textContent = 'wrong passphrase';
+        input.value = '';
+        input.focus();
+      }
+    }
+  } catch(e) {
+    if (e.message !== 'wrong') console.error(e);
+  }
+}
+
+async function pwUnlock(key) {
+  // Decrypt Worker URL into memory (not back to localStorage plain)
+  const urlEnc = localStorage.getItem(PW_URL_KEY);
+  if (urlEnc) {
+    try {
+      const url = await pwDecrypt(key, urlEnc);
+      _decryptedWorkerUrl = url;
+    } catch { _decryptedWorkerUrl = ''; }
+  }
+
+  // Decrypt model pref
+  const modelEnc = localStorage.getItem(PW_MODEL_KEY);
+  if (modelEnc) {
+    try {
+      const model = await pwDecrypt(key, modelEnc);
+      _decryptedModel = model;
+    } catch { _decryptedModel = AI_DEFAULT_MODEL; }
+  }
+
+  // Populate URL fields
+  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => {
+    inp.value = _decryptedWorkerUrl || '';
+  });
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => {
+    s.value = _decryptedModel || AI_DEFAULT_MODEL;
+  });
+
+  // Dismiss gate
+  const gate = document.getElementById('pw-gate');
+  gate.classList.add('unlocked');
+  setTimeout(() => gate.style.display = 'none', 700);
+
+  // Focus the password input on first-time for good UX
+  document.getElementById('pw-input').blur();
+}
+
+// Override getWorkerUrl to use in-memory decrypted value
+let _decryptedWorkerUrl = '';
+let _decryptedModel = '';
+
+function getWorkerUrl() {
+  return _decryptedWorkerUrl;
+}
+
+function getAIModel() {
+  return _decryptedModel || AI_DEFAULT_MODEL;
+}
+
+// Override saveWorkerUrl to encrypt before storing
+async function saveWorkerUrl(url) {
+  _decryptedWorkerUrl = url.trim();
+  if (_sessionKey) {
+    const enc = await pwEncrypt(_sessionKey, url.trim());
+    localStorage.setItem(PW_URL_KEY, enc);
+    localStorage.removeItem(AI_WORKER_KEY); // never store plain
+  }
+  syncAllUrls(url.trim());
+}
+
+// Override saveAIModel to encrypt before storing
+async function saveAIModel(val) {
+  _decryptedModel = val;
+  if (_sessionKey) {
+    const enc = await pwEncrypt(_sessionKey, val);
+    localStorage.setItem(PW_MODEL_KEY, enc);
+    localStorage.removeItem(AI_MODEL_KEY);
+  }
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
+}
+
+// Show first-time vs returning label
+(function pwInit() {
+  const label = document.getElementById('pw-setup-label');
+  const hint  = document.getElementById('pw-hint');
+  if (pwIsFirstTime()) {
+    if (label) label.textContent = 'first time — set your passphrase';
+    if (hint) hint.innerHTML = 'this passphrase encrypts your API connection<br>and locks the entire system<br>do not lose it';
+  } else {
+    if (hint) hint.innerHTML = 'passphrase required to enter';
+  }
+  document.getElementById('pw-input')?.focus();
 })();
 
 

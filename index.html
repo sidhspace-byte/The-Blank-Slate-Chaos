@@ -3581,30 +3581,66 @@ async function callAI(sys, msg, thinkId, respId, bodyId, done){
   if(think) think.classList.add('on');
   if(resp) resp.classList.remove('on');
 
-  // Determine chamber from thinkId
-  const chamber = thinkId.split('-')[0];
-  await localThink(900 + Math.random()*600);
+  const workerUrl = getWorkerUrl();
 
-  let output = '';
-
-  if (chamber === 'load') {
-    output = localLoad(msg);
-  } else if (chamber === 'aim') {
-    output = localAim(msg);
-  } else if (chamber === 'map') {
-    output = localMap(msg);
-  } else if (chamber === 'fire') {
-    output = localFire(msg, sys);
-  } else if (chamber === 'reload') {
-    output = localReload(msg);
-  } else {
-    output = '<em>Processing locally — response ready.</em>';
+  // If no Worker URL set, fall back to local
+  if (!workerUrl) {
+    await localThink(900 + Math.random()*600);
+    const chamber = thinkId.split('-')[0];
+    let output = '';
+    if (chamber === 'load') output = localLoad(msg);
+    else if (chamber === 'aim') output = localAim(msg);
+    else if (chamber === 'map') output = localMap(msg);
+    else if (chamber === 'fire') output = localFire(msg, sys);
+    else if (chamber === 'reload') output = localReload(msg);
+    else output = '<em>Processing locally — response ready.</em>';
+    if(body) body.innerHTML = wrapResp(fmtLocal(output));
+    if(resp) resp.classList.add('on');
+    if(think) think.classList.remove('on');
+    if(done) done(output);
+    return;
   }
 
-  if(body) body.innerHTML = wrapResp(fmtLocal(output));
-  if(resp) resp.classList.add('on');
-  if(think) think.classList.remove('on');
-  if(done) done(output);
+  // Call Groq via Worker
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: getAIModel(),
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: msg }
+        ],
+        max_tokens: 1000
+      })
+    });
+    const data = await res.json();
+    const groqData = data.body ? data.body : data;
+    const reply = groqData.choices?.[0]?.message?.content || groqData.choices?.[0]?.message?.reasoning || '';
+
+    if (!reply) throw new Error('empty response');
+
+    if(body) body.innerHTML = wrapResp(fmtLocal(reply));
+    if(resp) resp.classList.add('on');
+    if(think) think.classList.remove('on');
+    if(done) done(reply);
+
+  } catch(err) {
+    // Fallback to local on error
+    const chamber = thinkId.split('-')[0];
+    let output = '';
+    if (chamber === 'load') output = localLoad(msg);
+    else if (chamber === 'aim') output = localAim(msg);
+    else if (chamber === 'map') output = localMap(msg);
+    else if (chamber === 'fire') output = localFire(msg, sys);
+    else if (chamber === 'reload') output = localReload(msg);
+    else output = '<em>AI unavailable — local response.</em>';
+    if(body) body.innerHTML = wrapResp(fmtLocal(output));
+    if(resp) resp.classList.add('on');
+    if(think) think.classList.remove('on');
+    if(done) done(output);
+  }
 }
 
 // ── Load: name what's there precisely ──

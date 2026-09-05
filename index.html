@@ -108,10 +108,12 @@ body {
   z-index: 2;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 #entry.unlocked-entry {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 #entry > * { pointer-events: auto; }
@@ -6013,9 +6015,14 @@ function orbInit() {
   orbCustomPos = {};
   localStorage.removeItem('dr_orb_pos');
 
-  // Desktop: zoom out so all rings fit within viewport
+  // Zoom based on screen size
   if (window.innerWidth > 900) {
     ORB.zoom = ORB.zoomTarget = 0.6;
+    ORB.pan.x = ORB.panTarget.x = 0;
+    ORB.pan.y = ORB.panTarget.y = 0;
+  } else {
+    // Mobile — zoom out more so all orbs fit
+    ORB.zoom = ORB.zoomTarget = 0.32;
     ORB.pan.x = ORB.panTarget.x = 0;
     ORB.pan.y = ORB.panTarget.y = 0;
   }

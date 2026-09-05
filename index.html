@@ -8952,17 +8952,56 @@ function pwUnlock(pw) {
 (function pwInit() {
   const gateEl = document.createElement('div');
   gateEl.id = 'pw-gate';
-  gateEl.innerHTML = '<div class="pw-title">THE SYSTEM</div>'
-    + '<div class="pw-form">'
-    + '<div class="pw-setup" id="pw-setup-label"></div>'
-    + '<input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">'
-    + '<div class="pw-err" id="pw-err"></div>'
-    + '<button class="pw-btn" onclick="pwSubmit()">enter</button>'
-    + '</div>'
-    + '<div class="pw-hint" id="pw-hint"></div>'
-    + '<div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;">'
-    + '<span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;" onclick="pwForceReset()">clear all data &amp; reset</span>'
-    + '</div>';
+
+  const pwTitle = document.createElement('div');
+  pwTitle.className = 'pw-title';
+  pwTitle.textContent = 'THE SYSTEM';
+
+  const pwForm = document.createElement('div');
+  pwForm.className = 'pw-form';
+
+  const pwSetup = document.createElement('div');
+  pwSetup.className = 'pw-setup';
+  pwSetup.id = 'pw-setup-label';
+
+  const pwInput = document.createElement('input');
+  pwInput.className = 'pw-input';
+  pwInput.id = 'pw-input';
+  pwInput.type = 'password';
+  pwInput.placeholder = 'enter passphrase';
+  pwInput.autocomplete = 'current-password';
+  pwInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') pwSubmit(); });
+
+  const pwErr = document.createElement('div');
+  pwErr.className = 'pw-err';
+  pwErr.id = 'pw-err';
+
+  const pwBtn = document.createElement('button');
+  pwBtn.className = 'pw-btn';
+  pwBtn.textContent = 'enter';
+  pwBtn.onclick = pwSubmit;
+
+  pwForm.appendChild(pwSetup);
+  pwForm.appendChild(pwInput);
+  pwForm.appendChild(pwErr);
+  pwForm.appendChild(pwBtn);
+
+  const pwHint = document.createElement('div');
+  pwHint.className = 'pw-hint';
+  pwHint.id = 'pw-hint';
+
+  const pwResetBar = document.createElement('div');
+  pwResetBar.style.cssText = 'position:absolute;bottom:24px;left:0;right:0;text-align:center;';
+  const pwResetLink = document.createElement('span');
+  pwResetLink.style.cssText = "font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;";
+  pwResetLink.textContent = 'clear all data & reset';
+  pwResetLink.onclick = pwForceReset;
+  pwResetBar.appendChild(pwResetLink);
+
+  gateEl.appendChild(pwTitle);
+  gateEl.appendChild(pwForm);
+  gateEl.appendChild(pwHint);
+  gateEl.appendChild(pwResetBar);
   document.body.appendChild(gateEl);
 
   const label = document.getElementById('pw-setup-label');

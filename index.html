@@ -8642,23 +8642,35 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
       })
     });
 
-    const data = await res.json();
-
-    if (data.error) {
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); } catch(e) {
       thinkingDiv.remove();
       statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Error: ' + (data.error.message || JSON.stringify(data.error));
+      statusEl.textContent = 'Parse error: ' + raw.slice(0,100);
       aiHistory[ch].pop();
-    } else if (!data.choices || !data.choices[0]) {
+      sendBtn.disabled = false;
+      return;
+    }
+
+    // Unwrap if Worker wraps response in {status, body}
+    const groq = data.body || data;
+
+    if (groq.error) {
       thinkingDiv.remove();
       statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Bad response: ' + JSON.stringify(data).slice(0,80);
+      statusEl.textContent = 'Error: ' + (groq.error.message || JSON.stringify(groq.error));
+      aiHistory[ch].pop();
+    } else if (!groq.choices || !groq.choices[0]) {
+      thinkingDiv.remove();
+      statusEl.className = 'ai-status err';
+      statusEl.textContent = 'Raw: ' + raw.slice(0,120);
       aiHistory[ch].pop();
     } else {
-      const msg = data.choices[0].message;
+      const msg = groq.choices[0].message;
       const reply = msg?.content || msg?.reasoning || '(no response)';
       aiHistory[ch].push({ role: 'assistant', content: reply });
-      thinkingDiv.querySelector('.ai-msg-body').textContent = reply;
+      thinkingDiv.querySelector('.ai-msg-body').textContent = reply || '(empty reply)';
       thinkingDiv.classList.remove('thinking');
       thinkingDiv.querySelector('.ai-msg-role').classList.add('ai');
       thinkingDiv.querySelector('.ai-msg-body').classList.add('ai');

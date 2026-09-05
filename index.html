@@ -8585,15 +8585,7 @@ const AI_WORKER_KEY = 'dr_ai_worker_url';
 const AI_MODEL_KEY = 'dr_ai_model';
 const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b'; // fallback
 
-function getAIModel() {
-  return localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
-}
-
-function saveAIModel(val) {
-  localStorage.setItem(AI_MODEL_KEY, val);
-  // Sync all selects
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
-}
+// getAIModel and saveAIModel defined in password gate section
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
 
 // Per-chamber conversation history
@@ -8615,13 +8607,7 @@ const AI_CHAMBER_CONTEXT = {
   forge:     'FORGE chamber — the user is building or creating something. Help them think through the design, the decisions, and the path from idea to made thing.',
 };
 
-function getWorkerUrl() {
-  return localStorage.getItem(AI_WORKER_KEY) || '';
-}
-
-function saveWorkerUrl(url) {
-  localStorage.setItem(AI_WORKER_KEY, url.trim());
-}
+// getWorkerUrl and saveWorkerUrl defined in password gate section
 
 function getAIStates() {
   try { return JSON.parse(localStorage.getItem(AI_STATES_KEY) || '{}'); } catch { return {}; }

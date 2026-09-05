@@ -2976,6 +2976,15 @@ body {
 </div><!-- end app -->
 
 <script>
+
+// ── EARLY DECLARATIONS (required before AI section) ──
+const PW_HASH_KEY   = 'dr_pw_hash';
+const PW_URL_KEY    = 'dr_pw_url';
+const PW_MODEL_KEY  = 'dr_pw_model';
+let _decryptedWorkerUrl = '';
+let _decryptedModel = '';
+let _sessionPw = '';
+// declarations moved to top
 // ====================================
 // STATE
 // ====================================
@@ -8581,9 +8590,7 @@ DR_KEYS.push('dr_custom_formulas');
 
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────
 
-const AI_WORKER_KEY = 'dr_ai_worker_url';
-const AI_MODEL_KEY = 'dr_ai_model';
-const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b'; // fallback
+// declarations moved to top
 
 // getAIModel and saveAIModel defined in password gate section
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
@@ -8787,13 +8794,7 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 
 // ── PASSWORD GATE (simple hash) ─────────────────────────────────────
 
-const PW_HASH_KEY   = 'dr_pw_hash';
-const PW_URL_KEY    = 'dr_pw_url';
-const PW_MODEL_KEY  = 'dr_pw_model';
-
-let _decryptedWorkerUrl = '';
-let _decryptedModel = '';
-let _sessionPw = '';
+// declarations moved to top
 
 function simpleHash(str) {
   let hash = 0;

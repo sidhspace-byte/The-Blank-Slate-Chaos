@@ -1530,19 +1530,6 @@ body {
 <div id="ghost-layer"></div>
 
 <!-- ══ ENTRY ══ -->
-<div id="pw-gate">
-  <div class="pw-title">THE SYSTEM</div>
-  <div class="pw-form">
-    <div class="pw-setup" id="pw-setup-label"></div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
-    <div class="pw-err" id="pw-err"></div>
-    <button class="pw-btn" onclick="pwSubmit()">enter</button>
-  </div>
-  <div class="pw-hint" id="pw-hint"></div>
-  <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;">
-    <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;" onclick="pwForceReset()">clear all data &amp; reset</span>
-  </div>
-</div>
 <div id="entry" class="screen on">
 
   <div class="entry-eyebrow" style="position:absolute;top:28px;left:36px;z-index:10;">
@@ -2974,6 +2961,20 @@ body {
   </div>
 
 </div><!-- end app -->
+
+<div id="pw-gate">
+  <div class="pw-title">THE SYSTEM</div>
+  <div class="pw-form">
+    <div class="pw-setup" id="pw-setup-label"></div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
+    <div class="pw-err" id="pw-err"></div>
+    <button class="pw-btn" onclick="pwSubmit()">enter</button>
+  </div>
+  <div class="pw-hint" id="pw-hint"></div>
+  <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;">
+    <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;" onclick="pwForceReset()">clear all data &amp; reset</span>
+  </div>
+</div>
 
 <script>
 

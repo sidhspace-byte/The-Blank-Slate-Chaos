@@ -8768,7 +8768,13 @@ function pwUnlock(pw) {
   document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = _decryptedModel);
   const gate = document.getElementById('pw-gate');
   gate.classList.add('unlocked');
-  setTimeout(() => gate.remove(), 700);
+  setTimeout(function() {
+    gate.remove();
+    // Re-trigger orb after gate removed — canvas may have been zero-sized
+    if (typeof orbResize === 'function') orbResize();
+    if (typeof orbDraw === 'function' && ORB && !ORB.raf) orbDraw();
+    if (typeof orbTryInit === 'function' && (!ORB || !ORB.active)) orbTryInit();
+  }, 700);
 }
 function pwForceReset() {
   if (!confirm('Clear all data and reset passphrase?')) return;

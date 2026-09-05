@@ -100,13 +100,19 @@ body {
   max-width: 0;
   margin: 0;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   animation: rise 0.8s ease both;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 2;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#entry.unlocked-entry {
+  opacity: 1;
+  pointer-events: auto;
 }
 #entry > * { pointer-events: auto; }
 
@@ -2961,20 +2967,6 @@ body {
   </div>
 
 </div><!-- end app -->
-
-<div id="pw-gate">
-  <div class="pw-title">THE SYSTEM</div>
-  <div class="pw-form">
-    <div class="pw-setup" id="pw-setup-label"></div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
-    <div class="pw-err" id="pw-err"></div>
-    <button class="pw-btn" onclick="pwSubmit()">enter</button>
-  </div>
-  <div class="pw-hint" id="pw-hint"></div>
-  <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;">
-    <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;" onclick="pwForceReset()">clear all data &amp; reset</span>
-  </div>
-</div>
 
 <script>
 
@@ -8908,10 +8900,31 @@ function pwUnlock(pw) {
 
   const gate = document.getElementById('pw-gate');
   gate.classList.add('unlocked');
-  setTimeout(() => gate.style.display = 'none', 700);
+  setTimeout(() => {
+    gate.style.display = 'none';
+    document.getElementById('entry')?.classList.add('unlocked-entry');
+  }, 700);
 }
 
 (function pwInit() {
+  // Create gate dynamically and append to body — guarantees it's on top
+  const gateEl = document.createElement('div');
+  gateEl.id = 'pw-gate';
+  gateEl.innerHTML = `
+    <div class="pw-title">THE SYSTEM</div>
+    <div class="pw-form">
+      <div class="pw-setup" id="pw-setup-label"></div>
+      <input class="pw-input" id="pw-input" type="password" placeholder="enter passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')pwSubmit()">
+      <div class="pw-err" id="pw-err"></div>
+      <button class="pw-btn" onclick="pwSubmit()">enter</button>
+    </div>
+    <div class="pw-hint" id="pw-hint"></div>
+    <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;">
+      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;" onclick="pwForceReset()">clear all data &amp; reset</span>
+    </div>
+  \`;
+  document.body.appendChild(gateEl);
+(function pwInitInner() {
   const label = document.getElementById('pw-setup-label');
   const hint  = document.getElementById('pw-hint');
   if (pwIsFirstTime()) {
@@ -8921,6 +8934,7 @@ function pwUnlock(pw) {
     if (hint) hint.innerHTML = 'passphrase required to enter<br><br><span style="opacity:0.4;cursor:pointer;text-decoration:underline;" onclick="pwReset()">reset everything</span>';
   }
   setTimeout(() => document.getElementById('pw-input')?.focus(), 100);
+})();
 })();
 
 function pwForceReset() {

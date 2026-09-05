@@ -6135,16 +6135,8 @@ function orbInit() {
 
 function orbResize() {
   if (!ORB.cv) return;
-  const dpr = window.devicePixelRatio || 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  ORB.cv.style.width  = w + 'px';
-  ORB.cv.style.height = h + 'px';
-  ORB.cv.width  = Math.round(w * dpr);
-  ORB.cv.height = Math.round(h * dpr);
-  ORB.W = w;
-  ORB.H = h;
-  if (ORB.cx) ORB.cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ORB.W = ORB.cv.width  = window.innerWidth;
+  ORB.H = ORB.cv.height = window.innerHeight;
 }
 
 function orbHitTest(clientX, clientY) {

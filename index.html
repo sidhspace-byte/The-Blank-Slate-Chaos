@@ -8647,10 +8647,15 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
     if (data.error) {
       thinkingDiv.remove();
       statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Error: ' + (data.error.message || 'unknown');
-      aiHistory[ch].pop(); // remove failed user msg
+      statusEl.textContent = 'Error: ' + (data.error.message || JSON.stringify(data.error));
+      aiHistory[ch].pop();
+    } else if (!data.choices || !data.choices[0]) {
+      thinkingDiv.remove();
+      statusEl.className = 'ai-status err';
+      statusEl.textContent = 'Bad response: ' + JSON.stringify(data).slice(0,80);
+      aiHistory[ch].pop();
     } else {
-      const msg = data.choices?.[0]?.message;
+      const msg = data.choices[0].message;
       const reply = msg?.content || msg?.reasoning || '(no response)';
       aiHistory[ch].push({ role: 'assistant', content: reply });
       thinkingDiv.querySelector('.ai-msg-body').textContent = reply;
@@ -8767,7 +8772,8 @@ function pwUnlock(pw) {
 }
 function pwForceReset() {
   if (!confirm('Clear all data and reset passphrase?')) return;
-  localStorage.clear(); location.reload();
+  localStorage.clear();
+  setTimeout(function() { location.reload(); }, 100);
 }
 function pwBuild() {
   const g = document.createElement('div'); g.id = 'pw-gate';

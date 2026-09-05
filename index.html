@@ -1539,6 +1539,9 @@ body {
     <button class="pw-btn" onclick="pwSubmit()">enter</button>
   </div>
   <div class="pw-hint" id="pw-hint"></div>
+  <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;">
+    <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;" onclick="pwForceReset()">clear all data &amp; reset</span>
+  </div>
 </div>
 <div id="entry" class="screen on">
 
@@ -8929,6 +8932,12 @@ function pwUnlock(pw) {
   }
   setTimeout(() => document.getElementById('pw-input')?.focus(), 100);
 })();
+
+function pwForceReset() {
+  if (!confirm('Clear all stored data and reset the passphrase?')) return;
+  localStorage.clear();
+  location.reload();
+}
 
 function pwReset() {
   if (!confirm('This clears all stored data including your Worker URL. Continue?')) return;

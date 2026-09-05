@@ -1426,32 +1426,6 @@ body {
 #ch-lens .ch-name { color: var(--red); }
 .nav-tab[data-c="lens"]::after { background: var(--red); }
 
-/* ── PASSWORD GATE ── */
-#pw-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: #0a0a0a;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-#pw-gate.unlocked { opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
-.pw-title { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(180,140,80,0.4); margin-bottom: 48px; }
-.pw-form { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 260px; }
-.pw-input { width: 100%; background: none; border: none; border-bottom: 1px solid rgba(180,140,80,0.25); color: rgba(200,160,90,0.9); font-family: 'DM Mono', monospace; font-size: 16px; letter-spacing: 0.15em; padding: 8px 0; text-align: center; outline: none; }
-.pw-input::placeholder { color: rgba(180,140,80,0.2); font-size: 12px; }
-.pw-btn { background: none; border: 1px solid rgba(180,140,80,0.3); color: rgba(180,140,80,0.6); font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; padding: 10px 28px; cursor: pointer; margin-top: 8px; }
-.pw-btn:hover { border-color: rgba(180,140,80,0.7); color: rgba(180,140,80,1); }
-.pw-err { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(200,80,60,0.7); min-height: 14px; text-align: center; }
-.pw-setup { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.2em; color: rgba(180,140,80,0.3); text-align: center; margin-bottom: 8px; }
-.pw-hint { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.2em; color: rgba(180,140,80,0.15); margin-top: 48px; text-align: center; line-height: 1.8; }
-</style>
-</head>
-<body>
-
-<canvas id="canvas"></canvas>
 <div id="ghost-layer"></div>
 
 <!-- ══ ENTRY ══ -->
@@ -8496,7 +8470,13 @@ const AI_WORKER_KEY = 'dr_ai_worker_url';
 const AI_MODEL_KEY = 'dr_ai_model';
 const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b'; // fallback
 
-// getAIModel/saveAIModel overridden by password gate
+function getAIModel() {
+  return localStorage.getItem('dr_ai_model') || AI_DEFAULT_MODEL;
+}
+function saveAIModel(val) {
+  localStorage.setItem('dr_ai_model', val);
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = val);
+}
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
 
 // Per-chamber conversation history
@@ -8518,7 +8498,12 @@ const AI_CHAMBER_CONTEXT = {
   forge:     'FORGE chamber — the user is building or creating something. Help them think through the design, the decisions, and the path from idea to made thing.',
 };
 
-// getWorkerUrl/saveWorkerUrl overridden by password gate
+function getWorkerUrl() {
+  return localStorage.getItem('dr_ai_worker_url') || '';
+}
+function saveWorkerUrl(url) {
+  localStorage.setItem('dr_ai_worker_url', url.trim());
+}
 
 function getAIStates() {
   try { return JSON.parse(localStorage.getItem(AI_STATES_KEY) || '{}'); } catch { return {}; }
@@ -8713,114 +8698,7 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 
 
 
-// ── PASSWORD GATE ─────────────────────────────────────────────────
-const PW_HASH_KEY   = 'dr_pw_hash';
-const PW_URL_KEY    = 'dr_pw_url';
-const PW_MODEL_KEY  = 'dr_pw_model';
-let _decryptedWorkerUrl = '';
-let _decryptedModel = '';
-let _sessionPw = '';
 
-function simpleHash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
-  return h.toString(16);
-}
-function simpleEncrypt(text, pw) {
-  let r = '';
-  for (let i = 0; i < text.length; i++) r += String.fromCharCode(text.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
-  return btoa(r);
-}
-function simpleDecrypt(enc, pw) {
-  try {
-    const t = atob(enc); let r = '';
-    for (let i = 0; i < t.length; i++) r += String.fromCharCode(t.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
-    return r;
-  } catch { return ''; }
-}
-function pwIsFirstTime() { return !localStorage.getItem(PW_HASH_KEY); }
-function getWorkerUrl() { return _decryptedWorkerUrl; }
-function getAIModel() { return _decryptedModel || AI_DEFAULT_MODEL; }
-async function saveWorkerUrl(url) {
-  _decryptedWorkerUrl = url.trim();
-  if (_sessionPw) {
-    localStorage.setItem(PW_URL_KEY, simpleEncrypt(url.trim(), _sessionPw));
-  } else {
-    localStorage.setItem('dr_ai_worker_url', url.trim());
-  }
-  syncAllUrls(url.trim());
-}
-async function saveAIModel(val) {
-  _decryptedModel = val;
-  if (_sessionPw) localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(val, _sessionPw));
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = val);
-}
-function pwSubmit() {
-  const inp = document.getElementById('pw-input');
-  const err = document.getElementById('pw-err');
-  const pw = inp.value.trim();
-  if (!pw) { err.textContent = 'enter a passphrase'; return; }
-  err.textContent = '';
-  if (pwIsFirstTime()) {
-    localStorage.setItem(PW_HASH_KEY, simpleHash(pw));
-    _sessionPw = pw;
-    const existingUrl = localStorage.getItem('dr_ai_worker_url') || '';
-    if (existingUrl) { localStorage.setItem(PW_URL_KEY, simpleEncrypt(existingUrl, pw)); localStorage.removeItem('dr_ai_worker_url'); }
-    const existingModel = localStorage.getItem('dr_ai_model') || AI_DEFAULT_MODEL;
-    localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(existingModel, pw)); localStorage.removeItem('dr_ai_model');
-    pwUnlock(pw);
-  } else {
-    if (simpleHash(pw) === localStorage.getItem(PW_HASH_KEY)) { _sessionPw = pw; pwUnlock(pw); }
-    else { err.textContent = 'wrong passphrase'; inp.value = ''; inp.focus(); }
-  }
-}
-function pwUnlock(pw) {
-  const urlEnc = localStorage.getItem(PW_URL_KEY);
-  if (urlEnc) _decryptedWorkerUrl = simpleDecrypt(urlEnc, pw);
-  if (!_decryptedWorkerUrl) _decryptedWorkerUrl = localStorage.getItem('dr_ai_worker_url') || '';
-  const modelEnc = localStorage.getItem(PW_MODEL_KEY);
-  _decryptedModel = modelEnc ? simpleDecrypt(modelEnc, pw) : AI_DEFAULT_MODEL;
-  document.querySelectorAll('[id^="ai-url-"]').forEach(i => i.value = _decryptedWorkerUrl);
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = _decryptedModel);
-  const gate = document.getElementById('pw-gate');
-  gate.classList.add('unlocked');
-  setTimeout(function() {
-    gate.remove();
-    // Re-trigger orb after gate removed — canvas may have been zero-sized
-    if (typeof orbResize === 'function') orbResize();
-    if (typeof orbDraw === 'function' && ORB && !ORB.raf) orbDraw();
-    if (typeof orbTryInit === 'function' && (!ORB || !ORB.active)) orbTryInit();
-  }, 700);
-}
-function pwForceReset() {
-  if (!confirm('Clear all data and reset passphrase?')) return;
-  localStorage.clear();
-  setTimeout(function() { location.reload(); }, 100);
-}
-function pwBuild() {
-  const g = document.createElement('div'); g.id = 'pw-gate';
-  const title = document.createElement('div'); title.className = 'pw-title'; title.textContent = 'THE SYSTEM';
-  const form = document.createElement('div'); form.className = 'pw-form';
-  const setup = document.createElement('div'); setup.className = 'pw-setup'; setup.id = 'pw-setup-label';
-  const inp = document.createElement('input'); inp.className = 'pw-input'; inp.id = 'pw-input'; inp.type = 'password'; inp.placeholder = 'enter passphrase'; inp.autocomplete = 'current-password'; inp.addEventListener('keydown', function(e){ if(e.key==='Enter') pwSubmit(); });
-  const err = document.createElement('div'); err.className = 'pw-err'; err.id = 'pw-err';
-  const btn = document.createElement('button'); btn.className = 'pw-btn'; btn.textContent = 'enter'; btn.onclick = pwSubmit;
-  form.append(setup, inp, err, btn);
-  const hint = document.createElement('div'); hint.className = 'pw-hint'; hint.id = 'pw-hint';
-  const resetBar = document.createElement('div'); resetBar.style.cssText = 'position:absolute;bottom:24px;left:0;right:0;text-align:center;';
-  const resetLink = document.createElement('span'); resetLink.style.cssText = "font-family:'DM Mono',monospace;font-size:8px;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;"; resetLink.textContent = 'clear all data & reset'; resetLink.onclick = pwForceReset;
-  resetBar.appendChild(resetLink);
-  g.append(title, form, hint, resetBar);
-  document.body.appendChild(g);
-  if (pwIsFirstTime()) { setup.textContent = 'first time - set your passphrase'; hint.innerHTML = 'this passphrase locks the entire system<br>do not lose it'; }
-  else { hint.innerHTML = 'passphrase required to enter'; }
-  setTimeout(function(){ inp.focus(); }, 100);
-}
-if (document.readyState === 'loading') {
-  window.addEventListener('DOMContentLoaded', pwBuild);
-} else {
-  pwBuild();
-}
 
 </script>
 </body>

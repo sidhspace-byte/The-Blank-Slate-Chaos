@@ -8731,7 +8731,11 @@ function getWorkerUrl() { return _decryptedWorkerUrl; }
 function getAIModel() { return _decryptedModel || AI_DEFAULT_MODEL; }
 async function saveWorkerUrl(url) {
   _decryptedWorkerUrl = url.trim();
-  if (_sessionPw) localStorage.setItem(PW_URL_KEY, simpleEncrypt(url.trim(), _sessionPw));
+  if (_sessionPw) {
+    localStorage.setItem(PW_URL_KEY, simpleEncrypt(url.trim(), _sessionPw));
+  } else {
+    localStorage.setItem('dr_ai_worker_url', url.trim());
+  }
   syncAllUrls(url.trim());
 }
 async function saveAIModel(val) {
@@ -8800,7 +8804,11 @@ function pwBuild() {
   else { hint.innerHTML = 'passphrase required to enter'; }
   setTimeout(function(){ inp.focus(); }, 100);
 }
-window.addEventListener('DOMContentLoaded', pwBuild);
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', pwBuild);
+} else {
+  pwBuild();
+}
 
 </script>
 </body>

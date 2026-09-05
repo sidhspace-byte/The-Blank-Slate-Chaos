@@ -6050,6 +6050,9 @@ function orbInit() {
   // Clear any stale saved positions so defaults always apply
   orbCustomPos = {};
   localStorage.removeItem('dr_orb_pos');
+  localStorage.removeItem('dr_orb_custom');
+  localStorage.removeItem('dr_orb_zoom');
+  localStorage.removeItem('dr_orb_pan');
 
   // Zoom based on screen size
   if (window.innerWidth > 900) {
@@ -6058,7 +6061,7 @@ function orbInit() {
     ORB.pan.y = ORB.panTarget.y = 0;
   } else {
     // Mobile — zoom out more so all orbs fit
-    ORB.zoom = ORB.zoomTarget = 0.32;
+    ORB.zoom = ORB.zoomTarget = 0.25;
     ORB.pan.x = ORB.panTarget.x = 0;
     ORB.pan.y = ORB.panTarget.y = 0;
   }
@@ -8949,6 +8952,12 @@ function pwUnlock(pw) {
   }, 700);
 }
 
+function pwForceReset() {
+  if (!confirm('Clear all stored data and reset the passphrase?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
 (function pwInit() {
   const gateEl = document.createElement('div');
   gateEl.id = 'pw-gate';
@@ -9017,12 +9026,6 @@ function pwUnlock(pw) {
     if (inp) inp.focus();
   }, 100);
 })();
-
-function pwForceReset() {
-  if (!confirm('Clear all stored data and reset the passphrase?')) return;
-  localStorage.clear();
-  location.reload();
-}
 
 function pwReset() {
   if (!confirm('This clears all stored data including your Worker URL. Continue?')) return;

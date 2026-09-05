@@ -100,21 +100,13 @@ body {
   max-width: 0;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   animation: rise 0.8s ease both;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 2;
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-#entry.unlocked-entry {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
 }
 #entry > * { pointer-events: auto; }
 
@@ -1444,92 +1436,17 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
 }
-#pw-gate.unlocked {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.6s ease;
-}
-.pw-title {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: rgba(180,140,80,0.4);
-  margin-bottom: 48px;
-}
-.pw-form {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 260px;
-}
-.pw-input {
-  width: 100%;
-  background: none;
-  border: none;
-  border-bottom: 1px solid rgba(180,140,80,0.25);
-  color: rgba(200,160,90,0.9);
-  font-family: 'DM Mono', monospace;
-  font-size: 16px;
-  letter-spacing: 0.15em;
-  padding: 8px 0;
-  text-align: center;
-  outline: none;
-  transition: border-color 0.3s;
-}
-.pw-input:focus {
-  border-bottom-color: rgba(180,140,80,0.7);
-}
-.pw-input::placeholder {
-  color: rgba(180,140,80,0.2);
-  letter-spacing: 0.2em;
-  font-size: 12px;
-}
-.pw-btn {
-  background: none;
-  border: 1px solid rgba(180,140,80,0.3);
-  color: rgba(180,140,80,0.6);
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  padding: 10px 28px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 8px;
-}
-.pw-btn:hover {
-  border-color: rgba(180,140,80,0.7);
-  color: rgba(180,140,80,1);
-}
-.pw-err {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  color: rgba(200,80,60,0.7);
-  min-height: 14px;
-  text-align: center;
-}
-.pw-hint {
-  font-family: 'DM Mono', monospace;
-  font-size: 8px;
-  letter-spacing: 0.2em;
-  color: rgba(180,140,80,0.15);
-  margin-top: 48px;
-  text-align: center;
-  line-height: 1.8;
-}
-.pw-setup {
-  font-family: 'DM Mono', monospace;
-  font-size: 8px;
-  letter-spacing: 0.2em;
-  color: rgba(180,140,80,0.3);
-  text-align: center;
-  margin-bottom: 8px;
-}
+#pw-gate.unlocked { opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
+.pw-title { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(180,140,80,0.4); margin-bottom: 48px; }
+.pw-form { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 260px; }
+.pw-input { width: 100%; background: none; border: none; border-bottom: 1px solid rgba(180,140,80,0.25); color: rgba(200,160,90,0.9); font-family: 'DM Mono', monospace; font-size: 16px; letter-spacing: 0.15em; padding: 8px 0; text-align: center; outline: none; }
+.pw-input::placeholder { color: rgba(180,140,80,0.2); font-size: 12px; }
+.pw-btn { background: none; border: 1px solid rgba(180,140,80,0.3); color: rgba(180,140,80,0.6); font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; padding: 10px 28px; cursor: pointer; margin-top: 8px; }
+.pw-btn:hover { border-color: rgba(180,140,80,0.7); color: rgba(180,140,80,1); }
+.pw-err { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(200,80,60,0.7); min-height: 14px; text-align: center; }
+.pw-setup { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.2em; color: rgba(180,140,80,0.3); text-align: center; margin-bottom: 8px; }
+.pw-hint { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.2em; color: rgba(180,140,80,0.15); margin-top: 48px; text-align: center; line-height: 1.8; }
 </style>
 </head>
 <body>
@@ -1548,8 +1465,7 @@ body {
   <span id="leg-word" style="display:none;"></span>
 
 
-
-<canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
+  <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
   <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
@@ -1707,14 +1623,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-load" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -1897,14 +1810,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-map" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -1977,14 +1887,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-aim" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2048,14 +1955,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-fire" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2108,14 +2012,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-reload" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2274,14 +2175,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-train" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2418,14 +2316,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-sim" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2516,14 +2411,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-formulas" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2728,14 +2620,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-wiring" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2794,14 +2683,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-projects" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2880,14 +2766,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-forge" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -2989,14 +2872,11 @@ body {
           <span class="ai-config-label">Model</span>
           <select id="ai-model-lens" onchange="saveAIModel(this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
             <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             <option value="qwen/qwen3-32b">Qwen3-32B</option>
-            <option value="moonshotai/kimi-k2-instruct">Kimi K2</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2</option>
           </select>
         </div>
       </div>
@@ -3007,17 +2887,6 @@ body {
 </div><!-- end app -->
 
 <script>
-
-// ── EARLY DECLARATIONS (required before AI section) ──
-const PW_HASH_KEY    = 'dr_pw_hash';
-const PW_URL_KEY     = 'dr_pw_url';
-const PW_MODEL_KEY   = 'dr_pw_model';
-const AI_WORKER_KEY  = 'dr_ai_worker_url';
-const AI_MODEL_KEY   = 'dr_ai_model';
-const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b';
-let _decryptedWorkerUrl = '';
-let _decryptedModel = '';
-let _sessionPw = '';
 // ====================================
 // STATE
 // ====================================
@@ -6050,18 +5919,10 @@ function orbInit() {
   // Clear any stale saved positions so defaults always apply
   orbCustomPos = {};
   localStorage.removeItem('dr_orb_pos');
-  localStorage.removeItem('dr_orb_custom');
-  localStorage.removeItem('dr_orb_zoom');
-  localStorage.removeItem('dr_orb_pan');
 
-  // Zoom based on screen size
+  // Desktop: zoom out so all rings fit within viewport
   if (window.innerWidth > 900) {
     ORB.zoom = ORB.zoomTarget = 0.6;
-    ORB.pan.x = ORB.panTarget.x = 0;
-    ORB.pan.y = ORB.panTarget.y = 0;
-  } else {
-    // Mobile — zoom out more so all orbs fit
-    ORB.zoom = ORB.zoomTarget = 0.25;
     ORB.pan.x = ORB.panTarget.x = 0;
     ORB.pan.y = ORB.panTarget.y = 0;
   }
@@ -8631,9 +8492,11 @@ DR_KEYS.push('dr_custom_formulas');
 
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────
 
-// declarations moved to top
+const AI_WORKER_KEY = 'dr_ai_worker_url';
+const AI_MODEL_KEY = 'dr_ai_model';
+const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b'; // fallback
 
-// getAIModel and saveAIModel defined in password gate section
+// getAIModel/saveAIModel overridden by password gate
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
 
 // Per-chamber conversation history
@@ -8655,7 +8518,7 @@ const AI_CHAMBER_CONTEXT = {
   forge:     'FORGE chamber — the user is building or creating something. Help them think through the design, the decisions, and the path from idea to made thing.',
 };
 
-// getWorkerUrl and saveWorkerUrl defined in password gate section
+// getWorkerUrl/saveWorkerUrl overridden by password gate
 
 function getAIStates() {
   try { return JSON.parse(localStorage.getItem(AI_STATES_KEY) || '{}'); } catch { return {}; }
@@ -8833,206 +8696,99 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 
 
 
-// ── PASSWORD GATE (simple hash) ─────────────────────────────────────
-
-// declarations moved to top
+// ── PASSWORD GATE ─────────────────────────────────────────────────
+const PW_HASH_KEY   = 'dr_pw_hash';
+const PW_URL_KEY    = 'dr_pw_url';
+const PW_MODEL_KEY  = 'dr_pw_model';
+let _decryptedWorkerUrl = '';
+let _decryptedModel = '';
+let _sessionPw = '';
 
 function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash.toString(16);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
+  return h.toString(16);
 }
-
 function simpleEncrypt(text, pw) {
-  let result = '';
-  for (let i = 0; i < text.length; i++) {
-    result += String.fromCharCode(text.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
-  }
-  return btoa(result);
+  let r = '';
+  for (let i = 0; i < text.length; i++) r += String.fromCharCode(text.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
+  return btoa(r);
 }
-
 function simpleDecrypt(enc, pw) {
   try {
-    const text = atob(enc);
-    let result = '';
-    for (let i = 0; i < text.length; i++) {
-      result += String.fromCharCode(text.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
-    }
-    return result;
+    const t = atob(enc); let r = '';
+    for (let i = 0; i < t.length; i++) r += String.fromCharCode(t.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
+    return r;
   } catch { return ''; }
 }
-
-function pwIsFirstTime() {
-  return !localStorage.getItem(PW_HASH_KEY);
-}
-
+function pwIsFirstTime() { return !localStorage.getItem(PW_HASH_KEY); }
 function getWorkerUrl() { return _decryptedWorkerUrl; }
 function getAIModel() { return _decryptedModel || AI_DEFAULT_MODEL; }
-
 async function saveWorkerUrl(url) {
   _decryptedWorkerUrl = url.trim();
-  if (_sessionPw) {
-    localStorage.setItem(PW_URL_KEY, simpleEncrypt(url.trim(), _sessionPw));
-    localStorage.removeItem(AI_WORKER_KEY);
-  }
+  if (_sessionPw) localStorage.setItem(PW_URL_KEY, simpleEncrypt(url.trim(), _sessionPw));
   syncAllUrls(url.trim());
 }
-
 async function saveAIModel(val) {
   _decryptedModel = val;
-  if (_sessionPw) {
-    localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(val, _sessionPw));
-    localStorage.removeItem(AI_MODEL_KEY);
-  }
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
+  if (_sessionPw) localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(val, _sessionPw));
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = val);
 }
-
-async function pwSubmit() {
-  const input = document.getElementById('pw-input');
-  const errEl = document.getElementById('pw-err');
-  const pw = input.value.trim();
-  if (!pw) { errEl.textContent = 'enter a passphrase'; return; }
-
-  errEl.textContent = '';
-
+function pwSubmit() {
+  const inp = document.getElementById('pw-input');
+  const err = document.getElementById('pw-err');
+  const pw = inp.value.trim();
+  if (!pw) { err.textContent = 'enter a passphrase'; return; }
+  err.textContent = '';
   if (pwIsFirstTime()) {
-    // Save hash
     localStorage.setItem(PW_HASH_KEY, simpleHash(pw));
     _sessionPw = pw;
-
-    // Migrate existing plain Worker URL
-    const existingUrl = localStorage.getItem(AI_WORKER_KEY) || '';
-    if (existingUrl) {
-      localStorage.setItem(PW_URL_KEY, simpleEncrypt(existingUrl, pw));
-      localStorage.removeItem(AI_WORKER_KEY);
-    }
-    const existingModel = localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
-    localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(existingModel, pw));
-    localStorage.removeItem(AI_MODEL_KEY);
-
+    const existingUrl = localStorage.getItem('dr_ai_worker_url') || '';
+    if (existingUrl) { localStorage.setItem(PW_URL_KEY, simpleEncrypt(existingUrl, pw)); localStorage.removeItem('dr_ai_worker_url'); }
+    const existingModel = localStorage.getItem('dr_ai_model') || AI_DEFAULT_MODEL;
+    localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(existingModel, pw)); localStorage.removeItem('dr_ai_model');
     pwUnlock(pw);
-
   } else {
-    const stored = localStorage.getItem(PW_HASH_KEY);
-    if (simpleHash(pw) === stored) {
-      _sessionPw = pw;
-      pwUnlock(pw);
-    } else {
-      errEl.textContent = 'wrong passphrase';
-      input.value = '';
-      input.focus();
-    }
+    if (simpleHash(pw) === localStorage.getItem(PW_HASH_KEY)) { _sessionPw = pw; pwUnlock(pw); }
+    else { err.textContent = 'wrong passphrase'; inp.value = ''; inp.focus(); }
   }
 }
-
 function pwUnlock(pw) {
   const urlEnc = localStorage.getItem(PW_URL_KEY);
   if (urlEnc) _decryptedWorkerUrl = simpleDecrypt(urlEnc, pw);
-
+  if (!_decryptedWorkerUrl) _decryptedWorkerUrl = localStorage.getItem('dr_ai_worker_url') || '';
   const modelEnc = localStorage.getItem(PW_MODEL_KEY);
-  if (modelEnc) _decryptedModel = simpleDecrypt(modelEnc, pw);
-  else _decryptedModel = AI_DEFAULT_MODEL;
-
-  // Also check plain (migration from before password gate)
-  if (!_decryptedWorkerUrl) {
-    _decryptedWorkerUrl = localStorage.getItem(AI_WORKER_KEY) || '';
-  }
-
-  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => { inp.value = _decryptedWorkerUrl; });
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = _decryptedModel; });
-
+  _decryptedModel = modelEnc ? simpleDecrypt(modelEnc, pw) : AI_DEFAULT_MODEL;
+  document.querySelectorAll('[id^="ai-url-"]').forEach(i => i.value = _decryptedWorkerUrl);
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = _decryptedModel);
   const gate = document.getElementById('pw-gate');
   gate.classList.add('unlocked');
-  setTimeout(() => {
-    gate.style.display = 'none';
-    document.getElementById('entry')?.classList.add('unlocked-entry');
-  }, 700);
+  setTimeout(() => gate.remove(), 700);
 }
-
 function pwForceReset() {
-  if (!confirm('Clear all stored data and reset the passphrase?')) return;
-  localStorage.clear();
-  location.reload();
+  if (!confirm('Clear all data and reset passphrase?')) return;
+  localStorage.clear(); location.reload();
 }
-
-(function pwInit() {
-  const gateEl = document.createElement('div');
-  gateEl.id = 'pw-gate';
-
-  const pwTitle = document.createElement('div');
-  pwTitle.className = 'pw-title';
-  pwTitle.textContent = 'THE SYSTEM';
-
-  const pwForm = document.createElement('div');
-  pwForm.className = 'pw-form';
-
-  const pwSetup = document.createElement('div');
-  pwSetup.className = 'pw-setup';
-  pwSetup.id = 'pw-setup-label';
-
-  const pwInput = document.createElement('input');
-  pwInput.className = 'pw-input';
-  pwInput.id = 'pw-input';
-  pwInput.type = 'password';
-  pwInput.placeholder = 'enter passphrase';
-  pwInput.autocomplete = 'current-password';
-  pwInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') pwSubmit(); });
-
-  const pwErr = document.createElement('div');
-  pwErr.className = 'pw-err';
-  pwErr.id = 'pw-err';
-
-  const pwBtn = document.createElement('button');
-  pwBtn.className = 'pw-btn';
-  pwBtn.textContent = 'enter';
-  pwBtn.onclick = pwSubmit;
-
-  pwForm.appendChild(pwSetup);
-  pwForm.appendChild(pwInput);
-  pwForm.appendChild(pwErr);
-  pwForm.appendChild(pwBtn);
-
-  const pwHint = document.createElement('div');
-  pwHint.className = 'pw-hint';
-  pwHint.id = 'pw-hint';
-
-  const pwResetBar = document.createElement('div');
-  pwResetBar.style.cssText = 'position:absolute;bottom:24px;left:0;right:0;text-align:center;';
-  const pwResetLink = document.createElement('span');
-  pwResetLink.style.cssText = "font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;";
-  pwResetLink.textContent = 'clear all data & reset';
-  pwResetLink.onclick = pwForceReset;
-  pwResetBar.appendChild(pwResetLink);
-
-  gateEl.appendChild(pwTitle);
-  gateEl.appendChild(pwForm);
-  gateEl.appendChild(pwHint);
-  gateEl.appendChild(pwResetBar);
-  document.body.appendChild(gateEl);
-
-  const label = document.getElementById('pw-setup-label');
-  const hint  = document.getElementById('pw-hint');
-  if (pwIsFirstTime()) {
-    if (label) label.textContent = 'first time - set your passphrase';
-    if (hint) hint.innerHTML = 'this passphrase locks the entire system<br>do not lose it';
-  } else {
-    if (hint) hint.innerHTML = 'passphrase required to enter<br><br><span style="opacity:0.4;cursor:pointer;text-decoration:underline;" onclick="pwReset()">reset everything</span>';
-  }
-  setTimeout(function() {
-    var inp = document.getElementById('pw-input');
-    if (inp) inp.focus();
-  }, 100);
-})();
-
-function pwReset() {
-  if (!confirm('This clears all stored data including your Worker URL. Continue?')) return;
-  [PW_HASH_KEY, PW_URL_KEY, PW_MODEL_KEY, AI_WORKER_KEY, AI_MODEL_KEY].forEach(k => localStorage.removeItem(k));
-  location.reload();
+function pwBuild() {
+  const g = document.createElement('div'); g.id = 'pw-gate';
+  const title = document.createElement('div'); title.className = 'pw-title'; title.textContent = 'THE SYSTEM';
+  const form = document.createElement('div'); form.className = 'pw-form';
+  const setup = document.createElement('div'); setup.className = 'pw-setup'; setup.id = 'pw-setup-label';
+  const inp = document.createElement('input'); inp.className = 'pw-input'; inp.id = 'pw-input'; inp.type = 'password'; inp.placeholder = 'enter passphrase'; inp.autocomplete = 'current-password'; inp.addEventListener('keydown', function(e){ if(e.key==='Enter') pwSubmit(); });
+  const err = document.createElement('div'); err.className = 'pw-err'; err.id = 'pw-err';
+  const btn = document.createElement('button'); btn.className = 'pw-btn'; btn.textContent = 'enter'; btn.onclick = pwSubmit;
+  form.append(setup, inp, err, btn);
+  const hint = document.createElement('div'); hint.className = 'pw-hint'; hint.id = 'pw-hint';
+  const resetBar = document.createElement('div'); resetBar.style.cssText = 'position:absolute;bottom:24px;left:0;right:0;text-align:center;';
+  const resetLink = document.createElement('span'); resetLink.style.cssText = "font-family:'DM Mono',monospace;font-size:8px;color:rgba(180,140,80,0.2);cursor:pointer;text-decoration:underline;"; resetLink.textContent = 'clear all data & reset'; resetLink.onclick = pwForceReset;
+  resetBar.appendChild(resetLink);
+  g.append(title, form, hint, resetBar);
+  document.body.appendChild(g);
+  if (pwIsFirstTime()) { setup.textContent = 'first time - set your passphrase'; hint.innerHTML = 'this passphrase locks the entire system<br>do not lose it'; }
+  else { hint.innerHTML = 'passphrase required to enter'; }
+  setTimeout(function(){ inp.focus(); }, 100);
 }
-
+window.addEventListener('DOMContentLoaded', pwBuild);
 
 </script>
 </body>

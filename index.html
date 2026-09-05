@@ -2978,13 +2978,15 @@ body {
 <script>
 
 // ── EARLY DECLARATIONS (required before AI section) ──
-const PW_HASH_KEY   = 'dr_pw_hash';
-const PW_URL_KEY    = 'dr_pw_url';
-const PW_MODEL_KEY  = 'dr_pw_model';
+const PW_HASH_KEY    = 'dr_pw_hash';
+const PW_URL_KEY     = 'dr_pw_url';
+const PW_MODEL_KEY   = 'dr_pw_model';
+const AI_WORKER_KEY  = 'dr_ai_worker_url';
+const AI_MODEL_KEY   = 'dr_ai_model';
+const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b';
 let _decryptedWorkerUrl = '';
 let _decryptedModel = '';
 let _sessionPw = '';
-// declarations moved to top
 // ====================================
 // STATE
 // ====================================

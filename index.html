@@ -8858,14 +8858,13 @@ async function pwSubmit() {
   const pw = input.value.trim();
   if (!pw) { errEl.textContent = 'enter a passphrase'; return; }
 
-  errEl.textContent = '';
+  errEl.textContent = 'working…';
   const salt = pwGetSalt();
 
   try {
     const key = await pwDeriveKey(pw, salt);
 
     if (pwIsFirstTime()) {
-      // First time — set up: encrypt verify token + Worker URL if already in localStorage
       const verifyEnc = await pwEncrypt(key, VERIFY_TEXT);
       localStorage.setItem(PW_VERIFY_KEY, verifyEnc);
 
@@ -8874,7 +8873,7 @@ async function pwSubmit() {
       if (existingUrl) {
         const urlEnc = await pwEncrypt(key, existingUrl);
         localStorage.setItem(PW_URL_KEY, urlEnc);
-        localStorage.removeItem(AI_WORKER_KEY); // remove plain version
+        localStorage.removeItem(AI_WORKER_KEY);
       }
 
       // Migrate existing model pref
@@ -8887,7 +8886,6 @@ async function pwSubmit() {
       await pwUnlock(key);
 
     } else {
-      // Verify password
       const verifyEnc = localStorage.getItem(PW_VERIFY_KEY);
       try {
         const verified = await pwDecrypt(key, verifyEnc);
@@ -8901,7 +8899,8 @@ async function pwSubmit() {
       }
     }
   } catch(e) {
-    if (e.message !== 'wrong') console.error(e);
+    console.error('pwSubmit error:', e);
+    errEl.textContent = 'error — try again';
   }
 }
 
@@ -8981,12 +8980,18 @@ async function saveAIModel(val) {
   const hint  = document.getElementById('pw-hint');
   if (pwIsFirstTime()) {
     if (label) label.textContent = 'first time — set your passphrase';
-    if (hint) hint.innerHTML = 'this passphrase encrypts your API connection<br>and locks the entire system<br>do not lose it';
+    if (hint) hint.innerHTML = 'this passphrase encrypts your api connection<br>and locks the entire system<br>do not lose it';
   } else {
-    if (hint) hint.innerHTML = 'passphrase required to enter';
+    if (hint) hint.innerHTML = 'passphrase required to enter<br><br><span style="opacity:0.4;cursor:pointer;text-decoration:underline;" onclick="pwReset()">reset everything</span>';
   }
   document.getElementById('pw-input')?.focus();
 })();
+
+function pwReset() {
+  if (!confirm('This clears all stored data including your encrypted Worker URL. Continue?')) return;
+  [PW_SALT_KEY, PW_VERIFY_KEY, PW_URL_KEY, PW_MODEL_KEY].forEach(k => localStorage.removeItem(k));
+  location.reload();
+}
 
 
 </script>

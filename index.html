@@ -8796,60 +8796,67 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 
 
 
-// ── PASSWORD GATE + CRYPTO ────────────────────────────────────────
+// ── PASSWORD GATE (simple hash) ─────────────────────────────────────
 
-const PW_SALT_KEY   = 'dr_pw_salt';
-const PW_VERIFY_KEY = 'dr_pw_verify';
-const PW_URL_KEY    = 'dr_pw_url';   // encrypted Worker URL
-const PW_MODEL_KEY  = 'dr_pw_model'; // encrypted model pref
-const VERIFY_TEXT   = 'darkroom-verified';
+const PW_HASH_KEY   = 'dr_pw_hash';
+const PW_URL_KEY    = 'dr_pw_url';
+const PW_MODEL_KEY  = 'dr_pw_model';
 
-let _sessionKey = null; // CryptoKey held in memory only
+let _decryptedWorkerUrl = '';
+let _decryptedModel = '';
+let _sessionPw = '';
 
-async function pwDeriveKey(password, salt) {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 10000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-async function pwEncrypt(key, plaintext) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
-  // Store as base64(iv) + '.' + base64(ct)
-  const b64 = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
-  return b64(iv) + '.' + b64(ct);
-}
-
-async function pwDecrypt(key, ciphertext) {
-  const [ivB64, ctB64] = ciphertext.split('.');
-  const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  const iv = b64d(ivB64);
-  const ct = b64d(ctB64);
-  const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  return new TextDecoder().decode(dec);
-}
-
-function pwGetSalt() {
-  let s = localStorage.getItem(PW_SALT_KEY);
-  if (!s) {
-    const arr = crypto.getRandomValues(new Uint8Array(16));
-    s = btoa(String.fromCharCode(...arr));
-    localStorage.setItem(PW_SALT_KEY, s);
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
   }
-  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  return hash.toString(16);
+}
+
+function simpleEncrypt(text, pw) {
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(text.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
+  }
+  return btoa(result);
+}
+
+function simpleDecrypt(enc, pw) {
+  try {
+    const text = atob(enc);
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ pw.charCodeAt(i % pw.length));
+    }
+    return result;
+  } catch { return ''; }
 }
 
 function pwIsFirstTime() {
-  return !localStorage.getItem(PW_VERIFY_KEY);
+  return !localStorage.getItem(PW_HASH_KEY);
+}
+
+function getWorkerUrl() { return _decryptedWorkerUrl; }
+function getAIModel() { return _decryptedModel || AI_DEFAULT_MODEL; }
+
+async function saveWorkerUrl(url) {
+  _decryptedWorkerUrl = url.trim();
+  if (_sessionPw) {
+    localStorage.setItem(PW_URL_KEY, simpleEncrypt(url.trim(), _sessionPw));
+    localStorage.removeItem(AI_WORKER_KEY);
+  }
+  syncAllUrls(url.trim());
+}
+
+async function saveAIModel(val) {
+  _decryptedModel = val;
+  if (_sessionPw) {
+    localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(val, _sessionPw));
+    localStorage.removeItem(AI_MODEL_KEY);
+  }
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
 }
 
 async function pwSubmit() {
@@ -8858,138 +8865,74 @@ async function pwSubmit() {
   const pw = input.value.trim();
   if (!pw) { errEl.textContent = 'enter a passphrase'; return; }
 
-  errEl.textContent = 'working…';
-  const salt = pwGetSalt();
+  errEl.textContent = '';
 
-  try {
-    const key = await pwDeriveKey(pw, salt);
+  if (pwIsFirstTime()) {
+    // Save hash
+    localStorage.setItem(PW_HASH_KEY, simpleHash(pw));
+    _sessionPw = pw;
 
-    if (pwIsFirstTime()) {
-      const verifyEnc = await pwEncrypt(key, VERIFY_TEXT);
-      localStorage.setItem(PW_VERIFY_KEY, verifyEnc);
-
-      // Migrate existing plain Worker URL to encrypted
-      const existingUrl = localStorage.getItem(AI_WORKER_KEY) || '';
-      if (existingUrl) {
-        const urlEnc = await pwEncrypt(key, existingUrl);
-        localStorage.setItem(PW_URL_KEY, urlEnc);
-        localStorage.removeItem(AI_WORKER_KEY);
-      }
-
-      // Migrate existing model pref
-      const existingModel = localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
-      const modelEnc = await pwEncrypt(key, existingModel);
-      localStorage.setItem(PW_MODEL_KEY, modelEnc);
-      localStorage.removeItem(AI_MODEL_KEY);
-
-      _sessionKey = key;
-      await pwUnlock(key);
-
-    } else {
-      const verifyEnc = localStorage.getItem(PW_VERIFY_KEY);
-      try {
-        const verified = await pwDecrypt(key, verifyEnc);
-        if (verified !== VERIFY_TEXT) throw new Error('wrong');
-        _sessionKey = key;
-        await pwUnlock(key);
-      } catch {
-        errEl.textContent = 'wrong passphrase';
-        input.value = '';
-        input.focus();
-      }
+    // Migrate existing plain Worker URL
+    const existingUrl = localStorage.getItem(AI_WORKER_KEY) || '';
+    if (existingUrl) {
+      localStorage.setItem(PW_URL_KEY, simpleEncrypt(existingUrl, pw));
+      localStorage.removeItem(AI_WORKER_KEY);
     }
-  } catch(e) {
-    console.error('pwSubmit error:', e);
-    errEl.textContent = 'error — try again';
+    const existingModel = localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
+    localStorage.setItem(PW_MODEL_KEY, simpleEncrypt(existingModel, pw));
+    localStorage.removeItem(AI_MODEL_KEY);
+
+    pwUnlock(pw);
+
+  } else {
+    const stored = localStorage.getItem(PW_HASH_KEY);
+    if (simpleHash(pw) === stored) {
+      _sessionPw = pw;
+      pwUnlock(pw);
+    } else {
+      errEl.textContent = 'wrong passphrase';
+      input.value = '';
+      input.focus();
+    }
   }
 }
 
-async function pwUnlock(key) {
-  // Decrypt Worker URL into memory (not back to localStorage plain)
+function pwUnlock(pw) {
   const urlEnc = localStorage.getItem(PW_URL_KEY);
-  if (urlEnc) {
-    try {
-      const url = await pwDecrypt(key, urlEnc);
-      _decryptedWorkerUrl = url;
-    } catch { _decryptedWorkerUrl = ''; }
-  }
+  if (urlEnc) _decryptedWorkerUrl = simpleDecrypt(urlEnc, pw);
 
-  // Decrypt model pref
   const modelEnc = localStorage.getItem(PW_MODEL_KEY);
-  if (modelEnc) {
-    try {
-      const model = await pwDecrypt(key, modelEnc);
-      _decryptedModel = model;
-    } catch { _decryptedModel = AI_DEFAULT_MODEL; }
+  if (modelEnc) _decryptedModel = simpleDecrypt(modelEnc, pw);
+  else _decryptedModel = AI_DEFAULT_MODEL;
+
+  // Also check plain (migration from before password gate)
+  if (!_decryptedWorkerUrl) {
+    _decryptedWorkerUrl = localStorage.getItem(AI_WORKER_KEY) || '';
   }
 
-  // Populate URL fields
-  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => {
-    inp.value = _decryptedWorkerUrl || '';
-  });
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => {
-    s.value = _decryptedModel || AI_DEFAULT_MODEL;
-  });
+  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => { inp.value = _decryptedWorkerUrl; });
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = _decryptedModel; });
 
-  // Dismiss gate
   const gate = document.getElementById('pw-gate');
   gate.classList.add('unlocked');
   setTimeout(() => gate.style.display = 'none', 700);
-
-  // Focus the password input on first-time for good UX
-  document.getElementById('pw-input').blur();
 }
 
-// Override getWorkerUrl to use in-memory decrypted value
-let _decryptedWorkerUrl = '';
-let _decryptedModel = '';
-
-function getWorkerUrl() {
-  return _decryptedWorkerUrl;
-}
-
-function getAIModel() {
-  return _decryptedModel || AI_DEFAULT_MODEL;
-}
-
-// Override saveWorkerUrl to encrypt before storing
-async function saveWorkerUrl(url) {
-  _decryptedWorkerUrl = url.trim();
-  if (_sessionKey) {
-    const enc = await pwEncrypt(_sessionKey, url.trim());
-    localStorage.setItem(PW_URL_KEY, enc);
-    localStorage.removeItem(AI_WORKER_KEY); // never store plain
-  }
-  syncAllUrls(url.trim());
-}
-
-// Override saveAIModel to encrypt before storing
-async function saveAIModel(val) {
-  _decryptedModel = val;
-  if (_sessionKey) {
-    const enc = await pwEncrypt(_sessionKey, val);
-    localStorage.setItem(PW_MODEL_KEY, enc);
-    localStorage.removeItem(AI_MODEL_KEY);
-  }
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
-}
-
-// Show first-time vs returning label
 (function pwInit() {
   const label = document.getElementById('pw-setup-label');
   const hint  = document.getElementById('pw-hint');
   if (pwIsFirstTime()) {
     if (label) label.textContent = 'first time — set your passphrase';
-    if (hint) hint.innerHTML = 'this passphrase encrypts your api connection<br>and locks the entire system<br>do not lose it';
+    if (hint) hint.innerHTML = 'this passphrase locks the entire system<br>do not lose it';
   } else {
     if (hint) hint.innerHTML = 'passphrase required to enter<br><br><span style="opacity:0.4;cursor:pointer;text-decoration:underline;" onclick="pwReset()">reset everything</span>';
   }
-  document.getElementById('pw-input')?.focus();
+  setTimeout(() => document.getElementById('pw-input')?.focus(), 100);
 })();
 
 function pwReset() {
-  if (!confirm('This clears all stored data including your encrypted Worker URL. Continue?')) return;
-  [PW_SALT_KEY, PW_VERIFY_KEY, PW_URL_KEY, PW_MODEL_KEY].forEach(k => localStorage.removeItem(k));
+  if (!confirm('This clears all stored data including your Worker URL. Continue?')) return;
+  [PW_HASH_KEY, PW_URL_KEY, PW_MODEL_KEY, AI_WORKER_KEY, AI_MODEL_KEY].forEach(k => localStorage.removeItem(k));
   location.reload();
 }
 

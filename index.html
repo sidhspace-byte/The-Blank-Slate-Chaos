@@ -2095,6 +2095,12 @@ body {
         <button class="btn-ghost" id="next-ex-btn" onclick="nextEx()">Next exercise →</button>
       </div>
 
+      <!-- AI Feedback -->
+      <div id="train-ai-feedback" style="display:none;margin-top:28px;border-top:1px solid var(--border);padding-top:20px;">
+        <div style="font-size:8px;letter-spacing:0.25em;text-transform:uppercase;color:var(--train);margin-bottom:12px;">AI coaching</div>
+        <div id="train-ai-feedback-body" style="font-size:13px;line-height:1.7;color:var(--ink-2);"></div>
+      </div>
+
       <!-- Weekly reflection — Sundays only -->
       <div id="weekly-block" style="display:none;margin-top:40px;">
         <div style="font-size:7px;letter-spacing:0.35em;text-transform:uppercase;color:var(--train);padding-bottom:14px;border-bottom:1px solid rgba(56,168,204,0.2);margin-bottom:20px;">weekly reflection</div>
@@ -5548,21 +5554,46 @@ async function startSim(){
   const context=document.getElementById('sim-context').value.trim();
   const setup=`Start the simulation. Set the scene in ONE sentence -- where we are, who you are, what just happened. Then deliver your opening line.${context?' Context: '+context:''}`;
 
-  await localThink(600);
   const simType2 = SIM_TYPES[simType]||'Situation';
-  const openings = {
-    presentation: `You're about to present to the client. I've reviewed the brief. One concern before you start — can we talk through the approach?`,
-    negotiation: `Thanks for coming in. I'll be direct with you — we have a number in mind and I want to understand where you're coming from before we go further.`,
-    feedback: `I wanted to catch you before the week ends. There's something I've been meaning to address and I think now is the right time.`,
-    conflict: `I need you to hear me out. This isn't easy to say but something happened that I can't let go without addressing it.`,
-    authority: `The decision's been made. I understand you have concerns but we're moving forward. What I need from you now is execution, not debate.`
-  };
-  const opening = openings[simType] || openings.feedback;
   const scenario = `${simType2} — ${simDiff} difficulty`;
   { const _t=document.getElementById('sim-scenario'); if(_t) _t.textContent=scenario; }
   { const _t=document.getElementById('sim-scenario-label'); if(_t) _t.textContent=simType2+' — '+simDiff; }
-  simHistory.push({role:'assistant',content:opening});
-  addSimMsg(opening,'them');
+
+  const workerUrlSim = getWorkerUrl();
+  if (workerUrlSim) {
+    try {
+      const openSys = `You are roleplaying as the other person in a ${simType2} simulation at ${simDiff} difficulty. Open the scene with ONE short sentence setting the scene, then deliver your opening line — stay in character, no meta-commentary. Context: ${context||'none provided'}.`;
+      const res = await fetch(workerUrlSim, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: getAIModel(),
+          messages: [{ role: 'system', content: openSys }, { role: 'user', content: 'Begin.' }],
+          max_tokens: 150
+        })
+      });
+      const data = await res.json();
+      const groq = data.body || data;
+      const opening = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || `Let's begin the simulation.`;
+      simHistory.push({role:'assistant',content:opening});
+      addSimMsg(opening,'them');
+    } catch(e) {
+      const opening = `Let's begin. I wanted to talk to you about something important.`;
+      simHistory.push({role:'assistant',content:opening});
+      addSimMsg(opening,'them');
+    }
+  } else {
+    const openings = {
+      presentation: `You're about to present to the client. I've reviewed the brief — one concern before you start.`,
+      negotiation: `Thanks for coming in. I'll be direct — we have a number in mind.`,
+      feedback: `I wanted to catch you before the week ends. There's something I need to address.`,
+      conflict: `I need you to hear me out. Something happened I can't let go.`,
+      authority: `The decision's been made. What I need from you now is execution, not debate.`
+    };
+    const opening = openings[simType] || openings.feedback;
+    simHistory.push({role:'assistant',content:opening});
+    addSimMsg(opening,'them');
+  }
 
   think.classList.remove('on'); btn.disabled=false;
   document.getElementById('sim-response').focus();
@@ -5580,32 +5611,44 @@ async function sendSimResponse(){
   { const _t=document.getElementById('sim-think-txt'); if(_t) _t.textContent='In character...'; }
   think.classList.add('on');
 
-  await localThink(500 + Math.random()*400);
-  // Local sim response — escalate or de-escalate based on turn count and response quality
-  const resp2 = simHistory[simHistory.length-1]?.content || '';
-  const isAssertive = /\b(understand|clear|point|agree|fair|yes|will|can|let|propose|suggest)\b/i.test(resp2);
-  const isAvoiding = resp2.length < 20 || /\b(ok|fine|sure|whatever|yeah|right)\b/i.test(resp2);
-  
-  const escalate = [
-    `I hear what you're saying but that's not addressing my actual concern.`,
-    `Let me push back on that — what you're describing doesn't solve the underlying issue.`,
-    `I'm going to be honest, that response doesn't give me confidence.`
-  ];
-  const neutral = [
-    `I see your point. Walk me through how that would work in practice.`,
-    `That's one way to look at it. What's your basis for that position?`,
-    `Okay. And what happens if that approach doesn't work as planned?`
-  ];
-  const deescalate = [
-    `That's a reasonable position. I can work with that.`,
-    `Fair point. Let's focus on the core issue then.`,
-    `I appreciate the clarity. That helps.`
-  ];
-  
-  const pool = isAvoiding ? escalate : isAssertive ? deescalate : neutral;
-  const text = pool[simTurnCount % pool.length];
-  simHistory.push({role:'assistant',content:text});
-  addSimMsg(text,'them');
+  const workerUrl = getWorkerUrl();
+  if (workerUrl) {
+    try {
+      const simType2 = SIM_TYPES[simType] || 'Situation';
+      const simSys = `You are roleplaying as the other person in a ${simType2} simulation at ${simDiff} difficulty. Stay in character completely. Respond naturally as that person would — don't break character, don't explain what you're doing. Keep responses short (1-3 sentences). React authentically to what the user says — push back if they're vague, soften if they're direct and clear. Context: ${document.getElementById('sim-context')?.value || 'none provided'}.`;
+      const res = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: getAIModel(),
+          messages: [{ role: 'system', content: simSys }, ...simHistory],
+          max_tokens: 200
+        })
+      });
+      const data = await res.json();
+      const groq = data.body || data;
+      const text = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'I need a moment to think about that.';
+      simHistory.push({role:'assistant',content:text});
+      addSimMsg(text,'them');
+    } catch(e) {
+      const text = 'Something came up — give me a second.';
+      simHistory.push({role:'assistant',content:text});
+      addSimMsg(text,'them');
+    }
+  } else {
+    // Fallback to local if no Worker URL
+    await localThink(500 + Math.random()*400);
+    const resp2 = simHistory[simHistory.length-1]?.content || '';
+    const isAssertive = /\b(understand|clear|point|agree|fair|yes|will|can|let|propose|suggest)\b/i.test(resp2);
+    const isAvoiding = resp2.length < 20 || /\b(ok|fine|sure|whatever|yeah|right)\b/i.test(resp2);
+    const escalate = [`I hear what you're saying but that's not addressing my actual concern.`,`Let me push back on that — what you're describing doesn't solve the underlying issue.`];
+    const neutral = [`I see your point. Walk me through how that would work in practice.`,`That's one way to look at it. What's your basis for that position?`];
+    const deescalate = [`That's a reasonable position. I can work with that.`,`Fair point. Let's focus on the core issue then.`];
+    const pool = isAvoiding ? escalate : isAssertive ? deescalate : neutral;
+    const text = pool[simTurnCount % pool.length];
+    simHistory.push({role:'assistant',content:text});
+    addSimMsg(text,'them');
+  }
 
   think.classList.remove('on');
   if(simTurnCount>=6){
@@ -6598,7 +6641,7 @@ function loadCritSource() {
     : last ? last.preview : 'No entries yet. Run a simulation or load something first.';
 }
 
-function saveTrain() {
+async function saveTrain() {
   const on = document.querySelector('#ex-tabs .ex-tab.on');
   const exN = on ? parseInt(on.dataset.ex) : 0;
   const skill = TRAIN_SKILLS[exN] || 'Unknown';
@@ -6619,6 +6662,39 @@ function saveTrain() {
   incUse('train');
   const btn = document.getElementById('train-btn');
   if (btn) { const o=btn.textContent; btn.textContent='Saved ✓'; setTimeout(()=>btn.textContent=o, 1400); }
+
+  // AI coaching feedback
+  const workerUrlTrain = getWorkerUrl();
+  if (workerUrlTrain) {
+    const feedbackEl = document.getElementById('train-ai-feedback');
+    const feedbackBody = document.getElementById('train-ai-feedback-body');
+    if (feedbackEl) feedbackEl.style.display = 'block';
+    if (feedbackBody) feedbackBody.textContent = 'reading your rep…';
+
+    const repSummary = Object.entries(data).map(([k,v]) => v ? k+': '+v : '').filter(Boolean).join('\n');
+    const trainSys = `You are a precision thinking coach inside THE SYSTEM. The user just completed a "${skill}" training rep. Give them direct, specific coaching feedback in 2-3 short paragraphs — what they did well, what to sharpen, and one concrete thing to notice next time. No fluff. Talk to them like a coach who has studied how their mind works.`;
+
+    try {
+      const res = await fetch(workerUrlTrain, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: getAIModel(),
+          messages: [
+            { role: 'system', content: trainSys },
+            { role: 'user', content: repSummary }
+          ],
+          max_tokens: 400
+        })
+      });
+      const d = await res.json();
+      const groq = d.body || d;
+      const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || '';
+      if (feedbackBody) feedbackBody.textContent = reply || 'Rep logged.';
+    } catch(e) {
+      if (feedbackBody) feedbackBody.textContent = 'Rep saved — AI feedback unavailable.';
+    }
+  }
 }
 
 function updateStreak() {

@@ -1425,7 +1425,11 @@ body {
 .ai-status.err { color: var(--red); }
 #ch-lens .ch-name { color: var(--red); }
 .nav-tab[data-c="lens"]::after { background: var(--red); }
+</style>
+</head>
+<body>
 
+<canvas id="canvas"></canvas>
 <div id="ghost-layer"></div>
 
 <!-- ══ ENTRY ══ -->
@@ -8471,11 +8475,13 @@ const AI_MODEL_KEY = 'dr_ai_model';
 const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b'; // fallback
 
 function getAIModel() {
-  return localStorage.getItem('dr_ai_model') || AI_DEFAULT_MODEL;
+  return localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
 }
+
 function saveAIModel(val) {
-  localStorage.setItem('dr_ai_model', val);
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => s.value = val);
+  localStorage.setItem(AI_MODEL_KEY, val);
+  // Sync all selects
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
 }
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
 
@@ -8499,10 +8505,11 @@ const AI_CHAMBER_CONTEXT = {
 };
 
 function getWorkerUrl() {
-  return localStorage.getItem('dr_ai_worker_url') || '';
+  return localStorage.getItem(AI_WORKER_KEY) || '';
 }
+
 function saveWorkerUrl(url) {
-  localStorage.setItem('dr_ai_worker_url', url.trim());
+  localStorage.setItem(AI_WORKER_KEY, url.trim());
 }
 
 function getAIStates() {
@@ -8627,35 +8634,18 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
       })
     });
 
-    const raw = await res.text();
-    let data;
-    try { data = JSON.parse(raw); } catch(e) {
-      thinkingDiv.remove();
-      statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Parse error: ' + raw.slice(0,100);
-      aiHistory[ch].pop();
-      sendBtn.disabled = false;
-      return;
-    }
+    const data = await res.json();
 
-    // Unwrap if Worker wraps response in {status, body}
-    const groq = data.body || data;
-
-    if (groq.error) {
+    if (data.error) {
       thinkingDiv.remove();
       statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Error: ' + (groq.error.message || JSON.stringify(groq.error));
-      aiHistory[ch].pop();
-    } else if (!groq.choices || !groq.choices[0]) {
-      thinkingDiv.remove();
-      statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Raw: ' + raw.slice(0,120);
-      aiHistory[ch].pop();
+      statusEl.textContent = 'Error: ' + (data.error.message || 'unknown');
+      aiHistory[ch].pop(); // remove failed user msg
     } else {
-      const msg = groq.choices[0].message;
+      const msg = data.choices?.[0]?.message;
       const reply = msg?.content || msg?.reasoning || '(no response)';
       aiHistory[ch].push({ role: 'assistant', content: reply });
-      thinkingDiv.querySelector('.ai-msg-body').textContent = reply || '(empty reply)';
+      thinkingDiv.querySelector('.ai-msg-body').textContent = reply;
       thinkingDiv.classList.remove('thinking');
       thinkingDiv.querySelector('.ai-msg-role').classList.add('ai');
       thinkingDiv.querySelector('.ai-msg-body').classList.add('ai');
@@ -8695,9 +8685,6 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
     }
   });
 })();
-
-
-
 
 
 </script>

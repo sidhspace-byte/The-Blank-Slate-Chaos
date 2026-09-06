@@ -6040,7 +6040,8 @@ function orbHitTest(clientX, clientY) {
   const z = ORB.zoom;
   for (const n of ORB.nodes) {
     const pos = orbGetNodeXY(n);
-    const hitR = n.ring === 0 ? 36 : 30*z+6;
+    const isMobile = window.innerWidth <= 900;
+    const hitR = n.ring === 0 ? (isMobile ? 54 : 36) : Math.max(isMobile ? 44 : 20, 30*z+6);
     if (Math.hypot(mx-pos.x, my-pos.y) < hitR) return n;
   }
   return null;

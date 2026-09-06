@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#080810"/>
+  
+  <!-- Background scatter stars -->
+  <circle cx="60" cy="45" r="1.2" fill="#f2ead8" opacity="0.25"/>
+  <circle cx="440" cy="60" r="1" fill="#f2ead8" opacity="0.2"/>
+  <circle cx="38" cy="240" r="1.1" fill="#f2ead8" opacity="0.22"/>
+  <circle cx="474" cy="320" r="1" fill="#f2ead8" opacity="0.18"/>
+  <circle cx="75" cy="440" r="1.2" fill="#f2ead8" opacity="0.2"/>
+  <circle cx="460" cy="420" r="0.9" fill="#f2ead8" opacity="0.15"/>
+  <circle cx="120" cy="30" r="0.9" fill="#f2ead8" opacity="0.18"/>
+  <circle cx="400" cy="480" r="1" fill="#f2ead8" opacity="0.15"/>
+
+  <!-- S constellation connecting lines -->
+  <polyline points="308,68 265,92 224,128 218,174 234,219 262,243 295,256 312,291 302,330 273,363 224,389 187,401"
+    stroke="#c8b888" stroke-width="1.8" fill="none" opacity="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Star 1 — top right, brightest -->
+  <circle cx="308" cy="68" r="8" fill="#f2ead8" opacity="0.06"/>
+  <circle cx="308" cy="68" r="4.5" fill="#f2ead8" opacity="0.1"/>
+  <circle cx="308" cy="68" r="2.8" fill="#f2ead8"/>
+
+  <!-- Star 2 -->
+  <circle cx="265" cy="92" r="4" fill="#f2ead8" opacity="0.08"/>
+  <circle cx="265" cy="92" r="2" fill="#f2ead8"/>
+
+  <!-- Star 3 -->
+  <circle cx="224" cy="128" r="3.5" fill="#f2ead8" opacity="0.07"/>
+  <circle cx="224" cy="128" r="1.8" fill="#f2ead8"/>
+
+  <!-- Star 4 -->
+  <circle cx="218" cy="174" r="1.7" fill="#f2ead8" opacity="0.85"/>
+
+  <!-- Star 5 — crossover, medium bright -->
+  <circle cx="234" cy="219" r="4.5" fill="#f2ead8" opacity="0.08"/>
+  <circle cx="234" cy="219" r="2.2" fill="#f2ead8"/>
+
+  <!-- Star 6 -->
+  <circle cx="262" cy="243" r="1.6" fill="#f2ead8" opacity="0.85"/>
+
+  <!-- Star 7 -->
+  <circle cx="295" cy="256" r="3.5" fill="#f2ead8" opacity="0.07"/>
+  <circle cx="295" cy="256" r="1.8" fill="#f2ead8"/>
+
+  <!-- Star 8 — lower right, bright -->
+  <circle cx="312" cy="291" r="5" fill="#f2ead8" opacity="0.09"/>
+  <circle cx="312" cy="291" r="2.3" fill="#f2ead8"/>
+
+  <!-- Star 9 -->
+  <circle cx="302" cy="330" r="1.7" fill="#f2ead8" opacity="0.88"/>
+
+  <!-- Star 10 -->
+  <circle cx="273" cy="363" r="3.5" fill="#f2ead8" opacity="0.07"/>
+  <circle cx="273" cy="363" r="1.8" fill="#f2ead8"/>
+
+  <!-- Star 11 -->
+  <circle cx="224" cy="389" r="1.7" fill="#f2ead8" opacity="0.85"/>
+
+  <!-- Star 12 — bottom left, bright -->
+  <circle cx="187" cy="401" r="6" fill="#f2ead8" opacity="0.09"/>
+  <circle cx="187" cy="401" r="4" fill="#f2ead8" opacity="0.07"/>
+  <circle cx="187" cy="401" r="2.5" fill="#f2ead8"/>
+</svg>

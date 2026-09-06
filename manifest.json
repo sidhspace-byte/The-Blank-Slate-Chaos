@@ -1,0 +1,18 @@
+{
+  "name": "The System",
+  "short_name": "THE SYSTEM",
+  "description": "A single-file thinking and regulation tool",
+  "start_url": "/The-Blank-Slate-Chaos/",
+  "display": "standalone",
+  "background_color": "#080810",
+  "theme_color": "#080810",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

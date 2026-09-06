@@ -8644,8 +8644,11 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 // Restore AI toggle states on load
 (function restoreAIPanels() {
   const states = getAIStates();
+  // Default sim and train to on if not explicitly set
+  if (states['sim'] === undefined) states['sim'] = true;
+  if (states['train'] === undefined) states['train'] = true;
+
   const url = getWorkerUrl();
-  // Always populate all URL fields and model selects regardless of toggle state
   document.querySelectorAll('[id^="ai-url-"]').forEach(inp => { inp.value = url; });
   const savedModel = getAIModel();
   document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = savedModel; });

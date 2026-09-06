@@ -2919,370 +2919,239 @@ function setVP(c){
   vpTarget.x = p.x; vpTarget.y = p.y;
 }
 
+// ── JARVIS SPHERE ─────────────────────────────────────────────────────────────
+
+const SPHERE = {
+  rot: { x: 0, y: 0, z: 0 },
+  rotV: { x: 0.0003, y: 0.0008, z: 0.00015 },
+  pulse: 0,
+  pulseV: 0,
+  touch: { x: 0, y: 0, active: false, t: 0 },
+  nodes: [],
+  edges: [],
+  rings: [],
+  ready: false
+};
+
+(function initSphere() {
+  const N = 120;
+  // Fibonacci sphere distribution
+  const phi = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const theta = phi * i;
+    SPHERE.nodes.push({
+      x: Math.cos(theta) * r,
+      y: y,
+      z: Math.sin(theta) * r,
+      size: 0.6 + Math.random() * 1.4,
+      bright: Math.random()
+    });
+  }
+
+  // Connect nearby nodes
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const a = SPHERE.nodes[i], b = SPHERE.nodes[j];
+      const d = Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z);
+      if (d < 0.42) SPHERE.edges.push([i, j, d]);
+    }
+  }
+
+  // Orbital rings — 4 at different tilts
+  const ringData = [
+    { tilt: 0.0, speed: 0.0007, radius: 1.08 },
+    { tilt: 0.52, speed: -0.0005, radius: 1.06 },
+    { tilt: 1.05, speed: 0.0006, radius: 1.07 },
+    { tilt: 0.28, speed: -0.0009, radius: 1.09 }
+  ];
+  ringData.forEach(r => {
+    const pts = [];
+    for (let i = 0; i <= 128; i++) {
+      const a = (i / 128) * Math.PI * 2;
+      pts.push({ a, r: r.radius, tilt: r.tilt, speed: r.speed, phase: 0 });
+    }
+    SPHERE.rings.push({ pts, ...r, phase: Math.random() * Math.PI * 2 });
+  });
+
+  SPHERE.ready = true;
+})();
+
+function rotPoint(x, y, z, rx, ry, rz) {
+  // Rotate Y
+  let x1 = x * Math.cos(ry) + z * Math.sin(ry);
+  let z1 = -x * Math.sin(ry) + z * Math.cos(ry);
+  // Rotate X
+  let y2 = y * Math.cos(rx) - z1 * Math.sin(rx);
+  let z2 = y * Math.sin(rx) + z1 * Math.cos(rx);
+  // Rotate Z
+  let x3 = x1 * Math.cos(rz) - y2 * Math.sin(rz);
+  let y3 = x1 * Math.sin(rz) + y2 * Math.cos(rz);
+  return { x: x3, y: y3, z: z2 };
+}
+
+function project(x, y, z, cx, cy, R) {
+  const fov = 2.8;
+  const scale = fov / (fov + z + 1.2);
+  return { x: cx + x * R * scale, y: cy + y * R * scale, scale };
+}
+
+// Touch/click pulse
+CV.addEventListener('touchstart', function(e) {
+  SPHERE.pulseV += 0.18;
+  const t = e.touches[0];
+  SPHERE.touch = { x: t.clientX, y: t.clientY, active: true, t: 0 };
+}, { passive: true });
+
+CV.addEventListener('mousedown', function(e) {
+  SPHERE.pulseV += 0.12;
+  SPHERE.touch = { x: e.clientX, y: e.clientY, active: true, t: 0 };
+});
+
 function drawFrame(){
   T += 0.006;
 
-  // Always re-check canvas size
   if(CV.offsetWidth > 10 && CV.offsetWidth !== CW){
     CW = CV.width  = CV.offsetWidth;
     CH = CV.height = CV.offsetHeight;
   }
 
-  cx.clearRect(0,0,CW,CH);
+  cx.clearRect(0, 0, CW, CH);
 
-  // smooth interpolations
-  mouse.x = lp(mouse.x, mTarget.x, 0.04);
-  mouse.y = lp(mouse.y, mTarget.y, 0.04);
-  vp.x = lp(vp.x, vpTarget.x + (mouse.x-.5)*0.07, 0.022);
-  vp.y = lp(vp.y, vpTarget.y + (mouse.y-.5)*0.05, 0.022);
+  if (!SPHERE.ready) { requestAnimationFrame(drawFrame); return; }
 
-  const vpx = CW * vp.x;
-  const vpy = CH * vp.y;
-  const ch  = chaos();
-  const pr  = pressure();
-  const re  = resolve();
-  const mr  = mapRatio();
+  // Pulse decay
+  SPHERE.pulse += SPHERE.pulseV;
+  SPHERE.pulseV *= 0.92;
+  SPHERE.pulse  *= 0.97;
 
-  // == 1. CORE AMBIENT GLOW -- amber, the world, Bengaluru at night ==
-  const rInner = Math.min(CW,CH) * (0.22 + ch*0.12);
-  const rOuter = Math.min(CW,CH) * (0.65 + ch*0.25);
-  const gAlpha = 0.09 + ch*0.07 + pr*0.05;
-
-  const g1 = cx.createRadialGradient(vpx,vpy,0,vpx,vpy,rInner);
-  g1.addColorStop(0, `rgba(210,160,60,${gAlpha*2.4})`);
-  g1.addColorStop(1, `rgba(180,120,40,0)`);
-  cx.fillStyle = g1; cx.fillRect(0,0,CW,CH);
-
-  const g2 = cx.createRadialGradient(vpx,vpy,rInner,vpx,vpy,rOuter);
-  g2.addColorStop(0, `rgba(160,90,20,${gAlpha*0.9})`);
-  g2.addColorStop(1, `rgba(0,0,0,0)`);
-  cx.fillStyle = g2; cx.fillRect(0,0,CW,CH);
-
-  // == 2. PARTICLES -- you as light in motion ==
-  //
-  // Wave-particle duality made visual.
-  // When unobserved -- a wave, all possibilities.
-  // When observed -- collapses into a single point.
-  //
-  // Each particle has a personality:
-  //   FAST + CHAOTIC   -- divergent mind, impossible visions
-  //   SLOW + HEAVY     -- things being carried
-  //   ORBITING PAIRS   -- loaded guns, circling each other
-  //   FROZEN (x3)      -- the 3 camera months, barely moving
-  //   BRIGHT (x1)      -- the current loaded thought, always visible
-  //
-  // Collisions are real -- particles influence each other's paths.
-  // The wave interference lives underneath -- particles ride on top.
-
-  // == Init particle system once per canvas lifetime ==
-  if(!CV._particles){
-    const COUNT = 120;
-    const pts   = [];
-
-    for(let i = 0; i < COUNT; i++){
-      const isFrozen  = i < 3;
-      const isBright  = i === 3;
-      const isOrbiter = i >= 4 && i < 18;
-      const isHeavy   = i >= 18 && i < 38;
-      const isChaotic = i >= 38;
-
-      // Speed personality
-      const baseSpeed = isFrozen  ? 0.0
-                      : isBright  ? 0.55
-                      : isOrbiter ? 0.18
-                      : isHeavy   ? 0.06 + Math.random()*0.08
-                      : 0.12 + Math.random()*0.28;
-
-      const angle = Math.random() * Math.PI * 2;
-
-      pts.push({
-        x:   Math.random() * 800,
-        y:   Math.random() * 800,
-        vx:  Math.cos(angle) * baseSpeed,
-        vy:  Math.sin(angle) * baseSpeed,
-        size: isBright  ? 2.8
-             : isFrozen  ? 1.4
-             : isHeavy   ? 1.8 + Math.random()*0.8
-             : isOrbiter ? 1.2
-             : 0.8 + Math.random()*1.2,
-        isFrozen,
-        isBright,
-        isOrbiter,
-        isHeavy,
-        isChaotic,
-        orbitPartner: isOrbiter ? Math.floor(4 + ((i-4+7)%14)) : -1,
-        orbitRadius:  18 + Math.random()*22,
-        orbitSpeed:   (Math.random() > 0.5 ? 1 : -1) * (0.008 + Math.random()*0.012),
-        orbitAngle:   Math.random() * Math.PI * 2,
-        life:  Math.random(),
-        seed:  Math.random() * 1000,
-      });
-    }
-    CV._particles = pts;
-    CV._pT = 0;
+  // Touch influence on rotation speed
+  if (SPHERE.touch.active) {
+    SPHERE.touch.t++;
+    if (SPHERE.touch.t > 40) SPHERE.touch.active = false;
   }
 
-  const pts   = CV._particles;
-  const COUNT = pts.length;
-  CV._pT += 0.016;
-  const pT = CV._pT;
+  // Rotation — base + pulse boost
+  const pBoost = 1 + SPHERE.pulse * 2;
+  SPHERE.rot.x += SPHERE.rotV.x * pBoost;
+  SPHERE.rot.y += SPHERE.rotV.y * pBoost;
+  SPHERE.rot.z += SPHERE.rotV.z * pBoost;
 
-  // == Update particle positions ==
-  const unresCount = D.arsenal.filter(a=>!a.resolved).length;
-  const brightIdx  = 3; // always particle 3
+  // Mouse tilt influence (subtle)
+  mouse.x = mouse.x + (mTarget.x - mouse.x) * 0.04;
+  mouse.y = mouse.y + (mTarget.y - mouse.y) * 0.04;
 
-  for(let i = 0; i < COUNT; i++){
-    const p = pts[i];
-    if(p.isFrozen) continue;
+  const cx_ = CW * 0.5 + (mouse.x - 0.5) * 40;
+  const cy_ = CH * 0.5 + (mouse.y - 0.5) * 40;
+  const R = Math.min(CW, CH) * 0.32;
+  const rx = SPHERE.rot.x + (mouse.y - 0.5) * 0.3;
+  const ry = SPHERE.rot.y + (mouse.x - 0.5) * 0.4;
+  const rz = SPHERE.rot.z;
 
-    // Scale positions to current canvas
-    const px_norm = p.x / 800;
-    const py_norm = p.y / 800;
-
-    // Gentle drift toward VP -- the convergence pull
-    // Not forced. Just a tendency. Some particles resist it.
-    const toVPx = (vpx/CW - px_norm) * CW;
-    const toVPy = (vpy/CH - py_norm) * CH;
-    const distToVP = Math.sqrt(toVPx*toVPx + toVPy*toVPy);
-
-    if(!p.isChaotic && distToVP > 30){
-      // Heavy and orbiting particles drift gently toward VP
-      const pull = p.isHeavy ? 0.0002 : 0.00008;
-      p.vx += (toVPx / distToVP) * pull * CW;
-      p.vy += (toVPy / distToVP) * pull * CH;
-    } else if(p.isChaotic && distToVP < 80){
-      // Chaotic particles resist convergence -- they push away
-      p.vx -= (toVPx / distToVP) * 0.0003 * CW;
-      p.vy -= (toVPy / distToVP) * 0.0003 * CH;
-    }
-
-    // Orbiting pairs -- circle each other
-    if(p.isOrbiter && p.orbitPartner >= 0 && p.orbitPartner < COUNT){
-      p.orbitAngle += p.orbitSpeed;
-      const partner = pts[p.orbitPartner];
-      const targetX = (partner.x/800)*CW + Math.cos(p.orbitAngle)*p.orbitRadius;
-      const targetY = (partner.y/800)*CH + Math.sin(p.orbitAngle)*p.orbitRadius;
-      p.vx += ((targetX - px_norm*CW) * 0.04 - p.vx) * 0.08;
-      p.vy += ((targetY - py_norm*CH) * 0.04 - p.vy) * 0.08;
-    }
-
-    // Collision influence -- nearby particles push each other
-    for(let j = i+1; j < Math.min(i+8, COUNT); j++){
-      const q = pts[j];
-      const dx = (p.x - q.x)/800 * CW;
-      const dy = (p.y - q.y)/800 * CH;
-      const d  = Math.sqrt(dx*dx + dy*dy);
-      if(d < 28 && d > 0.1){
-        const force = (28 - d) / 28 * 0.0004;
-        p.vx += (dx/d) * force * CW;
-        p.vy += (dy/d) * force * CH;
-        q.vx -= (dx/d) * force * CW;
-        q.vy -= (dy/d) * force * CH;
-      }
-    }
-
-    // Speed limit -- different per personality
-    const maxSpeed = p.isHeavy ? 0.15 : p.isOrbiter ? 0.25 : p.isChaotic ? 0.55 : 0.35;
-    const speed    = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
-    if(speed > maxSpeed){
-      p.vx = (p.vx/speed)*maxSpeed;
-      p.vy = (p.vy/speed)*maxSpeed;
-    }
-
-    // Move
-    p.x += p.vx / CW * 800;
-    p.y += p.vy / CH * 800;
-
-    // Wrap around edges -- the world is continuous
-    if(p.x < 0)   p.x += 800;
-    if(p.x > 800) p.x -= 800;
-    if(p.y < 0)   p.y += 800;
-    if(p.y > 800) p.y -= 800;
-  }
-
-  // == Draw particles ==
-  for(let i = 0; i < COUNT; i++){
-    const p   = pts[i];
-    const px  = (p.x/800) * CW;
-    const py  = (p.y/800) * CH;
-    const isLoadedP = unresCount > 0 && i < unresCount * 4;
-
-    // Alpha based on personality + chaos state
-    let alpha = p.isBright  ? 0.75 + ch*0.15
-               : p.isFrozen  ? 0.12 + ch*0.06
-               : p.isHeavy   ? 0.22 + ch*0.08
-               : p.isOrbiter ? 0.18 + ch*0.10
-               : 0.14 + ch*0.06;
-
-    if(isLoadedP && !p.isFrozen) alpha = Math.min(alpha + 0.12, 0.85);
-
-    // Colour
-    let r, g, b;
-    if(p.isBright)        { r=232; g=68;  b=24;  } // red -- the loaded thought
-    else if(p.isFrozen)   { r=148; g=148; b=162; } // cool grey -- waiting
-    else if(p.isHeavy)    { r=210; g=158; b=48;  } // amber -- things being carried
-    else if(p.isOrbiter)  { r=138; g=90;  b=204; } // purple -- orbiting pairs
-    else if(isLoadedP)    { r=220; g=88;  b=32;  } // red-amber -- loaded
-    else                  { r=205; g=160; b=52;  } // amber -- the world
-
-    // Draw particle as soft glow -- no hard circle
-    const glow = cx.createRadialGradient(px,py,0, px,py, p.size*3.5);
-    glow.addColorStop(0,   `rgba(${r},${g},${b},${alpha})`);
-    glow.addColorStop(0.4, `rgba(${r},${g},${b},${alpha*0.5})`);
-    glow.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-    cx.fillStyle = glow;
-    cx.fillRect(px-p.size*4, py-p.size*4, p.size*8, p.size*8);
-
-    // Bright particle gets an extra halo
-    if(p.isBright){
-      const halo = cx.createRadialGradient(px,py,0, px,py, 18+ch*8);
-      halo.addColorStop(0,   `rgba(232,68,24,${0.18+ch*0.12})`);
-      halo.addColorStop(1,   `rgba(232,68,24,0)`);
-      cx.fillStyle = halo;
-      cx.fillRect(px-26, py-26, 52, 52);
-    }
-
-    // Draw faint connection lines between orbiting pairs
-    if(p.isOrbiter && p.orbitPartner >= 0 && p.orbitPartner < COUNT){
-      const q  = pts[p.orbitPartner];
-      const qx = (q.x/800)*CW;
-      const qy = (q.y/800)*CH;
-      const d  = Math.sqrt((px-qx)**2+(py-qy)**2);
-      if(d < 80){
-        cx.beginPath();
-        cx.moveTo(px, py);
-        cx.lineTo(qx, qy);
-        cx.strokeStyle = `rgba(138,90,204,${0.06*(1-d/80)})`;
-        cx.lineWidth = 0.4;
-        cx.stroke();
-      }
-    }
-
-    // Draw faint trails for fast chaotic particles
-    if(p.isChaotic && (Math.abs(p.vx)+Math.abs(p.vy)) > 0.2){
-      const trailX = px - p.vx/CW*800*3;
-      const trailY = py - p.vy/CH*800*3;
-      cx.beginPath();
-      cx.moveTo(px, py);
-      cx.lineTo(trailX, trailY);
-      const tg2 = cx.createLinearGradient(px,py,trailX,trailY);
-      tg2.addColorStop(0, `rgba(205,160,52,${alpha*0.4})`);
-      tg2.addColorStop(1, `rgba(205,160,52,0)`);
-      cx.strokeStyle = tg2;
-      cx.lineWidth = 0.5;
-      cx.stroke();
-    }
-  }
-
-  // == 3. WAVE-PARTICLE DUALITY -- always present, not gated ==
-  // Two wave sources creating genuine interference
-  // Visible always -- this is the philosophy, not a feature unlock
-  // Intensity scales with map usage but never disappears
-
-  const wBase  = 0.08 + mr*0.06;   // base alpha -- always clearly visible
-  const rings  = 7;
-  const spread = Math.min(CW,CH) * 0.46;
-
-  // Source 1 -- the primary VP
-  for(let w=0; w<rings; w++){
-    const r = spread*(w+1)/rings + Math.sin(T*0.65+w*0.85)*9;
-    const wA = wBase * (1 - w/rings) * 1.6;
-    cx.beginPath();
-    cx.arc(vpx, vpy, Math.max(1,r), 0, Math.PI*2);
-    cx.strokeStyle = `rgba(138,90,204,${wA})`;
-    cx.lineWidth = 0.8;
-    cx.stroke();
-  }
-
-  // Source 2 -- offset, drifting slowly -- the unobserved particle
-  const s2x = vpx + Math.cos(T*0.22)*CW*0.22 + Math.sin(T*0.09)*CW*0.06;
-  const s2y = vpy + Math.sin(T*0.18)*CH*0.16 + Math.cos(T*0.11)*CH*0.04;
-
-  for(let w=0; w<rings-1; w++){
-    const r = spread*0.75*(w+1)/(rings-1) + Math.sin(T*0.78+w*1.1)*7;
-    const wA = wBase * 0.85 * (1 - w/(rings-1));
-    cx.beginPath();
-    cx.arc(s2x, s2y, Math.max(1,r), 0, Math.PI*2);
-    cx.strokeStyle = `rgba(138,90,204,${wA})`;
-    cx.lineWidth = 0.6;
-    cx.stroke();
-  }
-
-  // Interference bright spots -- visible, meaningful
-  for(let ix=0; ix<CW; ix+=60){
-    for(let iy=0; iy<CH; iy+=60){
-      const d1 = Math.sqrt((ix-vpx)**2+(iy-vpy)**2);
-      const d2 = Math.sqrt((ix-s2x)**2+(iy-s2y)**2);
-      const phase1 = Math.sin(d1/36 - T*0.8);
-      const phase2 = Math.sin(d2/36 - T*0.75);
-      const interference = (phase1+phase2)/2;
-      if(interference > 0.65){
-        const iA = (interference-0.65)*3.5 * wBase * 3;
-        cx.beginPath();
-        cx.arc(ix, iy, 2, 0, Math.PI*2);
-        cx.fillStyle = `rgba(168,120,234,${iA})`;
-        cx.fill();
-      }
-    }
-  }
-
-  // == 4. PRESSURE PULSE ==
-  if(pr > 0.15){
-    const pulse = (Math.sin(T*3.5)*0.5+0.5)*Math.min(CW,CH)*0.18*pr;
-    cx.beginPath();
-    cx.arc(vpx,vpy,pulse,0,Math.PI*2);
-    cx.strokeStyle = `rgba(204,56,32,${pr*0.09})`;
-    cx.lineWidth = 0.8;
-    cx.stroke();
-  }
-
-  // == 5. ARSENAL DOTS -- Chekhov's Gun orbiting ==
-  if(D.arsenal.length > 0){
-    const orb = Math.min(CW,CH) * 0.07;
-    D.arsenal.slice(0,14).forEach((item,i)=>{
-      const angle = (i/Math.min(D.arsenal.length,14))*Math.PI*2 + T*0.12;
-      const r = orb + Math.sin(T*0.4+i)*6;
-      const dx = vpx + Math.cos(angle)*r;
-      const dy = vpy + Math.sin(angle)*r;
-      const da = item.resolved ? 0.2 : 0.08 + ch*0.14;
-      const dc = item.resolved ? `rgba(56,168,112,${da})` : `rgba(204,56,32,${da})`;
-
-      cx.beginPath();
-      cx.arc(dx,dy,item.resolved?2:1.5,0,Math.PI*2);
-      cx.fillStyle = dc;
-      cx.fill();
-
-      if(!item.resolved){
-        cx.beginPath();
-        cx.moveTo(dx,dy); cx.lineTo(vpx,vpy);
-        cx.strokeStyle = `rgba(204,56,32,${da*0.25})`;
-        cx.lineWidth = 0.25; cx.stroke();
-      }
-    });
-  }
-
-  // == 6. VP -- light arriving, not a dot placed there ==
-  // No hard circle. Just concentric glow layers dissolving into black.
-  // The point exists because the lines point to it, not because it's drawn.
-  const vpLayers = [
-    { r: 32, a: 0.012 + ch*0.008 },
-    { r: 18, a: 0.022 + ch*0.014 },
-    { r: 10, a: 0.038 + ch*0.022 },
-    { r: 5,  a: 0.055 + ch*0.030 },
-    { r: 2,  a: 0.07  + ch*0.040 },
-  ];
-
-  vpLayers.forEach(({ r, a }) => {
-    const g = cx.createRadialGradient(vpx,vpy,0, vpx,vpy,r);
-    g.addColorStop(0,   `rgba(224,48,24,${a*2})`);
-    g.addColorStop(0.4, `rgba(210,42,20,${a})`);
-    g.addColorStop(1,   'rgba(0,0,0,0)');
-    cx.fillStyle = g;
-    cx.fillRect(vpx-r, vpy-r, r*2, r*2);
+  // Project all nodes
+  const projected = SPHERE.nodes.map(n => {
+    const p = rotPoint(n.x, n.y, n.z, rx, ry, rz);
+    const s = project(p.x, p.y, p.z, cx_, cy_, R);
+    return { ...s, z: p.z, bright: n.bright, size: n.size };
   });
+
+  // Draw edges
+  SPHERE.edges.forEach(([i, j, d]) => {
+    const a = projected[i], b = projected[j];
+    const avgZ = (a.z + b.z) * 0.5;
+    const depth = (avgZ + 1) * 0.5;
+    const alpha = depth * 0.38 * (1 - d / 0.42) * (1 + SPHERE.pulse * 0.5);
+    cx.beginPath();
+    cx.moveTo(a.x, a.y);
+    cx.lineTo(b.x, b.y);
+    cx.strokeStyle = `rgba(200,140,40,${Math.min(alpha, 0.55)})`;
+    cx.lineWidth = 0.5 + depth * 0.4;
+    cx.stroke();
+  });
+
+  // Draw orbital rings
+  SPHERE.rings.forEach(ring => {
+    ring.phase += ring.speed * pBoost;
+    cx.beginPath();
+    let first = true;
+    for (let i = 0; i <= 128; i++) {
+      const a = (i / 128) * Math.PI * 2;
+      const cosA = Math.cos(a), sinA = Math.sin(a);
+      const cosT = Math.cos(ring.tilt), sinT = Math.sin(ring.tilt);
+      const cosP = Math.cos(ring.phase), sinP = Math.sin(ring.phase);
+      // Ring in 3D: rotated tilt plane
+      const x0 = cosA * ring.radius;
+      const y0 = sinA * ring.radius * cosT;
+      const z0 = sinA * ring.radius * sinT;
+      // Add ring rotation
+      const x1 = x0 * cosP - z0 * sinP;
+      const z1 = x0 * sinP + z0 * cosP;
+      const p = rotPoint(x1, y0, z1, rx, ry, rz);
+      const s = project(p.x, p.y, p.z, cx_, cy_, R);
+      if (first) { cx.moveTo(s.x, s.y); first = false; }
+      else cx.lineTo(s.x, s.y);
+    }
+    const ringDepth = 0.6;
+    const ringAlpha = ringDepth * (0.18 + SPHERE.pulse * 0.12);
+    cx.strokeStyle = `rgba(220,160,50,${Math.min(ringAlpha, 0.4)})`;
+    cx.lineWidth = 0.8;
+    cx.stroke();
+  });
+
+  // Draw nodes (front to back for painter order)
+  projected.sort((a, b) => b.z - a.z);
+  projected.forEach(p => {
+    const depth = (p.z + 1) * 0.5;
+    const alpha = 0.3 + depth * 0.7;
+    const glowR = p.size * (1.8 + p.bright * 2.5) * (1 + SPHERE.pulse * 0.6);
+    const nodeR = p.size * 0.7 * p.scale;
+
+    // Glow halo
+    if (depth > 0.3) {
+      const g = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR * p.scale);
+      const a = alpha * 0.35 * (0.5 + p.bright * 0.5);
+      g.addColorStop(0, `rgba(240,180,60,${Math.min(a, 0.7)})`);
+      g.addColorStop(0.4, `rgba(200,130,30,${Math.min(a * 0.4, 0.3)})`);
+      g.addColorStop(1, 'rgba(200,130,30,0)');
+      cx.fillStyle = g;
+      cx.beginPath();
+      cx.arc(p.x, p.y, glowR * p.scale, 0, Math.PI * 2);
+      cx.fill();
+    }
+
+    // Node core
+    cx.fillStyle = `rgba(255,220,130,${Math.min(alpha * (0.7 + p.bright * 0.3), 1)})`;
+    cx.beginPath();
+    cx.arc(p.x, p.y, nodeR, 0, Math.PI * 2);
+    cx.fill();
+  });
+
+  // Central glow — the "mind" core
+  const coreSize = R * (0.18 + SPHERE.pulse * 0.08);
+  const coreG = cx.createRadialGradient(cx_, cy_, 0, cx_, cy_, coreSize);
+  coreG.addColorStop(0, `rgba(255,200,80,${0.12 + SPHERE.pulse * 0.08})`);
+  coreG.addColorStop(0.5, `rgba(200,140,40,${0.06 + SPHERE.pulse * 0.04})`);
+  coreG.addColorStop(1, 'rgba(180,100,20,0)');
+  cx.fillStyle = coreG;
+  cx.beginPath();
+  cx.arc(cx_, cy_, coreSize, 0, Math.PI * 2);
+  cx.fill();
+
+  // Touch ripple
+  if (SPHERE.touch.active) {
+    const tr = SPHERE.touch.t * 8;
+    const ta = Math.max(0, 0.4 - SPHERE.touch.t * 0.01);
+    cx.beginPath();
+    cx.arc(SPHERE.touch.x, SPHERE.touch.y, tr, 0, Math.PI * 2);
+    cx.strokeStyle = `rgba(220,160,60,${ta})`;
+    cx.lineWidth = 1.5;
+    cx.stroke();
+  }
 
   requestAnimationFrame(drawFrame);
 }
+
 
 setVP('entry');
 drawFrame();

@@ -5913,10 +5913,6 @@ function orbInit() {
   // Init connections
   orbInitConnections();
 
-  // Clear any stale saved positions so defaults always apply
-  orbCustomPos = {};
-  localStorage.removeItem('dr_orb_pos');
-
   // Desktop: zoom out so all rings fit within viewport
   if (window.innerWidth > 900) {
     ORB.zoom = ORB.zoomTarget = 0.6;

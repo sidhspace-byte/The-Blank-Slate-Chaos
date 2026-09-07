@@ -3009,148 +3009,420 @@ CV.addEventListener('mousedown', function(e) {
   SPHERE.touch = { x: e.clientX, y: e.clientY, active: true, t: 0 };
 });
 
-function drawFrame(){
-  T += 0.006;
+// ── INTELLIGENCE FIELD ──────────────────────────────────────────────────────
+// WebGL shader particle system — cognitive field visualization
 
-  if(CV.offsetWidth > 10 && CV.offsetWidth !== CW){
-    CW = CV.width  = CV.offsetWidth;
+(function() {
+
+// Try WebGL, fall back to 2D
+let gl = null;
+let useGL = false;
+try {
+  gl = CV.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false });
+  if (gl) useGL = true;
+} catch(e) {}
+
+// ── CHAMBER MODES ──
+const CHAMBER_MODE = {
+  entry:    { scatter: 0.5, attract: 0.3, speed: 0.6, connect: 0.4, geo: 0.2 },
+  load:     { scatter: 0.8, attract: 0.2, speed: 0.8, connect: 0.2, geo: 0.1 },
+  map:      { scatter: 0.3, attract: 0.5, speed: 0.5, connect: 0.6, geo: 0.4 },
+  aim:      { scatter: 0.1, attract: 0.8, speed: 0.4, connect: 0.7, geo: 0.6 },
+  fire:     { scatter: 0.2, attract: 0.6, speed: 1.4, connect: 0.3, geo: 0.3 },
+  reload:   { scatter: 0.9, attract: 0.3, speed: 0.9, connect: 0.3, geo: 0.2 },
+  train:    { scatter: 0.2, attract: 0.5, speed: 0.5, connect: 0.5, geo: 0.7 },
+  sim:      { scatter: 0.4, attract: 0.4, speed: 0.7, connect: 0.5, geo: 0.3 },
+  formulas: { scatter: 0.1, attract: 0.7, speed: 0.3, connect: 0.8, geo: 0.9 },
+  wiring:   { scatter: 0.1, attract: 0.9, speed: 0.4, connect: 0.9, geo: 0.5 },
+  forge:    { scatter: 0.2, attract: 0.8, speed: 0.6, connect: 0.6, geo: 0.8 },
+  lens:     { scatter: 0.3, attract: 0.5, speed: 0.5, connect: 0.5, geo: 0.5 },
+  projects: { scatter: 0.3, attract: 0.6, speed: 0.5, connect: 0.6, geo: 0.5 },
+};
+
+let currentMode = {...CHAMBER_MODE.entry};
+let targetMode  = {...CHAMBER_MODE.entry};
+let chamberT = 0;
+
+// ── PARTICLE SYSTEM ──
+const isMobile = window.innerWidth < 900;
+const N = isMobile ? 600 : 1400;
+
+const px = new Float32Array(N);
+const py = new Float32Array(N);
+const pz = new Float32Array(N);
+const pvx = new Float32Array(N);
+const pvy = new Float32Array(N);
+const pvz = new Float32Array(N);
+const psize = new Float32Array(N);
+const pbright = new Float32Array(N);
+const ptype = new Uint8Array(N);   // 0=dust 1=node 2=primary 3=focal
+const pphase = new Float32Array(N);
+
+// Noise helper
+function noise(x, y, z) {
+  const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+  x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+  const u = x*x*x*(x*(x*6-15)+10);
+  const v = y*y*y*(y*(y*6-15)+10);
+  const w = z*z*z*(z*(z*6-15)+10);
+  const h = (X*374761393 + Y*1073741827 + Z*2654435761) >>> 0;
+  const h2 = (h * 2246822519 + 3266489917) >>> 0;
+  return (((h2 >>> 16) & 0xffff) / 65535) * 2 - 1;
+}
+
+// Init particles in a roughly spherical volumetric cloud
+(function initParticles() {
+  for (let i = 0; i < N; i++) {
+    // Spherical distribution with density falloff
+    const r = Math.pow(Math.random(), 0.5) * 0.85;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    px[i] = r * Math.sin(phi) * Math.cos(theta);
+    py[i] = r * Math.sin(phi) * Math.sin(theta);
+    pz[i] = r * Math.cos(phi) * 0.6; // flatten z slightly
+
+    pvx[i] = (Math.random() - 0.5) * 0.001;
+    pvy[i] = (Math.random() - 0.5) * 0.001;
+    pvz[i] = (Math.random() - 0.5) * 0.001;
+
+    pphase[i] = Math.random() * Math.PI * 2;
+
+    // Type distribution
+    const rnd = Math.random();
+    if (rnd < 0.60) { ptype[i] = 0; psize[i] = 0.4 + Math.random() * 0.6; }
+    else if (rnd < 0.85) { ptype[i] = 1; psize[i] = 0.9 + Math.random() * 1.1; }
+    else if (rnd < 0.97) { ptype[i] = 2; psize[i] = 1.4 + Math.random() * 1.6; }
+    else { ptype[i] = 3; psize[i] = 2.5 + Math.random() * 2; }
+
+    pbright[i] = Math.random();
+  }
+})();
+
+// ── INTERACTION STATE ──
+let pulses = [];
+let lastClick = 0;
+
+CV.addEventListener('click', function(e) {
+  const mx = (e.clientX / CW) * 2 - 1;
+  const my = -((e.clientY / CH) * 2 - 1);
+  pulses.push({ x: mx, y: my, t: 0, strength: 1.0 });
+  lastClick = T;
+});
+CV.addEventListener('touchstart', function(e) {
+  const mx = (e.touches[0].clientX / CW) * 2 - 1;
+  const my = -((e.touches[0].clientY / CH) * 2 - 1);
+  pulses.push({ x: mx, y: my, t: 0, strength: 0.8 });
+  lastClick = T;
+}, { passive: true });
+
+// ── PHASE SYSTEM ── chaos → formation → structure → analysis → dispersion
+const PHASES = ['chaos', 'formation', 'structure', 'analysis', 'dispersion'];
+let phaseIdx = 0;
+let phaseTimer = 0;
+const PHASE_DUR = [280, 220, 300, 200, 240]; // frames per phase
+
+// ── 2D FALLBACK RENDERER ──
+function draw2D() {
+  if (CV.offsetWidth > 10 && CV.offsetWidth !== CW) {
+    CW = CV.width = CV.offsetWidth;
     CH = CV.height = CV.offsetHeight;
   }
 
   cx.clearRect(0, 0, CW, CH);
 
-  if (!SPHERE.ready) { requestAnimationFrame(drawFrame); return; }
+  const cx_ = CW * 0.5;
+  const cy_ = CH * 0.5;
+  const R = Math.min(CW, CH) * 0.38;
+  const phase = PHASES[phaseIdx];
+  const pT = Math.min(1, phaseTimer / 60); // transition factor
+
+  // Update chamber mode
+  chamberT = Math.min(1, chamberT + 0.02);
+  for (const k of Object.keys(currentMode)) {
+    currentMode[k] += (targetMode[k] - currentMode[k]) * 0.05;
+  }
+
+  // Phase timer
+  phaseTimer++;
+  if (phaseTimer > PHASE_DUR[phaseIdx]) {
+    phaseTimer = 0;
+    phaseIdx = (phaseIdx + 1) % PHASES.length;
+  }
 
   // Pulse decay
-  SPHERE.pulse += SPHERE.pulseV;
-  SPHERE.pulseV *= 0.92;
-  SPHERE.pulse  *= 0.97;
+  pulses = pulses.filter(p => p.t < 80);
+  pulses.forEach(p => p.t++);
 
-  // Touch influence on rotation speed
-  if (SPHERE.touch.active) {
-    SPHERE.touch.t++;
-    if (SPHERE.touch.t > 40) SPHERE.touch.active = false;
+  // Global rotation
+  const rotY = T * 0.0004;
+  const rotX = T * 0.00025 + Math.sin(T * 0.0003) * 0.15;
+  const mouseInfluenceX = (mouse.x - 0.5) * 0.3;
+  const mouseInfluenceY = (mouse.y - 0.5) * 0.2;
+
+  // Phase-based field
+  const phaseAttract = phase === 'structure' || phase === 'analysis' ? 0.8 : 0.3;
+  const phaseScatter = phase === 'chaos' || phase === 'dispersion' ? 0.9 : 0.2;
+  const phaseSpeed = phase === 'fire' ? 1.8 : 1.0;
+
+  // Update particles
+  for (let i = 0; i < N; i++) {
+    const t = T * 0.002 + pphase[i];
+    const speedMod = (0.4 + pz[i] * 0.4) * currentMode.speed * phaseSpeed;
+
+    // Noise-based drift
+    const nx = noise(px[i] * 2 + t * 0.3, py[i] * 2, pz[i] * 2);
+    const ny = noise(px[i] * 2, py[i] * 2 + t * 0.3, pz[i] * 2 + 1.7);
+    const nz = noise(px[i] * 2 + 2.3, py[i] * 2 + 1.1, pz[i] * 2 + t * 0.3);
+
+    pvx[i] += nx * 0.00012 * speedMod;
+    pvy[i] += ny * 0.00012 * speedMod;
+    pvz[i] += nz * 0.00008 * speedMod;
+
+    // Attraction to center
+    const dist = Math.sqrt(px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
+    const attractStr = currentMode.attract * phaseAttract;
+    const scatterStr = currentMode.scatter * phaseScatter;
+    if (dist > 0.05) {
+      pvx[i] -= (px[i] / dist) * (attractStr * 0.0006 - scatterStr * 0.0002);
+      pvy[i] -= (py[i] / dist) * (attractStr * 0.0006 - scatterStr * 0.0002);
+      pvz[i] -= (pz[i] / dist) * (attractStr * 0.0004 - scatterStr * 0.0001);
+    }
+
+    // Pulse forces
+    pulses.forEach(pulse => {
+      const dx = px[i] - pulse.x;
+      const dy = py[i] - pulse.y;
+      const pd = Math.sqrt(dx*dx + dy*dy);
+      const waveR = pulse.t * 0.025;
+      const waveFalloff = Math.exp(-Math.pow(pd - waveR, 2) * 8);
+      const force = waveFalloff * 0.018 * pulse.strength;
+      if (pd > 0.001) {
+        pvx[i] += (dx / pd) * force;
+        pvy[i] += (dy / pd) * force;
+      }
+    });
+
+    // Mouse repulsion/attraction
+    const mx = (mouse.x * 2 - 1) * (CW / Math.min(CW, CH));
+    const my = -(mouse.y * 2 - 1);
+    const mdx = px[i] - mx * 0.9;
+    const mdy = py[i] - my * 0.9;
+    const md = Math.sqrt(mdx*mdx + mdy*mdy);
+    if (md < 0.3) {
+      const mf = (0.3 - md) / 0.3 * 0.003;
+      pvx[i] += (mdx / md) * mf;
+      pvy[i] += (mdy / md) * mf;
+    }
+
+    // Velocity damping
+    pvx[i] *= 0.97;
+    pvy[i] *= 0.97;
+    pvz[i] *= 0.97;
+
+    // Clamp velocity
+    const spd = Math.sqrt(pvx[i]*pvx[i] + pvy[i]*pvy[i] + pvz[i]*pvz[i]);
+    if (spd > 0.015) { pvx[i] *= 0.015/spd; pvy[i] *= 0.015/spd; pvz[i] *= 0.015/spd; }
+
+    px[i] += pvx[i];
+    py[i] += pvy[i];
+    pz[i] += pvz[i];
+
+    // Boundary — soft wrap
+    if (Math.abs(px[i]) > 1.2) pvx[i] *= -0.4;
+    if (Math.abs(py[i]) > 1.2) pvy[i] *= -0.4;
+    if (Math.abs(pz[i]) > 0.8) pvz[i] *= -0.4;
   }
 
-  // Rotation — base + pulse boost
-  const pBoost = 1 + SPHERE.pulse * 2;
-  SPHERE.rot.x += SPHERE.rotV.x * pBoost;
-  SPHERE.rot.y += SPHERE.rotV.y * pBoost;
-  SPHERE.rot.z += SPHERE.rotV.z * pBoost;
+  // Project and collect draw data
+  const drawData = [];
+  for (let i = 0; i < N; i++) {
+    // Rotate
+    const cosY = Math.cos(rotY + mouseInfluenceX);
+    const sinY = Math.sin(rotY + mouseInfluenceX);
+    const cosX = Math.cos(rotX + mouseInfluenceY);
+    const sinX = Math.sin(rotX + mouseInfluenceY);
 
-  // Mouse tilt influence (subtle)
-  mouse.x = mouse.x + (mTarget.x - mouse.x) * 0.04;
-  mouse.y = mouse.y + (mTarget.y - mouse.y) * 0.04;
+    let x = px[i], y = py[i], z = pz[i];
+    // Y rotation
+    let x1 = x * cosY + z * sinY;
+    let z1 = -x * sinY + z * cosY;
+    // X rotation
+    let y2 = y * cosX - z1 * sinX;
+    let z2 = y * sinX + z1 * cosX;
 
-  const cx_ = CW * 0.5 + (mouse.x - 0.5) * 40;
-  const cy_ = CH * 0.5 + (mouse.y - 0.5) * 40;
-  const R = Math.min(CW, CH) * 0.32;
-  const rx = SPHERE.rot.x + (mouse.y - 0.5) * 0.3;
-  const ry = SPHERE.rot.y + (mouse.x - 0.5) * 0.4;
-  const rz = SPHERE.rot.z;
+    // Project
+    const fov = 2.5;
+    const scale = fov / (fov + z2 + 1.5);
+    const sx = cx_ + x1 * R * scale;
+    const sy = cy_ - y2 * R * scale;
+    const depth = (z2 + 1) * 0.5;
 
-  // Project all nodes
-  const projected = SPHERE.nodes.map(n => {
-    const p = rotPoint(n.x, n.y, n.z, rx, ry, rz);
-    const s = project(p.x, p.y, p.z, cx_, cy_, R);
-    return { ...s, z: p.z, bright: n.bright, size: n.size };
-  });
+    drawData.push({ i, sx, sy, depth, scale, z: z2 });
+  }
 
-  // Draw edges
-  SPHERE.edges.forEach(([i, j, d]) => {
-    const a = projected[i], b = projected[j];
-    const avgZ = (a.z + b.z) * 0.5;
-    const depth = (avgZ + 1) * 0.5;
-    const alpha = depth * 0.38 * (1 - d / 0.42) * (1 + SPHERE.pulse * 0.5);
-    cx.beginPath();
-    cx.moveTo(a.x, a.y);
-    cx.lineTo(b.x, b.y);
-    cx.strokeStyle = `rgba(200,140,40,${Math.min(alpha, 0.55)})`;
-    cx.lineWidth = 0.5 + depth * 0.4;
-    cx.stroke();
-  });
+  // Sort back to front
+  drawData.sort((a, b) => a.z - b.z);
 
-  // Draw orbital rings
-  SPHERE.rings.forEach(ring => {
-    ring.phase += ring.speed * pBoost;
-    cx.beginPath();
-    let first = true;
-    for (let i = 0; i <= 128; i++) {
-      const a = (i / 128) * Math.PI * 2;
-      const cosA = Math.cos(a), sinA = Math.sin(a);
-      const cosT = Math.cos(ring.tilt), sinT = Math.sin(ring.tilt);
-      const cosP = Math.cos(ring.phase), sinP = Math.sin(ring.phase);
-      // Ring in 3D: rotated tilt plane
-      const x0 = cosA * ring.radius;
-      const y0 = sinA * ring.radius * cosT;
-      const z0 = sinA * ring.radius * sinT;
-      // Add ring rotation
-      const x1 = x0 * cosP - z0 * sinP;
-      const z1 = x0 * sinP + z0 * cosP;
-      const p = rotPoint(x1, y0, z1, rx, ry, rz);
-      const s = project(p.x, p.y, p.z, cx_, cy_, R);
-      if (first) { cx.moveTo(s.x, s.y); first = false; }
-      else cx.lineTo(s.x, s.y);
+  // Draw connections first
+  const connectDist = 0.22 + currentMode.connect * 0.18;
+  const maxConns = isMobile ? 600 : 2000;
+  let connCount = 0;
+
+  // Batch connections by alpha for performance
+  cx.save();
+  for (let ii = 0; ii < drawData.length && connCount < maxConns; ii++) {
+    const a = drawData[ii];
+    for (let jj = ii + 1; jj < drawData.length && connCount < maxConns; jj++) {
+      const b = drawData[jj];
+      const dx = px[a.i] - px[b.i];
+      const dy = py[a.i] - py[b.i];
+      const dz = pz[a.i] - pz[b.i];
+      const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
+      if (d < connectDist) {
+        const alpha = (1 - d / connectDist) * Math.min(a.depth, b.depth) * 0.35;
+        const typeBoost = (ptype[a.i] + ptype[b.i]) > 2 ? 1.8 : 1;
+        cx.beginPath();
+        cx.moveTo(a.sx, a.sy);
+        cx.lineTo(b.sx, b.sy);
+        cx.strokeStyle = `rgba(180,210,240,${Math.min(alpha * typeBoost * currentMode.connect, 0.5)})`;
+        cx.lineWidth = 0.4 + (ptype[a.i] === 2 || ptype[b.i] === 2 ? 0.4 : 0);
+        cx.stroke();
+        connCount++;
+      }
     }
-    const ringDepth = 0.6;
-    const ringAlpha = ringDepth * (0.18 + SPHERE.pulse * 0.12);
-    cx.strokeStyle = `rgba(220,160,50,${Math.min(ringAlpha, 0.4)})`;
-    cx.lineWidth = 0.8;
-    cx.stroke();
-  });
+  }
+  cx.restore();
 
-  // Draw nodes (front to back for painter order)
-  projected.sort((a, b) => b.z - a.z);
-  projected.forEach(p => {
-    const depth = (p.z + 1) * 0.5;
-    const alpha = 0.3 + depth * 0.7;
-    const glowR = p.size * (1.8 + p.bright * 2.5) * (1 + SPHERE.pulse * 0.6);
-    const nodeR = p.size * 0.7 * p.scale;
+  // Occasional geometric structure flash
+  if (phase === 'structure' || phase === 'analysis') {
+    const geoAlpha = Math.sin(phaseTimer * 0.04) * 0.5 + 0.5;
+    if (geoAlpha > 0.6 && currentMode.geo > 0.4) {
+      // Find a cluster center and draw radial spokes
+      const focalIdx = Math.floor(T * 0.1) % N;
+      const fp = drawData.find(d => d.i === focalIdx);
+      if (fp) {
+        cx.save();
+        cx.globalAlpha = geoAlpha * 0.15 * currentMode.geo;
+        cx.strokeStyle = 'rgba(160,200,255,1)';
+        cx.lineWidth = 0.5;
+        const spokes = 6 + Math.floor(currentMode.geo * 4);
+        for (let s = 0; s < spokes; s++) {
+          const a = (s / spokes) * Math.PI * 2;
+          const r = R * 0.15 * fp.scale;
+          cx.beginPath();
+          cx.moveTo(fp.sx, fp.sy);
+          cx.lineTo(fp.sx + Math.cos(a) * r, fp.sy + Math.sin(a) * r);
+          cx.stroke();
+        }
+        cx.restore();
+      }
+    }
+  }
 
-    // Glow halo
-    if (depth > 0.3) {
-      const g = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR * p.scale);
-      const a = alpha * 0.35 * (0.5 + p.bright * 0.5);
-      g.addColorStop(0, `rgba(240,180,60,${Math.min(a, 0.7)})`);
-      g.addColorStop(0.4, `rgba(200,130,30,${Math.min(a * 0.4, 0.3)})`);
-      g.addColorStop(1, 'rgba(200,130,30,0)');
-      cx.fillStyle = g;
+  // Draw particles
+  drawData.forEach(p => {
+    const type = ptype[p.i];
+    const bright = pbright[p.i];
+    const depth = p.depth;
+    const sz = psize[p.i] * p.scale;
+
+    let alpha, r, g, b;
+
+    if (type === 0) {
+      // Dust — nearly invisible, cool white
+      alpha = depth * 0.25 * (0.3 + bright * 0.4);
+      r = 200; g = 220; b = 245;
+      cx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      cx.fillRect(p.sx - sz * 0.4, p.sy - sz * 0.4, sz * 0.8, sz * 0.8);
+    } else if (type === 1) {
+      // Node
+      alpha = depth * 0.5 * (0.4 + bright * 0.4);
+      cx.fillStyle = `rgba(210,230,255,${alpha})`;
       cx.beginPath();
-      cx.arc(p.x, p.y, glowR * p.scale, 0, Math.PI * 2);
+      cx.arc(p.sx, p.sy, sz * 0.7, 0, Math.PI * 2);
+      cx.fill();
+    } else if (type === 2) {
+      // Primary — small glow
+      alpha = depth * 0.7 * (0.6 + bright * 0.4);
+      const glowR = sz * 3;
+      const g2 = cx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, glowR);
+      g2.addColorStop(0, `rgba(220,240,255,${alpha})`);
+      g2.addColorStop(0.3, `rgba(180,210,255,${alpha * 0.3})`);
+      g2.addColorStop(1, 'rgba(160,200,255,0)');
+      cx.fillStyle = g2;
+      cx.beginPath();
+      cx.arc(p.sx, p.sy, glowR, 0, Math.PI * 2);
+      cx.fill();
+      cx.fillStyle = `rgba(240,250,255,${alpha})`;
+      cx.beginPath();
+      cx.arc(p.sx, p.sy, sz, 0, Math.PI * 2);
+      cx.fill();
+    } else {
+      // Focal — rare, bright, pulsing
+      const pulse2 = Math.sin(T * 0.08 + pphase[p.i]) * 0.5 + 0.5;
+      alpha = depth * (0.8 + pulse2 * 0.2);
+      const glowR = sz * 6 * (1 + pulse2 * 0.5);
+      const g2 = cx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, glowR);
+      g2.addColorStop(0, `rgba(240,250,255,${alpha})`);
+      g2.addColorStop(0.2, `rgba(200,225,255,${alpha * 0.5})`);
+      g2.addColorStop(0.6, `rgba(180,210,255,${alpha * 0.1})`);
+      g2.addColorStop(1, 'rgba(180,210,255,0)');
+      cx.fillStyle = g2;
+      cx.beginPath();
+      cx.arc(p.sx, p.sy, glowR, 0, Math.PI * 2);
+      cx.fill();
+      cx.fillStyle = `rgba(255,255,255,${alpha})`;
+      cx.beginPath();
+      cx.arc(p.sx, p.sy, sz, 0, Math.PI * 2);
       cx.fill();
     }
-
-    // Node core
-    cx.fillStyle = `rgba(255,220,130,${Math.min(alpha * (0.7 + p.bright * 0.3), 1)})`;
-    cx.beginPath();
-    cx.arc(p.x, p.y, nodeR, 0, Math.PI * 2);
-    cx.fill();
   });
 
-  // Central glow — the "mind" core
-  const coreSize = R * (0.18 + SPHERE.pulse * 0.08);
-  const coreG = cx.createRadialGradient(cx_, cy_, 0, cx_, cy_, coreSize);
-  coreG.addColorStop(0, `rgba(255,200,80,${0.12 + SPHERE.pulse * 0.08})`);
-  coreG.addColorStop(0.5, `rgba(200,140,40,${0.06 + SPHERE.pulse * 0.04})`);
-  coreG.addColorStop(1, 'rgba(180,100,20,0)');
-  cx.fillStyle = coreG;
-  cx.beginPath();
-  cx.arc(cx_, cy_, coreSize, 0, Math.PI * 2);
-  cx.fill();
+  // Pulse wave visualization
+  pulses.forEach(pulse => {
+    if (pulse.t < 60) {
+      const wR = (pulse.t / 60) * R * 0.8;
+      const wa = (1 - pulse.t / 60) * 0.3;
+      const wx = cx_ + pulse.x * R;
+      const wy = cy_ - pulse.y * R;
+      cx.beginPath();
+      cx.arc(wx, wy, wR, 0, Math.PI * 2);
+      cx.strokeStyle = `rgba(180,220,255,${wa})`;
+      cx.lineWidth = 1;
+      cx.stroke();
+      // Secondary inner ring
+      if (pulse.t > 10) {
+        cx.beginPath();
+        cx.arc(wx, wy, wR * 0.5, 0, Math.PI * 2);
+        cx.strokeStyle = `rgba(200,235,255,${wa * 0.5})`;
+        cx.lineWidth = 0.5;
+        cx.stroke();
+      }
+    }
+  });
+}
 
-  // Touch ripple
-  if (SPHERE.touch.active) {
-    const tr = SPHERE.touch.t * 8;
-    const ta = Math.max(0, 0.4 - SPHERE.touch.t * 0.01);
-    cx.beginPath();
-    cx.arc(SPHERE.touch.x, SPHERE.touch.y, tr, 0, Math.PI * 2);
-    cx.strokeStyle = `rgba(220,160,60,${ta})`;
-    cx.lineWidth = 1.5;
-    cx.stroke();
-  }
-
+// ── MAIN LOOP ──
+function drawFrame() {
+  T += 0.006;
+  mouse.x = mouse.x + (mTarget.x - mouse.x) * 0.04;
+  mouse.y = mouse.y + (mTarget.y - mouse.y) * 0.04;
+  vp.x = lp(vp.x, vpTarget.x, 0.018);
+  vp.y = lp(vp.y, vpTarget.y, 0.018);
+  draw2D();
   requestAnimationFrame(drawFrame);
 }
+
+// ── CHAMBER MODE SWITCH ──
+// Patch setVP after IIFE so chamber changes update particle mode
+const _origSetVP2 = setVP;
+function setVP(c) {
+  _origSetVP2(c);
+  targetMode = {...(CHAMBER_MODE[c] || CHAMBER_MODE.entry)};
+  chamberT = 0;
+}
+
+})();
 
 
 setVP('entry');

@@ -2917,6 +2917,9 @@ function lp(a,b,t){ return a+(b-a)*t; }
 function setVP(c){
   const p = VP_CHAMBER[c] || VP_CHAMBER.entry;
   vpTarget.x = p.x; vpTarget.y = p.y;
+  if(typeof CHAMBER_MODE !== 'undefined') {
+    ifTargetMode = {...(CHAMBER_MODE[c] || CHAMBER_MODE.entry)};
+  }
 }
 
 // ── JARVIS SPHERE ─────────────────────────────────────────────────────────────
@@ -3088,11 +3091,7 @@ CV.addEventListener('touchstart', function(e) {
   ifPulses.push({x:mx, y:my, t:0});
 }, {passive:true});
 
-function setVP(c) {
-  const p = VP_CHAMBER[c] || VP_CHAMBER.entry;
-  vpTarget.x = p.x; vpTarget.y = p.y;
-  ifTargetMode = {...(CHAMBER_MODE[c] || CHAMBER_MODE.entry)};
-}
+// chamber mode update handled by patched setVP below
 
 function drawFrame() {
   T += 0.006;

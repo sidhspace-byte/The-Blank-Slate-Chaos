@@ -3012,267 +3012,412 @@ CV.addEventListener('mousedown', function(e) {
   SPHERE.touch = { x: e.clientX, y: e.clientY, active: true, t: 0 };
 });
 
-// ── INTELLIGENCE FIELD ──────────────────────────────────────────────────────
+// ── INTELLIGENCE FIELD v3 ───────────────────────────────────────────────────
 
 const CHAMBER_MODE = {
-  entry:    { scatter: 0.5, attract: 0.3, speed: 0.6, connect: 0.4, geo: 0.2 },
-  load:     { scatter: 0.8, attract: 0.2, speed: 0.8, connect: 0.2, geo: 0.1 },
-  map:      { scatter: 0.3, attract: 0.5, speed: 0.5, connect: 0.6, geo: 0.4 },
-  aim:      { scatter: 0.1, attract: 0.8, speed: 0.4, connect: 0.7, geo: 0.6 },
-  fire:     { scatter: 0.2, attract: 0.6, speed: 1.4, connect: 0.3, geo: 0.3 },
-  reload:   { scatter: 0.9, attract: 0.3, speed: 0.9, connect: 0.3, geo: 0.2 },
-  train:    { scatter: 0.2, attract: 0.5, speed: 0.5, connect: 0.5, geo: 0.7 },
-  sim:      { scatter: 0.4, attract: 0.4, speed: 0.7, connect: 0.5, geo: 0.3 },
-  formulas: { scatter: 0.1, attract: 0.7, speed: 0.3, connect: 0.8, geo: 0.9 },
-  wiring:   { scatter: 0.1, attract: 0.9, speed: 0.4, connect: 0.9, geo: 0.5 },
-  forge:    { scatter: 0.2, attract: 0.8, speed: 0.6, connect: 0.6, geo: 0.8 },
-  lens:     { scatter: 0.3, attract: 0.5, speed: 0.5, connect: 0.5, geo: 0.5 },
-  projects: { scatter: 0.3, attract: 0.6, speed: 0.5, connect: 0.6, geo: 0.5 },
+  entry:    { order:0.5, speed:0.5, density:0.6, spike:0.3, geo:0.4 },
+  load:     { order:0.2, speed:0.7, density:0.5, spike:0.6, geo:0.1 },
+  map:      { order:0.6, speed:0.4, density:0.7, spike:0.2, geo:0.6 },
+  aim:      { order:0.8, speed:0.3, density:0.8, spike:0.1, geo:0.8 },
+  fire:     { order:0.2, speed:1.6, density:0.6, spike:0.9, geo:0.2 },
+  reload:   { order:0.3, speed:0.6, density:0.5, spike:0.5, geo:0.2 },
+  train:    { order:0.7, speed:0.4, density:0.7, spike:0.3, geo:0.7 },
+  sim:      { order:0.4, speed:0.6, density:0.8, spike:0.5, geo:0.4 },
+  formulas: { order:0.9, speed:0.3, density:0.9, spike:0.1, geo:0.9 },
+  wiring:   { order:0.8, speed:0.4, density:0.9, spike:0.2, geo:0.7 },
+  forge:    { order:0.5, speed:0.7, density:0.8, spike:0.6, geo:0.6 },
+  lens:     { order:0.6, speed:0.5, density:0.7, spike:0.3, geo:0.5 },
+  projects: { order:0.6, speed:0.5, density:0.7, spike:0.3, geo:0.5 },
 };
 
-let ifCurrentMode = { scatter:0.5, attract:0.3, speed:0.6, connect:0.4, geo:0.2 };
-let ifTargetMode  = { scatter:0.5, attract:0.3, speed:0.6, connect:0.4, geo:0.2 };
+let ifMode = {order:0.5,speed:0.5,density:0.6,spike:0.3,geo:0.4};
+let ifModeTarget = {order:0.5,speed:0.5,density:0.6,spike:0.3,geo:0.4};
 
-const isMobileIF = window.innerWidth < 900;
-const NIF = isMobileIF ? 500 : 1200;
+// Thinking state
+let ifThinking = 0;      // 0-1, current intensity
+let ifThinkTarget = 0;
+let ifThinkTimer = 0;
+let ifThinkInterval = 180 + Math.random() * 240; // next think trigger
 
-const ifpx = new Float32Array(NIF);
-const ifpy = new Float32Array(NIF);
-const ifpz = new Float32Array(NIF);
-const ifvx = new Float32Array(NIF);
-const ifvy = new Float32Array(NIF);
-const ifvz = new Float32Array(NIF);
-const ifsz = new Float32Array(NIF);
-const ifbr = new Float32Array(NIF);
-const ifty = new Uint8Array(NIF);
-const ifph = new Float32Array(NIF);
+// Particle count — cover full canvas
+const NIF = window.innerWidth < 900 ? 3000 : 7000;
 
-function ifNoise(x, y, z) {
-  const h = ((Math.floor(x)*374761393 + Math.floor(y)*1073741827 + Math.floor(z)*2654435761) >>> 0);
-  const h2 = (h * 2246822519 + 3266489917) >>> 0;
-  const fx = x - Math.floor(x), fy = y - Math.floor(y), fz = z - Math.floor(z);
-  const u = fx*fx*(3-2*fx), v = fy*fy*(3-2*fy);
-  return ((h2 >>> 16) & 0xffff) / 65535 * 2 - 1;
+const ifX  = new Float32Array(NIF);
+const ifY  = new Float32Array(NIF);
+const ifVX = new Float32Array(NIF);
+const ifVY = new Float32Array(NIF);
+const ifBX = new Float32Array(NIF); // base/attractor X
+const ifBY = new Float32Array(NIF); // base/attractor Y
+const ifSZ = new Float32Array(NIF);
+const ifBR = new Float32Array(NIF);
+const ifTY = new Uint8Array(NIF);   // 0=dust 1=node 2=data 3=focal
+const ifPH = new Float32Array(NIF);
+const ifLY = new Float32Array(NIF); // layer depth 0-1
+const ifSP = new Float32Array(NIF); // spike amount 0-1
+
+// Fractal noise — 3 octaves
+function ifFBM(x, y, t) {
+  let v = 0, amp = 1, freq = 1, tot = 0;
+  for (let o = 0; o < 3; o++) {
+    const xi = Math.floor(x*freq), yi = Math.floor(y*freq);
+    const xf = x*freq-xi, yf = y*freq-yi;
+    const u = xf*xf*(3-2*xf), v2 = yf*yf*(3-2*yf);
+    const h00 = (((xi*1234567 + yi*7654321 + o*999983 + Math.floor(t*0.1)*111317) * 2246822519 + 3266489917) >>> 0) / 4294967295;
+    const h10 = ((((xi+1)*1234567 + yi*7654321 + o*999983 + Math.floor(t*0.1)*111317) * 2246822519 + 3266489917) >>> 0) / 4294967295;
+    const h01 = (((xi*1234567 + (yi+1)*7654321 + o*999983 + Math.floor(t*0.1)*111317) * 2246822519 + 3266489917) >>> 0) / 4294967295;
+    const h11 = ((((xi+1)*1234567 + (yi+1)*7654321 + o*999983 + Math.floor(t*0.1)*111317) * 2246822519 + 3266489917) >>> 0) / 4294967295;
+    v += (((h00*(1-u) + h10*u)*(1-v2) + (h01*(1-u) + h11*u)*v2) * 2 - 1) * amp;
+    tot += amp; amp *= 0.5; freq *= 2.1;
+  }
+  return v / tot;
 }
 
-// Init particles
-(function() {
+// Simpler fast noise for particles
+function ifN(x, y) {
+  const ix = Math.floor(x)|0, iy = Math.floor(y)|0;
+  const fx = x-ix, fy = y-iy;
+  const u = fx*fx*(3-2*fx), v = fy*fy*(3-2*fy);
+  const r = (a, b) => (((a*374761393 ^ b*1073741827) * 2654435761) >>> 0) / 4294967295 * 2 - 1;
+  return (r(ix,iy)*(1-u) + r(ix+1,iy)*u)*(1-v) + (r(ix,iy+1)*(1-u) + r(ix+1,iy+1)*u)*v;
+}
+
+// Init — spread across entire canvas
+function ifInit() {
   for (let i = 0; i < NIF; i++) {
-    const r = Math.pow(Math.random(), 0.45) * 0.9;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    ifpx[i] = r * Math.sin(phi) * Math.cos(theta);
-    ifpy[i] = r * Math.sin(phi) * Math.sin(theta);
-    ifpz[i] = r * Math.cos(phi) * 0.55;
-    ifvx[i] = (Math.random()-0.5)*0.001;
-    ifvy[i] = (Math.random()-0.5)*0.001;
-    ifvz[i] = (Math.random()-0.5)*0.001;
-    ifph[i] = Math.random() * Math.PI * 2;
-    const rnd = Math.random();
-    if      (rnd < 0.60) { ifty[i]=0; ifsz[i]=0.4+Math.random()*0.5; }
-    else if (rnd < 0.85) { ifty[i]=1; ifsz[i]=0.8+Math.random()*1.0; }
-    else if (rnd < 0.97) { ifty[i]=2; ifsz[i]=1.3+Math.random()*1.5; }
-    else                 { ifty[i]=3; ifsz[i]=2.2+Math.random()*2.0; }
-    ifbr[i] = Math.random();
+    // Full canvas coverage — not just a sphere
+    ifX[i]  = Math.random() * CW;
+    ifY[i]  = Math.random() * CH;
+    ifBX[i] = ifX[i];
+    ifBY[i] = ifY[i];
+    ifVX[i] = (Math.random()-0.5)*0.3;
+    ifVY[i] = (Math.random()-0.5)*0.3;
+    ifPH[i] = Math.random() * Math.PI * 2;
+    ifLY[i] = Math.random(); // depth layer
+    ifSP[i] = 0;
+    const r = Math.random();
+    if      (r < 0.60) { ifTY[i]=0; ifSZ[i]=0.5+Math.random()*0.8;  }
+    else if (r < 0.82) { ifTY[i]=1; ifSZ[i]=0.9+Math.random()*1.1;  }
+    else if (r < 0.96) { ifTY[i]=2; ifSZ[i]=1.3+Math.random()*1.6;  }
+    else               { ifTY[i]=3; ifSZ[i]=2.0+Math.random()*2.5;  }
+    ifBR[i] = Math.pow(Math.random(), 1.5);
   }
-})();
+}
+
+// Geometric attractor patterns
+function ifGeoAttractor(i, t, mode) {
+  const ph = ifPH[i];
+  const w = CW, h = CH;
+  const cx = w*0.5, cy = h*0.5;
+  const R = Math.min(w,h) * 0.38;
+  const layer = ifLY[i];
+
+  // Blend between chaos and geometry based on mode.order
+  const geo = mode.order;
+
+  // Fractal / geometric target positions based on particle index
+  const frac = i / NIF;
+  let tx, ty;
+
+  if (geo > 0.7) {
+    // High order: geometric lattice / radial / neural patterns
+    const pattern = Math.floor(T * 0.0008 + frac * 3) % 4;
+    if (pattern === 0) {
+      // Radial
+      const ang = frac * Math.PI * 2 * (2 + Math.floor(layer*3)) + t*0.0003;
+      const r2 = R * (0.2 + layer * 0.8);
+      tx = cx + Math.cos(ang) * r2;
+      ty = cy + Math.sin(ang) * r2;
+    } else if (pattern === 1) {
+      // Grid / matrix
+      const cols = Math.floor(Math.sqrt(NIF * (w/h)));
+      const rows = Math.floor(NIF / cols);
+      const col = i % cols, row = Math.floor(i / cols) % rows;
+      tx = w * 0.1 + col * (w * 0.8 / cols);
+      ty = h * 0.1 + row * (h * 0.8 / rows);
+    } else if (pattern === 2) {
+      // Neural — branching clusters
+      const cluster = Math.floor(frac * 8);
+      const cang = (cluster / 8) * Math.PI * 2;
+      const cr = R * 0.5;
+      const clx = cx + Math.cos(cang) * cr;
+      const cly = cy + Math.sin(cang) * cr;
+      const subang = ph + t * 0.0005;
+      const subr = R * 0.2 * (0.3 + layer * 0.7);
+      tx = clx + Math.cos(subang) * subr;
+      ty = cly + Math.sin(subang) * subr;
+    } else {
+      // Sphere projection
+      const theta = frac * Math.PI * 2;
+      const phi2 = Math.acos(2 * layer - 1);
+      const rot = t * 0.0004;
+      const x3d = Math.sin(phi2) * Math.cos(theta + rot);
+      const y3d = Math.sin(phi2) * Math.sin(theta + rot);
+      const z3d = Math.cos(phi2);
+      const sc = 2.2 / (2.2 + z3d * 0.5);
+      tx = cx + x3d * R * sc;
+      ty = cy - y3d * R * sc;
+    }
+  } else {
+    // Low order: noise-driven chaos spread across canvas
+    const nScale = 0.003 + layer * 0.002;
+    const ang2 = ifN(ifBX[i] * nScale, ifBY[i] * nScale + t * 0.0001) * Math.PI * 4;
+    tx = ifBX[i] + Math.cos(ang2) * 60;
+    ty = ifBY[i] + Math.sin(ang2) * 60;
+  }
+
+  return { tx, ty };
+}
 
 let ifPulses = [];
-let ifPhaseIdx = 0;
-let ifPhaseTimer = 0;
-const IF_PHASE_DUR = [300, 240, 320, 220, 260];
+CV.addEventListener('click', e => ifPulses.push({x:e.clientX,y:e.clientY,t:0,str:1}));
+CV.addEventListener('touchstart', e => ifPulses.push({x:e.touches[0].clientX,y:e.touches[0].clientY,t:0,str:0.8}),{passive:true});
 
-CV.addEventListener('click', function(e) {
-  const mx = (e.clientX/CW)*2-1, my = -((e.clientY/CH)*2-1);
-  ifPulses.push({x:mx, y:my, t:0});
-});
-CV.addEventListener('touchstart', function(e) {
-  const mx = (e.touches[0].clientX/CW)*2-1, my = -((e.touches[0].clientY/CH)*2-1);
-  ifPulses.push({x:mx, y:my, t:0});
-}, {passive:true});
+function ifUpdate() {
+  // Lerp mode
+  for (const k of Object.keys(ifMode)) ifMode[k] += (ifModeTarget[k]-ifMode[k])*0.03;
 
-// chamber mode update handled by patched setVP below
-
-function drawFrame() {
-  T += 0.006;
-  mouse.x += (mTarget.x - mouse.x) * 0.04;
-  mouse.y += (mTarget.y - mouse.y) * 0.04;
-  vp.x = lp(vp.x, vpTarget.x, 0.018);
-  vp.y = lp(vp.y, vpTarget.y, 0.018);
-
-  if (CV.offsetWidth > 10 && CV.offsetWidth !== CW) {
-    CW = CV.width = CV.offsetWidth;
-    CH = CV.height = CV.offsetHeight;
+  // Thinking cycle
+  ifThinkTimer++;
+  if (ifThinkTimer > ifThinkInterval) {
+    ifThinkTimer = 0;
+    ifThinkInterval = 160 + Math.random() * 280;
+    ifThinkTarget = 0.7 + Math.random() * 0.3;
+    setTimeout(() => { ifThinkTarget = 0; }, 2000 + Math.random() * 3000);
   }
-  cx.clearRect(0, 0, CW, CH);
+  ifThinking += (ifThinkTarget - ifThinking) * 0.04;
 
-  // Lerp chamber mode
-  for (const k of Object.keys(ifCurrentMode)) {
-    ifCurrentMode[k] += (ifTargetMode[k] - ifCurrentMode[k]) * 0.04;
-  }
-
-  // Phase
-  ifPhaseTimer++;
-  if (ifPhaseTimer > IF_PHASE_DUR[ifPhaseIdx]) {
-    ifPhaseTimer = 0;
-    ifPhaseIdx = (ifPhaseIdx + 1) % 5;
-  }
-  const ifPhase = ifPhaseIdx;
-  const phaseAttract = (ifPhase === 2 || ifPhase === 3) ? 0.9 : 0.35;
-  const phaseScatter = (ifPhase === 0 || ifPhase === 4) ? 0.9 : 0.2;
-  const phaseSpeed   = ifCurrentMode.speed;
-
-  // Pulses
-  ifPulses = ifPulses.filter(p => p.t < 90);
+  ifPulses = ifPulses.filter(p => p.t < 100);
   ifPulses.forEach(p => p.t++);
 
-  const rotY = T * 0.00045;
-  const rotX = T * 0.00028 + Math.sin(T * 0.00031) * 0.14;
-  const mTiltX = (mouse.x - 0.5) * 0.28;
-  const mTiltY = (mouse.y - 0.5) * 0.18;
-  const cx_ = CW * 0.5;
-  const cy_ = CH * 0.5;
-  const R = Math.min(CW, CH) * 0.4;
+  const spd = ifMode.speed * (1 + ifThinking * 1.5);
 
-  // Update particles
   for (let i = 0; i < NIF; i++) {
-    const t2 = T * 0.0018 + ifph[i];
-    const spd = (0.3 + (ifpz[i]+1)*0.3) * phaseSpeed;
-    const nx = ifNoise(ifpx[i]*2+t2*0.4, ifpy[i]*2, ifpz[i]*2) * 0.00014 * spd;
-    const ny = ifNoise(ifpx[i]*2, ifpy[i]*2+t2*0.4, ifpz[i]*2+1.7) * 0.00014 * spd;
-    const nz = ifNoise(ifpx[i]*2+2.3, ifpy[i]*2+1.1, ifpz[i]*2+t2*0.4) * 0.00009 * spd;
-    ifvx[i] += nx; ifvy[i] += ny; ifvz[i] += nz;
+    const layer = ifLY[i];
+    const speedMult = (0.3 + layer * 1.4) * spd;
 
-    const dist = Math.sqrt(ifpx[i]*ifpx[i] + ifpy[i]*ifpy[i] + ifpz[i]*ifpz[i]) + 0.001;
-    const aStr = ifCurrentMode.attract * phaseAttract * 0.0007;
-    const sStr = ifCurrentMode.scatter * phaseScatter * 0.0002;
-    ifvx[i] -= (ifpx[i]/dist) * (aStr - sStr);
-    ifvy[i] -= (ifpy[i]/dist) * (aStr - sStr);
-    ifvz[i] -= (ifpz[i]/dist) * (aStr - sStr) * 0.6;
+    // Noise flow field — covers full canvas
+    const nx = ifN(ifX[i]*0.004 + T*0.00018, ifY[i]*0.004) * speedMult * 0.8;
+    const ny = ifN(ifX[i]*0.004, ifY[i]*0.004 + T*0.00018 + 5.3) * speedMult * 0.8;
+    ifVX[i] += nx;
+    ifVY[i] += ny;
 
-    // Mouse push
-    const mwx = (mouse.x*2-1) * (CW / Math.min(CW,CH)) * 0.85;
-    const mwy = -(mouse.y*2-1) * 0.85;
-    const mdx = ifpx[i]-mwx, mdy = ifpy[i]-mwy;
-    const md = Math.sqrt(mdx*mdx + mdy*mdy) + 0.001;
-    if (md < 0.28) { const mf=(0.28-md)/0.28*0.003; ifvx[i]+=(mdx/md)*mf; ifvy[i]+=(mdy/md)*mf; }
+    // Geometric attractor pull
+    const {tx, ty} = ifGeoAttractor(i, T, ifMode);
+    const adx = tx - ifX[i], ady = ty - ifY[i];
+    const ad = Math.sqrt(adx*adx + ady*ady) + 1;
+    const aStr = ifMode.order * 0.012 * (1 - ifThinking * 0.6);
+    ifVX[i] += (adx/ad) * Math.min(ad * 0.008, 1.5) * aStr;
+    ifVY[i] += (ady/ad) * Math.min(ad * 0.008, 1.5) * aStr;
 
-    // Pulse wave
+    // Thinking spike — particles shoot outward from center
+    if (ifThinking > 0.1) {
+      const scx = ifX[i] - CW*0.5, scy = ifY[i] - CH*0.5;
+      const sd = Math.sqrt(scx*scx + scy*scy) + 1;
+      const spike = ifThinking * ifMode.spike * 0.08 * (0.5 + ifBR[i] * 0.5);
+      ifVX[i] += (scx/sd) * spike;
+      ifVY[i] += (scy/sd) * spike;
+      ifSP[i] += (ifThinking - ifSP[i]) * 0.08;
+    } else {
+      ifSP[i] *= 0.92;
+    }
+
+    // Mouse influence
+    const mx = mouse.x * CW, my = mouse.y * CH;
+    const mdx = ifX[i]-mx, mdy = ifY[i]-my;
+    const md = Math.sqrt(mdx*mdx+mdy*mdy)+1;
+    if (md < 120) {
+      const mf = (120-md)/120 * 0.6;
+      ifVX[i] += (mdx/md)*mf; ifVY[i] += (mdy/md)*mf;
+    }
+
+    // Pulse waves
     ifPulses.forEach(p => {
-      const dx=ifpx[i]-p.x, dy=ifpy[i]-p.y;
-      const pd=Math.sqrt(dx*dx+dy*dy)+0.001;
-      const wr=p.t*0.022;
-      const wf=Math.exp(-Math.pow(pd-wr,2)*10)*0.016;
-      ifvx[i]+=(dx/pd)*wf; ifvy[i]+=(dy/pd)*wf;
+      const dx=ifX[i]-p.x, dy=ifY[i]-p.y;
+      const pd=Math.sqrt(dx*dx+dy*dy)+1;
+      const wr=p.t*9;
+      const wf=Math.exp(-Math.pow(pd-wr,2)*0.0008)*1.8*p.str;
+      ifVX[i]+=(dx/pd)*wf; ifVY[i]+=(dy/pd)*wf;
     });
 
-    ifvx[i]*=0.968; ifvy[i]*=0.968; ifvz[i]*=0.972;
-    const spd2=Math.sqrt(ifvx[i]*ifvx[i]+ifvy[i]*ifvy[i]+ifvz[i]*ifvz[i]);
-    if(spd2>0.014){ifvx[i]*=0.014/spd2;ifvy[i]*=0.014/spd2;ifvz[i]*=0.014/spd2;}
-    ifpx[i]+=ifvx[i]; ifpy[i]+=ifvy[i]; ifpz[i]+=ifvz[i];
-    if(Math.abs(ifpx[i])>1.25)ifvx[i]*=-0.3;
-    if(Math.abs(ifpy[i])>1.25)ifvy[i]*=-0.3;
-    if(Math.abs(ifpz[i])>0.85)ifvz[i]*=-0.3;
+    // Damping
+    const damp = 0.94 - layer*0.02;
+    ifVX[i]*=damp; ifVY[i]*=damp;
+
+    // Speed cap
+    const spd2=Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
+    const maxSpd = 3.5 * speedMult;
+    if(spd2>maxSpd){ifVX[i]*=maxSpd/spd2;ifVY[i]*=maxSpd/spd2;}
+
+    ifX[i]+=ifVX[i]; ifY[i]+=ifVY[i];
+
+    // Soft wrap at canvas edges
+    if(ifX[i]<-20)ifX[i]=CW+10;
+    if(ifX[i]>CW+20)ifX[i]=-10;
+    if(ifY[i]<-20)ifY[i]=CH+10;
+    if(ifY[i]>CH+20)ifY[i]=-10;
   }
+}
 
-  // Project
-  const cosY=Math.cos(rotY+mTiltX), sinY=Math.sin(rotY+mTiltX);
-  const cosX=Math.cos(rotX+mTiltY), sinX=Math.sin(rotX+mTiltY);
-  const fov=2.6;
+function ifDraw() {
+  cx.clearRect(0,0,CW,CH);
 
-  const proj = new Array(NIF);
-  for (let i = 0; i < NIF; i++) {
-    let x=ifpx[i], y=ifpy[i], z=ifpz[i];
-    const x1=x*cosY+z*sinY, z1=-x*sinY+z*cosY;
-    const y2=y*cosX-z1*sinX, z2=y*sinX+z1*cosX;
-    const sc=fov/(fov+z2+1.5);
-    proj[i]={sx:cx_+x1*R*sc, sy:cy_-y2*R*sc, z:z2, sc, depth:(z2+1)*0.5, i};
-  }
-  proj.sort((a,b)=>a.z-b.z);
-
-  // Draw connections
-  const cDist = 0.2 + ifCurrentMode.connect * 0.16;
-  const maxC = isMobileIF ? 500 : 1800;
+  // Connection lines
+  const cDist2 = Math.pow(55 + ifMode.geo*40, 2);
+  const maxC = window.innerWidth < 900 ? 1200 : 4000;
   let cc = 0;
-  for (let ii=0; ii<proj.length && cc<maxC; ii++) {
-    const a=proj[ii];
-    for (let jj=ii+1; jj<proj.length && cc<maxC; jj++) {
-      const b=proj[jj];
-      const dx=ifpx[a.i]-ifpx[b.i], dy=ifpy[a.i]-ifpy[b.i], dz=ifpz[a.i]-ifpz[b.i];
-      const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
-      if(d<cDist){
-        const al=(1-d/cDist)*Math.min(a.depth,b.depth)*0.3*ifCurrentMode.connect;
-        const tb=(ifty[a.i]+ifty[b.i])>2?1.7:1;
-        cx.beginPath(); cx.moveTo(a.sx,a.sy); cx.lineTo(b.sx,b.sy);
-        cx.strokeStyle=`rgba(180,215,245,${Math.min(al*tb,0.45)})`;
-        cx.lineWidth=0.35+(ifty[a.i]===2||ifty[b.i]===2?0.35:0);
-        cx.stroke(); cc++;
+
+  // Use stride to avoid O(n²) on all particles
+  const stride = Math.max(1, Math.floor(NIF / 300));
+  for (let ii=0; ii<NIF && cc<maxC; ii+=stride) {
+    for (let jj=ii+stride; jj<NIF && cc<maxC; jj+=stride) {
+      const dx=ifX[ii]-ifX[jj], dy=ifY[ii]-ifY[jj];
+      const d2=dx*dx+dy*dy;
+      if(d2<cDist2 && d2>0) {
+        const d=Math.sqrt(d2);
+        const al=(1-d/Math.sqrt(cDist2)) * ifLY[ii]*0.5 * ifMode.order * 0.6;
+        const thinkBoost = 1 + ifThinking * 1.5;
+        const typeBoost = (ifTY[ii]+ifTY[jj])>2 ? 1.8:1;
+        const finalAl = Math.min(al*thinkBoost*typeBoost, 0.55);
+        if(finalAl > 0.015) {
+          cx.beginPath(); cx.moveTo(ifX[ii],ifY[ii]); cx.lineTo(ifX[jj],ifY[jj]);
+          // Color shifts during thinking — warmer
+          const r=180+Math.floor(ifThinking*60), g=210+Math.floor(ifThinking*20), b=245-Math.floor(ifThinking*50);
+          cx.strokeStyle=`rgba(${r},${g},${b},${finalAl})`;
+          cx.lineWidth=0.3+(ifTY[ii]===2||ifTY[jj]===2?0.3:0)+(ifThinking*0.4);
+          cx.stroke(); cc++;
+        }
       }
     }
   }
 
-  // Geo flash in structure/analysis phase
-  if((ifPhase===2||ifPhase===3) && ifCurrentMode.geo>0.3) {
-    const ga=Math.sin(ifPhaseTimer*0.05)*0.5+0.5;
-    if(ga>0.5) {
-      const fi=Math.floor(T*0.08)%NIF;
-      const fp=proj.find(p=>p.i===fi);
-      if(fp) {
-        cx.save(); cx.globalAlpha=ga*0.12*ifCurrentMode.geo;
-        cx.strokeStyle='rgba(160,205,255,1)'; cx.lineWidth=0.5;
-        const sp=5+Math.floor(ifCurrentMode.geo*5);
-        for(let s=0;s<sp;s++){
-          const ang=(s/sp)*Math.PI*2;
-          const gr=R*0.14*fp.sc;
-          cx.beginPath(); cx.moveTo(fp.sx,fp.sy);
-          cx.lineTo(fp.sx+Math.cos(ang)*gr,fp.sy+Math.sin(ang)*gr); cx.stroke();
+  // Data matrix lines — tiny horizontal segments near focal nodes
+  if (ifMode.geo > 0.3) {
+    cx.save();
+    cx.strokeStyle = `rgba(180,220,255,${0.08 * ifMode.geo})`;
+    cx.lineWidth = 0.3;
+    for (let i=0; i<NIF; i+=8) {
+      if (ifTY[i]===2 || ifTY[i]===3) {
+        const len = 8 + ifBR[i]*16;
+        cx.beginPath();
+        cx.moveTo(ifX[i]-len*0.5, ifY[i]);
+        cx.lineTo(ifX[i]+len*0.5, ifY[i]);
+        cx.stroke();
+      }
+    }
+    cx.restore();
+  }
+
+  // Draw particles
+  for (let i=0; i<NIF; i++) {
+    const ty=ifTY[i], br=ifBR[i], layer=ifLY[i];
+    const sz=ifSZ[i] * (1 + ifSP[i] * 3.5);
+    const thinkGlow = ifThinking * br;
+
+    if(ty===0) {
+      // Dust — tiny, numerous, form the texture
+      const al = layer*0.18*(0.2+br*0.5) + thinkGlow*0.15;
+      cx.fillStyle=`rgba(195,218,245,${Math.min(al,0.45)})`;
+      cx.fillRect(ifX[i]-sz*0.4, ifY[i]-sz*0.4, sz*0.8, sz*0.8);
+    } else if(ty===1) {
+      // Node
+      const al = layer*0.4*(0.3+br*0.5) + thinkGlow*0.2;
+      cx.fillStyle=`rgba(210,230,252,${Math.min(al,0.7)})`;
+      cx.beginPath(); cx.arc(ifX[i],ifY[i],sz*0.65,0,Math.PI*2); cx.fill();
+      // Data tag — tiny rectangle beside some nodes
+      if(br>0.7 && ifMode.geo>0.2) {
+        cx.fillStyle=`rgba(180,215,250,${al*0.4})`;
+        cx.fillRect(ifX[i]+sz, ifY[i]-0.5, 4+br*8, 1);
+      }
+    } else if(ty===2) {
+      // Primary — has glow + data line
+      const al = layer*0.6*(0.5+br*0.4) + thinkGlow*0.35;
+      const glowR = sz*(2.5+ifSP[i]*4);
+      const g2=cx.createRadialGradient(ifX[i],ifY[i],0,ifX[i],ifY[i],glowR);
+      const rc=180+Math.floor(ifThinking*70), gc2=215+Math.floor(ifThinking*25), bc=255-Math.floor(ifThinking*60);
+      g2.addColorStop(0,`rgba(${rc},${gc2},${bc},${Math.min(al,0.9)})`);
+      g2.addColorStop(0.4,`rgba(${rc},${gc2},${bc},${al*0.2})`);
+      g2.addColorStop(1,'rgba(160,200,255,0)');
+      cx.fillStyle=g2; cx.beginPath(); cx.arc(ifX[i],ifY[i],glowR,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(235,248,255,${Math.min(al,1)})`;
+      cx.beginPath(); cx.arc(ifX[i],ifY[i],sz,0,Math.PI*2); cx.fill();
+    } else {
+      // Focal — rare, thinking epicenter
+      const pulse2=Math.sin(T*0.12+ifPH[i])*0.5+0.5;
+      const al = layer*(0.8+pulse2*0.2+thinkGlow*0.5);
+      const glowR=sz*(5+ifSP[i]*6)*(1+pulse2*0.3);
+      const g2=cx.createRadialGradient(ifX[i],ifY[i],0,ifX[i],ifY[i],glowR);
+      const rc=220+Math.floor(ifThinking*35), gc2=235+Math.floor(ifThinking*15);
+      g2.addColorStop(0,`rgba(${rc},${gc2},255,${Math.min(al,1)})`);
+      g2.addColorStop(0.2,`rgba(190,220,255,${al*0.45})`);
+      g2.addColorStop(0.6,`rgba(170,210,255,${al*0.08})`);
+      g2.addColorStop(1,'rgba(160,205,255,0)');
+      cx.fillStyle=g2; cx.beginPath(); cx.arc(ifX[i],ifY[i],glowR,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(255,255,255,${Math.min(al,1)})`;
+      cx.beginPath(); cx.arc(ifX[i],ifY[i],sz,0,Math.PI*2); cx.fill();
+      // Thinking spike lines
+      if(ifThinking>0.2 && ifSP[i]>0.1) {
+        cx.save();
+        cx.strokeStyle=`rgba(200,230,255,${ifSP[i]*0.5})`;
+        cx.lineWidth=0.5;
+        const spikes=6;
+        for(let s=0;s<spikes;s++){
+          const sang=(s/spikes)*Math.PI*2+T*0.02;
+          const slen=glowR*(0.5+ifSP[i]*1.5);
+          cx.beginPath(); cx.moveTo(ifX[i],ifY[i]);
+          cx.lineTo(ifX[i]+Math.cos(sang)*slen, ifY[i]+Math.sin(sang)*slen);
+          cx.stroke();
         }
         cx.restore();
       }
     }
   }
 
-  // Draw particles
-  proj.forEach(p => {
-    const ty=ifty[p.i], br=ifbr[p.i], dep=p.depth, sz=ifsz[p.i]*p.sc;
-    if(ty===0) {
-      const al=dep*0.22*(0.3+br*0.4);
-      cx.fillStyle=`rgba(200,220,245,${al})`;
-      cx.fillRect(p.sx-sz*0.4,p.sy-sz*0.4,sz*0.8,sz*0.8);
-    } else if(ty===1) {
-      cx.fillStyle=`rgba(210,230,255,${dep*0.45*(0.4+br*0.4)})`;
-      cx.beginPath(); cx.arc(p.sx,p.sy,sz*0.7,0,Math.PI*2); cx.fill();
-    } else if(ty===2) {
-      const al=dep*0.65*(0.6+br*0.4);
-      const gr=cx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,sz*3);
-      gr.addColorStop(0,`rgba(220,240,255,${al})`);
-      gr.addColorStop(0.4,`rgba(180,215,255,${al*0.25})`);
-      gr.addColorStop(1,'rgba(160,200,255,0)');
-      cx.fillStyle=gr; cx.beginPath(); cx.arc(p.sx,p.sy,sz*3,0,Math.PI*2); cx.fill();
-      cx.fillStyle=`rgba(240,250,255,${al})`; cx.beginPath(); cx.arc(p.sx,p.sy,sz,0,Math.PI*2); cx.fill();
-    } else {
-      const pulse3=Math.sin(T*0.09+ifph[p.i])*0.5+0.5;
-      const al=dep*(0.8+pulse3*0.2);
-      const gr=cx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,sz*6*(1+pulse3*0.4));
-      gr.addColorStop(0,`rgba(240,250,255,${al})`);
-      gr.addColorStop(0.25,`rgba(200,230,255,${al*0.4})`);
-      gr.addColorStop(1,'rgba(180,215,255,0)');
-      cx.fillStyle=gr; cx.beginPath(); cx.arc(p.sx,p.sy,sz*6*(1+pulse3*0.4),0,Math.PI*2); cx.fill();
-      cx.fillStyle=`rgba(255,255,255,${al})`; cx.beginPath(); cx.arc(p.sx,p.sy,sz,0,Math.PI*2); cx.fill();
-    }
-  });
-
-  // Pulse rings
+  // Pulse visualization
   ifPulses.forEach(p => {
-    if(p.t<70) {
-      const wr=(p.t/70)*R*0.75;
-      const wa=(1-p.t/70)*0.28;
-      const wx=cx_+p.x*R*0.9, wy=cy_-p.y*R*0.9;
-      cx.beginPath(); cx.arc(wx,wy,wr,0,Math.PI*2);
-      cx.strokeStyle=`rgba(180,220,255,${wa})`; cx.lineWidth=1; cx.stroke();
+    if(p.t<80) {
+      const wr=p.t*10, wa=(1-p.t/80)*0.4;
+      cx.beginPath(); cx.arc(p.x,p.y,wr,0,Math.PI*2);
+      cx.strokeStyle=`rgba(190,225,255,${wa})`; cx.lineWidth=1.2; cx.stroke();
+      cx.beginPath(); cx.arc(p.x,p.y,wr*0.45,0,Math.PI*2);
+      cx.strokeStyle=`rgba(210,235,255,${wa*0.5})`; cx.lineWidth=0.6; cx.stroke();
     }
   });
 
+  // Thinking overlay — subtle vignette intensification
+  if(ifThinking>0.15) {
+    const vg=cx.createRadialGradient(CW*0.5,CH*0.5,Math.min(CW,CH)*0.1,CW*0.5,CH*0.5,Math.min(CW,CH)*0.7);
+    vg.addColorStop(0,'rgba(180,210,255,0)');
+    vg.addColorStop(1,`rgba(160,200,255,${ifThinking*0.06})`);
+    cx.fillStyle=vg; cx.fillRect(0,0,CW,CH);
+  }
+}
+
+let ifInited = false;
+function ifEnsureInit() {
+  if(!ifInited && CW > 10) {
+    ifInit();
+    ifInited = true;
+  }
+}
+
+function setVP(c){
+  const p = VP_CHAMBER[c] || VP_CHAMBER.entry;
+  vpTarget.x = p.x; vpTarget.y = p.y;
+  ifModeTarget = {...(CHAMBER_MODE[c] || CHAMBER_MODE.entry)};
+}
+
+function drawFrame(){
+  T += 0.006;
+  mouse.x += (mTarget.x-mouse.x)*0.04;
+  mouse.y += (mTarget.y-mouse.y)*0.04;
+  vp.x = lp(vp.x,vpTarget.x,0.018);
+  vp.y = lp(vp.y,vpTarget.y,0.018);
+  if(CV.offsetWidth>10 && CV.offsetWidth!==CW){
+    CW=CV.width=CV.offsetWidth; CH=CV.height=CV.offsetHeight;
+    if(ifInited) { ifBX.forEach((_,i)=>{ifX[i]=Math.random()*CW;ifY[i]=Math.random()*CH;ifBX[i]=ifX[i];ifBY[i]=ifY[i];}); }
+  }
+  ifEnsureInit();
+  if(ifInited){ ifUpdate(); ifDraw(); }
   requestAnimationFrame(drawFrame);
 }
 

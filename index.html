@@ -1449,7 +1449,7 @@ body {
   <span id="leg-word" style="display:none;"></span>
 
 
-  <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
+  <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:3;"></canvas>
   <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
@@ -3257,6 +3257,11 @@ function ifUpdate() {
     if(bDist > bMax) {
       ifVX[i] -= (bx/bDist)*(bDist-bMax)*0.06;
       ifVY[i] -= (by/bDist)*(bDist-bMax)*0.06;
+    }
+    // Soft exclusion zone near center — keep particles from clustering over orb map
+    if(bDist < 60) {
+      ifVX[i] += (bx/(bDist+1))*0.8;
+      ifVY[i] += (by/(bDist+1))*0.8;
     }
     if(ifX[i]<-40)ifX[i]=CW*0.5+(Math.random()-0.5)*100;
     if(ifX[i]>CW+40)ifX[i]=CW*0.5+(Math.random()-0.5)*100;

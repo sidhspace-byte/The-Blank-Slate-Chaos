@@ -3040,7 +3040,7 @@ let ifThinkTimer = 0;
 let ifThinkInterval = 180 + Math.random() * 240; // next think trigger
 
 // Particle count — cover full canvas
-const NIF = window.innerWidth < 900 ? 3000 : 7000;
+const NIF = window.innerWidth < 900 ? 6000 : 14000;
 
 const ifX  = new Float32Array(NIF);
 const ifY  = new Float32Array(NIF);
@@ -3284,7 +3284,7 @@ function ifDraw() {
         const al=(1-d/Math.sqrt(cDist2)) * ifLY[ii]*0.5 * ifMode.order * 0.6;
         const thinkBoost = 1 + ifThinking * 1.5;
         const typeBoost = (ifTY[ii]+ifTY[jj])>2 ? 1.8:1;
-        const finalAl = Math.min(al*thinkBoost*typeBoost, 0.55);
+        const finalAl = Math.min(al*thinkBoost*typeBoost, 0.28);
         if(finalAl > 0.015) {
           cx.beginPath(); cx.moveTo(ifX[ii],ifY[ii]); cx.lineTo(ifX[jj],ifY[jj]);
           // Color shifts during thinking — warmer
@@ -3322,12 +3322,12 @@ function ifDraw() {
 
     if(ty===0) {
       // Dust — tiny, numerous, form the texture
-      const al = layer*0.18*(0.2+br*0.5) + thinkGlow*0.15;
+      const al = layer*0.09*(0.2+br*0.5) + thinkGlow*0.07;
       cx.fillStyle=`rgba(195,218,245,${Math.min(al,0.45)})`;
       cx.fillRect(ifX[i]-sz*0.4, ifY[i]-sz*0.4, sz*0.8, sz*0.8);
     } else if(ty===1) {
       // Node
-      const al = layer*0.4*(0.3+br*0.5) + thinkGlow*0.2;
+      const al = layer*0.2*(0.3+br*0.5) + thinkGlow*0.1;
       cx.fillStyle=`rgba(210,230,252,${Math.min(al,0.7)})`;
       cx.beginPath(); cx.arc(ifX[i],ifY[i],sz*0.65,0,Math.PI*2); cx.fill();
       // Data tag — tiny rectangle beside some nodes
@@ -3337,7 +3337,7 @@ function ifDraw() {
       }
     } else if(ty===2) {
       // Primary — has glow + data line
-      const al = layer*0.6*(0.5+br*0.4) + thinkGlow*0.35;
+      const al = layer*0.3*(0.5+br*0.4) + thinkGlow*0.15;
       const glowR = sz*(2.5+ifSP[i]*4);
       const g2=cx.createRadialGradient(ifX[i],ifY[i],0,ifX[i],ifY[i],glowR);
       const rc=180+Math.floor(ifThinking*70), gc2=215+Math.floor(ifThinking*25), bc=255-Math.floor(ifThinking*60);
@@ -3350,7 +3350,7 @@ function ifDraw() {
     } else {
       // Focal — rare, thinking epicenter
       const pulse2=Math.sin(T*0.12+ifPH[i])*0.5+0.5;
-      const al = layer*(0.8+pulse2*0.2+thinkGlow*0.5);
+      const al = layer*(0.4+pulse2*0.15+thinkGlow*0.25);
       const glowR=sz*(5+ifSP[i]*6)*(1+pulse2*0.3);
       const g2=cx.createRadialGradient(ifX[i],ifY[i],0,ifX[i],ifY[i],glowR);
       const rc=220+Math.floor(ifThinking*35), gc2=235+Math.floor(ifThinking*15);
@@ -3394,7 +3394,7 @@ function ifDraw() {
   if(ifThinking>0.15) {
     const vg=cx.createRadialGradient(CW*0.5,CH*0.5,Math.min(CW,CH)*0.1,CW*0.5,CH*0.5,Math.min(CW,CH)*0.7);
     vg.addColorStop(0,'rgba(180,210,255,0)');
-    vg.addColorStop(1,`rgba(160,200,255,${ifThinking*0.06})`);
+    vg.addColorStop(1,`rgba(160,200,255,${ifThinking*0.03})`);
     cx.fillStyle=vg; cx.fillRect(0,0,CW,CH);
   }
 }

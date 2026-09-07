@@ -3010,19 +3010,7 @@ CV.addEventListener('mousedown', function(e) {
 });
 
 // ── INTELLIGENCE FIELD ──────────────────────────────────────────────────────
-// WebGL shader particle system — cognitive field visualization
 
-(function() {
-
-// Try WebGL, fall back to 2D
-let gl = null;
-let useGL = false;
-try {
-  gl = CV.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false });
-  if (gl) useGL = true;
-} catch(e) {}
-
-// ── CHAMBER MODES ──
 const CHAMBER_MODE = {
   entry:    { scatter: 0.5, attract: 0.3, speed: 0.6, connect: 0.4, geo: 0.2 },
   load:     { scatter: 0.8, attract: 0.2, speed: 0.8, connect: 0.2, geo: 0.1 },
@@ -3039,280 +3027,206 @@ const CHAMBER_MODE = {
   projects: { scatter: 0.3, attract: 0.6, speed: 0.5, connect: 0.6, geo: 0.5 },
 };
 
-let currentMode = {...CHAMBER_MODE.entry};
-let targetMode  = {...CHAMBER_MODE.entry};
-let chamberT = 0;
+let ifCurrentMode = { scatter:0.5, attract:0.3, speed:0.6, connect:0.4, geo:0.2 };
+let ifTargetMode  = { scatter:0.5, attract:0.3, speed:0.6, connect:0.4, geo:0.2 };
 
-// ── PARTICLE SYSTEM ──
-const isMobile = window.innerWidth < 900;
-const N = isMobile ? 600 : 1400;
+const isMobileIF = window.innerWidth < 900;
+const NIF = isMobileIF ? 500 : 1200;
 
-const px = new Float32Array(N);
-const py = new Float32Array(N);
-const pz = new Float32Array(N);
-const pvx = new Float32Array(N);
-const pvy = new Float32Array(N);
-const pvz = new Float32Array(N);
-const psize = new Float32Array(N);
-const pbright = new Float32Array(N);
-const ptype = new Uint8Array(N);   // 0=dust 1=node 2=primary 3=focal
-const pphase = new Float32Array(N);
+const ifpx = new Float32Array(NIF);
+const ifpy = new Float32Array(NIF);
+const ifpz = new Float32Array(NIF);
+const ifvx = new Float32Array(NIF);
+const ifvy = new Float32Array(NIF);
+const ifvz = new Float32Array(NIF);
+const ifsz = new Float32Array(NIF);
+const ifbr = new Float32Array(NIF);
+const ifty = new Uint8Array(NIF);
+const ifph = new Float32Array(NIF);
 
-// Noise helper
-function noise(x, y, z) {
-  const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
-  x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
-  const u = x*x*x*(x*(x*6-15)+10);
-  const v = y*y*y*(y*(y*6-15)+10);
-  const w = z*z*z*(z*(z*6-15)+10);
-  const h = (X*374761393 + Y*1073741827 + Z*2654435761) >>> 0;
+function ifNoise(x, y, z) {
+  const h = ((Math.floor(x)*374761393 + Math.floor(y)*1073741827 + Math.floor(z)*2654435761) >>> 0);
   const h2 = (h * 2246822519 + 3266489917) >>> 0;
-  return (((h2 >>> 16) & 0xffff) / 65535) * 2 - 1;
+  const fx = x - Math.floor(x), fy = y - Math.floor(y), fz = z - Math.floor(z);
+  const u = fx*fx*(3-2*fx), v = fy*fy*(3-2*fy);
+  return ((h2 >>> 16) & 0xffff) / 65535 * 2 - 1;
 }
 
-// Init particles in a roughly spherical volumetric cloud
-(function initParticles() {
-  for (let i = 0; i < N; i++) {
-    // Spherical distribution with density falloff
-    const r = Math.pow(Math.random(), 0.5) * 0.85;
+// Init particles
+(function() {
+  for (let i = 0; i < NIF; i++) {
+    const r = Math.pow(Math.random(), 0.45) * 0.9;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
-    px[i] = r * Math.sin(phi) * Math.cos(theta);
-    py[i] = r * Math.sin(phi) * Math.sin(theta);
-    pz[i] = r * Math.cos(phi) * 0.6; // flatten z slightly
-
-    pvx[i] = (Math.random() - 0.5) * 0.001;
-    pvy[i] = (Math.random() - 0.5) * 0.001;
-    pvz[i] = (Math.random() - 0.5) * 0.001;
-
-    pphase[i] = Math.random() * Math.PI * 2;
-
-    // Type distribution
+    ifpx[i] = r * Math.sin(phi) * Math.cos(theta);
+    ifpy[i] = r * Math.sin(phi) * Math.sin(theta);
+    ifpz[i] = r * Math.cos(phi) * 0.55;
+    ifvx[i] = (Math.random()-0.5)*0.001;
+    ifvy[i] = (Math.random()-0.5)*0.001;
+    ifvz[i] = (Math.random()-0.5)*0.001;
+    ifph[i] = Math.random() * Math.PI * 2;
     const rnd = Math.random();
-    if (rnd < 0.60) { ptype[i] = 0; psize[i] = 0.4 + Math.random() * 0.6; }
-    else if (rnd < 0.85) { ptype[i] = 1; psize[i] = 0.9 + Math.random() * 1.1; }
-    else if (rnd < 0.97) { ptype[i] = 2; psize[i] = 1.4 + Math.random() * 1.6; }
-    else { ptype[i] = 3; psize[i] = 2.5 + Math.random() * 2; }
-
-    pbright[i] = Math.random();
+    if      (rnd < 0.60) { ifty[i]=0; ifsz[i]=0.4+Math.random()*0.5; }
+    else if (rnd < 0.85) { ifty[i]=1; ifsz[i]=0.8+Math.random()*1.0; }
+    else if (rnd < 0.97) { ifty[i]=2; ifsz[i]=1.3+Math.random()*1.5; }
+    else                 { ifty[i]=3; ifsz[i]=2.2+Math.random()*2.0; }
+    ifbr[i] = Math.random();
   }
 })();
 
-// ── INTERACTION STATE ──
-let pulses = [];
-let lastClick = 0;
+let ifPulses = [];
+let ifPhaseIdx = 0;
+let ifPhaseTimer = 0;
+const IF_PHASE_DUR = [300, 240, 320, 220, 260];
 
 CV.addEventListener('click', function(e) {
-  const mx = (e.clientX / CW) * 2 - 1;
-  const my = -((e.clientY / CH) * 2 - 1);
-  pulses.push({ x: mx, y: my, t: 0, strength: 1.0 });
-  lastClick = T;
+  const mx = (e.clientX/CW)*2-1, my = -((e.clientY/CH)*2-1);
+  ifPulses.push({x:mx, y:my, t:0});
 });
 CV.addEventListener('touchstart', function(e) {
-  const mx = (e.touches[0].clientX / CW) * 2 - 1;
-  const my = -((e.touches[0].clientY / CH) * 2 - 1);
-  pulses.push({ x: mx, y: my, t: 0, strength: 0.8 });
-  lastClick = T;
-}, { passive: true });
+  const mx = (e.touches[0].clientX/CW)*2-1, my = -((e.touches[0].clientY/CH)*2-1);
+  ifPulses.push({x:mx, y:my, t:0});
+}, {passive:true});
 
-// ── PHASE SYSTEM ── chaos → formation → structure → analysis → dispersion
-const PHASES = ['chaos', 'formation', 'structure', 'analysis', 'dispersion'];
-let phaseIdx = 0;
-let phaseTimer = 0;
-const PHASE_DUR = [280, 220, 300, 200, 240]; // frames per phase
+function setVP(c) {
+  const p = VP_CHAMBER[c] || VP_CHAMBER.entry;
+  vpTarget.x = p.x; vpTarget.y = p.y;
+  ifTargetMode = {...(CHAMBER_MODE[c] || CHAMBER_MODE.entry)};
+}
 
-// ── 2D FALLBACK RENDERER ──
-function draw2D() {
+function drawFrame() {
+  T += 0.006;
+  mouse.x += (mTarget.x - mouse.x) * 0.04;
+  mouse.y += (mTarget.y - mouse.y) * 0.04;
+  vp.x = lp(vp.x, vpTarget.x, 0.018);
+  vp.y = lp(vp.y, vpTarget.y, 0.018);
+
   if (CV.offsetWidth > 10 && CV.offsetWidth !== CW) {
     CW = CV.width = CV.offsetWidth;
     CH = CV.height = CV.offsetHeight;
   }
-
   cx.clearRect(0, 0, CW, CH);
 
+  // Lerp chamber mode
+  for (const k of Object.keys(ifCurrentMode)) {
+    ifCurrentMode[k] += (ifTargetMode[k] - ifCurrentMode[k]) * 0.04;
+  }
+
+  // Phase
+  ifPhaseTimer++;
+  if (ifPhaseTimer > IF_PHASE_DUR[ifPhaseIdx]) {
+    ifPhaseTimer = 0;
+    ifPhaseIdx = (ifPhaseIdx + 1) % 5;
+  }
+  const ifPhase = ifPhaseIdx;
+  const phaseAttract = (ifPhase === 2 || ifPhase === 3) ? 0.9 : 0.35;
+  const phaseScatter = (ifPhase === 0 || ifPhase === 4) ? 0.9 : 0.2;
+  const phaseSpeed   = ifCurrentMode.speed;
+
+  // Pulses
+  ifPulses = ifPulses.filter(p => p.t < 90);
+  ifPulses.forEach(p => p.t++);
+
+  const rotY = T * 0.00045;
+  const rotX = T * 0.00028 + Math.sin(T * 0.00031) * 0.14;
+  const mTiltX = (mouse.x - 0.5) * 0.28;
+  const mTiltY = (mouse.y - 0.5) * 0.18;
   const cx_ = CW * 0.5;
   const cy_ = CH * 0.5;
-  const R = Math.min(CW, CH) * 0.38;
-  const phase = PHASES[phaseIdx];
-  const pT = Math.min(1, phaseTimer / 60); // transition factor
-
-  // Update chamber mode
-  chamberT = Math.min(1, chamberT + 0.02);
-  for (const k of Object.keys(currentMode)) {
-    currentMode[k] += (targetMode[k] - currentMode[k]) * 0.05;
-  }
-
-  // Phase timer
-  phaseTimer++;
-  if (phaseTimer > PHASE_DUR[phaseIdx]) {
-    phaseTimer = 0;
-    phaseIdx = (phaseIdx + 1) % PHASES.length;
-  }
-
-  // Pulse decay
-  pulses = pulses.filter(p => p.t < 80);
-  pulses.forEach(p => p.t++);
-
-  // Global rotation
-  const rotY = T * 0.0004;
-  const rotX = T * 0.00025 + Math.sin(T * 0.0003) * 0.15;
-  const mouseInfluenceX = (mouse.x - 0.5) * 0.3;
-  const mouseInfluenceY = (mouse.y - 0.5) * 0.2;
-
-  // Phase-based field
-  const phaseAttract = phase === 'structure' || phase === 'analysis' ? 0.8 : 0.3;
-  const phaseScatter = phase === 'chaos' || phase === 'dispersion' ? 0.9 : 0.2;
-  const phaseSpeed = phase === 'fire' ? 1.8 : 1.0;
+  const R = Math.min(CW, CH) * 0.4;
 
   // Update particles
-  for (let i = 0; i < N; i++) {
-    const t = T * 0.002 + pphase[i];
-    const speedMod = (0.4 + pz[i] * 0.4) * currentMode.speed * phaseSpeed;
+  for (let i = 0; i < NIF; i++) {
+    const t2 = T * 0.0018 + ifph[i];
+    const spd = (0.3 + (ifpz[i]+1)*0.3) * phaseSpeed;
+    const nx = ifNoise(ifpx[i]*2+t2*0.4, ifpy[i]*2, ifpz[i]*2) * 0.00014 * spd;
+    const ny = ifNoise(ifpx[i]*2, ifpy[i]*2+t2*0.4, ifpz[i]*2+1.7) * 0.00014 * spd;
+    const nz = ifNoise(ifpx[i]*2+2.3, ifpy[i]*2+1.1, ifpz[i]*2+t2*0.4) * 0.00009 * spd;
+    ifvx[i] += nx; ifvy[i] += ny; ifvz[i] += nz;
 
-    // Noise-based drift
-    const nx = noise(px[i] * 2 + t * 0.3, py[i] * 2, pz[i] * 2);
-    const ny = noise(px[i] * 2, py[i] * 2 + t * 0.3, pz[i] * 2 + 1.7);
-    const nz = noise(px[i] * 2 + 2.3, py[i] * 2 + 1.1, pz[i] * 2 + t * 0.3);
+    const dist = Math.sqrt(ifpx[i]*ifpx[i] + ifpy[i]*ifpy[i] + ifpz[i]*ifpz[i]) + 0.001;
+    const aStr = ifCurrentMode.attract * phaseAttract * 0.0007;
+    const sStr = ifCurrentMode.scatter * phaseScatter * 0.0002;
+    ifvx[i] -= (ifpx[i]/dist) * (aStr - sStr);
+    ifvy[i] -= (ifpy[i]/dist) * (aStr - sStr);
+    ifvz[i] -= (ifpz[i]/dist) * (aStr - sStr) * 0.6;
 
-    pvx[i] += nx * 0.00012 * speedMod;
-    pvy[i] += ny * 0.00012 * speedMod;
-    pvz[i] += nz * 0.00008 * speedMod;
+    // Mouse push
+    const mwx = (mouse.x*2-1) * (CW / Math.min(CW,CH)) * 0.85;
+    const mwy = -(mouse.y*2-1) * 0.85;
+    const mdx = ifpx[i]-mwx, mdy = ifpy[i]-mwy;
+    const md = Math.sqrt(mdx*mdx + mdy*mdy) + 0.001;
+    if (md < 0.28) { const mf=(0.28-md)/0.28*0.003; ifvx[i]+=(mdx/md)*mf; ifvy[i]+=(mdy/md)*mf; }
 
-    // Attraction to center
-    const dist = Math.sqrt(px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
-    const attractStr = currentMode.attract * phaseAttract;
-    const scatterStr = currentMode.scatter * phaseScatter;
-    if (dist > 0.05) {
-      pvx[i] -= (px[i] / dist) * (attractStr * 0.0006 - scatterStr * 0.0002);
-      pvy[i] -= (py[i] / dist) * (attractStr * 0.0006 - scatterStr * 0.0002);
-      pvz[i] -= (pz[i] / dist) * (attractStr * 0.0004 - scatterStr * 0.0001);
-    }
-
-    // Pulse forces
-    pulses.forEach(pulse => {
-      const dx = px[i] - pulse.x;
-      const dy = py[i] - pulse.y;
-      const pd = Math.sqrt(dx*dx + dy*dy);
-      const waveR = pulse.t * 0.025;
-      const waveFalloff = Math.exp(-Math.pow(pd - waveR, 2) * 8);
-      const force = waveFalloff * 0.018 * pulse.strength;
-      if (pd > 0.001) {
-        pvx[i] += (dx / pd) * force;
-        pvy[i] += (dy / pd) * force;
-      }
+    // Pulse wave
+    ifPulses.forEach(p => {
+      const dx=ifpx[i]-p.x, dy=ifpy[i]-p.y;
+      const pd=Math.sqrt(dx*dx+dy*dy)+0.001;
+      const wr=p.t*0.022;
+      const wf=Math.exp(-Math.pow(pd-wr,2)*10)*0.016;
+      ifvx[i]+=(dx/pd)*wf; ifvy[i]+=(dy/pd)*wf;
     });
 
-    // Mouse repulsion/attraction
-    const mx = (mouse.x * 2 - 1) * (CW / Math.min(CW, CH));
-    const my = -(mouse.y * 2 - 1);
-    const mdx = px[i] - mx * 0.9;
-    const mdy = py[i] - my * 0.9;
-    const md = Math.sqrt(mdx*mdx + mdy*mdy);
-    if (md < 0.3) {
-      const mf = (0.3 - md) / 0.3 * 0.003;
-      pvx[i] += (mdx / md) * mf;
-      pvy[i] += (mdy / md) * mf;
-    }
-
-    // Velocity damping
-    pvx[i] *= 0.97;
-    pvy[i] *= 0.97;
-    pvz[i] *= 0.97;
-
-    // Clamp velocity
-    const spd = Math.sqrt(pvx[i]*pvx[i] + pvy[i]*pvy[i] + pvz[i]*pvz[i]);
-    if (spd > 0.015) { pvx[i] *= 0.015/spd; pvy[i] *= 0.015/spd; pvz[i] *= 0.015/spd; }
-
-    px[i] += pvx[i];
-    py[i] += pvy[i];
-    pz[i] += pvz[i];
-
-    // Boundary — soft wrap
-    if (Math.abs(px[i]) > 1.2) pvx[i] *= -0.4;
-    if (Math.abs(py[i]) > 1.2) pvy[i] *= -0.4;
-    if (Math.abs(pz[i]) > 0.8) pvz[i] *= -0.4;
+    ifvx[i]*=0.968; ifvy[i]*=0.968; ifvz[i]*=0.972;
+    const spd2=Math.sqrt(ifvx[i]*ifvx[i]+ifvy[i]*ifvy[i]+ifvz[i]*ifvz[i]);
+    if(spd2>0.014){ifvx[i]*=0.014/spd2;ifvy[i]*=0.014/spd2;ifvz[i]*=0.014/spd2;}
+    ifpx[i]+=ifvx[i]; ifpy[i]+=ifvy[i]; ifpz[i]+=ifvz[i];
+    if(Math.abs(ifpx[i])>1.25)ifvx[i]*=-0.3;
+    if(Math.abs(ifpy[i])>1.25)ifvy[i]*=-0.3;
+    if(Math.abs(ifpz[i])>0.85)ifvz[i]*=-0.3;
   }
 
-  // Project and collect draw data
-  const drawData = [];
-  for (let i = 0; i < N; i++) {
-    // Rotate
-    const cosY = Math.cos(rotY + mouseInfluenceX);
-    const sinY = Math.sin(rotY + mouseInfluenceX);
-    const cosX = Math.cos(rotX + mouseInfluenceY);
-    const sinX = Math.sin(rotX + mouseInfluenceY);
+  // Project
+  const cosY=Math.cos(rotY+mTiltX), sinY=Math.sin(rotY+mTiltX);
+  const cosX=Math.cos(rotX+mTiltY), sinX=Math.sin(rotX+mTiltY);
+  const fov=2.6;
 
-    let x = px[i], y = py[i], z = pz[i];
-    // Y rotation
-    let x1 = x * cosY + z * sinY;
-    let z1 = -x * sinY + z * cosY;
-    // X rotation
-    let y2 = y * cosX - z1 * sinX;
-    let z2 = y * sinX + z1 * cosX;
-
-    // Project
-    const fov = 2.5;
-    const scale = fov / (fov + z2 + 1.5);
-    const sx = cx_ + x1 * R * scale;
-    const sy = cy_ - y2 * R * scale;
-    const depth = (z2 + 1) * 0.5;
-
-    drawData.push({ i, sx, sy, depth, scale, z: z2 });
+  const proj = new Array(NIF);
+  for (let i = 0; i < NIF; i++) {
+    let x=ifpx[i], y=ifpy[i], z=ifpz[i];
+    const x1=x*cosY+z*sinY, z1=-x*sinY+z*cosY;
+    const y2=y*cosX-z1*sinX, z2=y*sinX+z1*cosX;
+    const sc=fov/(fov+z2+1.5);
+    proj[i]={sx:cx_+x1*R*sc, sy:cy_-y2*R*sc, z:z2, sc, depth:(z2+1)*0.5, i};
   }
+  proj.sort((a,b)=>a.z-b.z);
 
-  // Sort back to front
-  drawData.sort((a, b) => a.z - b.z);
-
-  // Draw connections first
-  const connectDist = 0.22 + currentMode.connect * 0.18;
-  const maxConns = isMobile ? 600 : 2000;
-  let connCount = 0;
-
-  // Batch connections by alpha for performance
-  cx.save();
-  for (let ii = 0; ii < drawData.length && connCount < maxConns; ii++) {
-    const a = drawData[ii];
-    for (let jj = ii + 1; jj < drawData.length && connCount < maxConns; jj++) {
-      const b = drawData[jj];
-      const dx = px[a.i] - px[b.i];
-      const dy = py[a.i] - py[b.i];
-      const dz = pz[a.i] - pz[b.i];
-      const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
-      if (d < connectDist) {
-        const alpha = (1 - d / connectDist) * Math.min(a.depth, b.depth) * 0.35;
-        const typeBoost = (ptype[a.i] + ptype[b.i]) > 2 ? 1.8 : 1;
-        cx.beginPath();
-        cx.moveTo(a.sx, a.sy);
-        cx.lineTo(b.sx, b.sy);
-        cx.strokeStyle = `rgba(180,210,240,${Math.min(alpha * typeBoost * currentMode.connect, 0.5)})`;
-        cx.lineWidth = 0.4 + (ptype[a.i] === 2 || ptype[b.i] === 2 ? 0.4 : 0);
-        cx.stroke();
-        connCount++;
+  // Draw connections
+  const cDist = 0.2 + ifCurrentMode.connect * 0.16;
+  const maxC = isMobileIF ? 500 : 1800;
+  let cc = 0;
+  for (let ii=0; ii<proj.length && cc<maxC; ii++) {
+    const a=proj[ii];
+    for (let jj=ii+1; jj<proj.length && cc<maxC; jj++) {
+      const b=proj[jj];
+      const dx=ifpx[a.i]-ifpx[b.i], dy=ifpy[a.i]-ifpy[b.i], dz=ifpz[a.i]-ifpz[b.i];
+      const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+      if(d<cDist){
+        const al=(1-d/cDist)*Math.min(a.depth,b.depth)*0.3*ifCurrentMode.connect;
+        const tb=(ifty[a.i]+ifty[b.i])>2?1.7:1;
+        cx.beginPath(); cx.moveTo(a.sx,a.sy); cx.lineTo(b.sx,b.sy);
+        cx.strokeStyle=`rgba(180,215,245,${Math.min(al*tb,0.45)})`;
+        cx.lineWidth=0.35+(ifty[a.i]===2||ifty[b.i]===2?0.35:0);
+        cx.stroke(); cc++;
       }
     }
   }
-  cx.restore();
 
-  // Occasional geometric structure flash
-  if (phase === 'structure' || phase === 'analysis') {
-    const geoAlpha = Math.sin(phaseTimer * 0.04) * 0.5 + 0.5;
-    if (geoAlpha > 0.6 && currentMode.geo > 0.4) {
-      // Find a cluster center and draw radial spokes
-      const focalIdx = Math.floor(T * 0.1) % N;
-      const fp = drawData.find(d => d.i === focalIdx);
-      if (fp) {
-        cx.save();
-        cx.globalAlpha = geoAlpha * 0.15 * currentMode.geo;
-        cx.strokeStyle = 'rgba(160,200,255,1)';
-        cx.lineWidth = 0.5;
-        const spokes = 6 + Math.floor(currentMode.geo * 4);
-        for (let s = 0; s < spokes; s++) {
-          const a = (s / spokes) * Math.PI * 2;
-          const r = R * 0.15 * fp.scale;
-          cx.beginPath();
-          cx.moveTo(fp.sx, fp.sy);
-          cx.lineTo(fp.sx + Math.cos(a) * r, fp.sy + Math.sin(a) * r);
-          cx.stroke();
+  // Geo flash in structure/analysis phase
+  if((ifPhase===2||ifPhase===3) && ifCurrentMode.geo>0.3) {
+    const ga=Math.sin(ifPhaseTimer*0.05)*0.5+0.5;
+    if(ga>0.5) {
+      const fi=Math.floor(T*0.08)%NIF;
+      const fp=proj.find(p=>p.i===fi);
+      if(fp) {
+        cx.save(); cx.globalAlpha=ga*0.12*ifCurrentMode.geo;
+        cx.strokeStyle='rgba(160,205,255,1)'; cx.lineWidth=0.5;
+        const sp=5+Math.floor(ifCurrentMode.geo*5);
+        for(let s=0;s<sp;s++){
+          const ang=(s/sp)*Math.PI*2;
+          const gr=R*0.14*fp.sc;
+          cx.beginPath(); cx.moveTo(fp.sx,fp.sy);
+          cx.lineTo(fp.sx+Math.cos(ang)*gr,fp.sy+Math.sin(ang)*gr); cx.stroke();
         }
         cx.restore();
       }
@@ -3320,109 +3234,48 @@ function draw2D() {
   }
 
   // Draw particles
-  drawData.forEach(p => {
-    const type = ptype[p.i];
-    const bright = pbright[p.i];
-    const depth = p.depth;
-    const sz = psize[p.i] * p.scale;
-
-    let alpha, r, g, b;
-
-    if (type === 0) {
-      // Dust — nearly invisible, cool white
-      alpha = depth * 0.25 * (0.3 + bright * 0.4);
-      r = 200; g = 220; b = 245;
-      cx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-      cx.fillRect(p.sx - sz * 0.4, p.sy - sz * 0.4, sz * 0.8, sz * 0.8);
-    } else if (type === 1) {
-      // Node
-      alpha = depth * 0.5 * (0.4 + bright * 0.4);
-      cx.fillStyle = `rgba(210,230,255,${alpha})`;
-      cx.beginPath();
-      cx.arc(p.sx, p.sy, sz * 0.7, 0, Math.PI * 2);
-      cx.fill();
-    } else if (type === 2) {
-      // Primary — small glow
-      alpha = depth * 0.7 * (0.6 + bright * 0.4);
-      const glowR = sz * 3;
-      const g2 = cx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, glowR);
-      g2.addColorStop(0, `rgba(220,240,255,${alpha})`);
-      g2.addColorStop(0.3, `rgba(180,210,255,${alpha * 0.3})`);
-      g2.addColorStop(1, 'rgba(160,200,255,0)');
-      cx.fillStyle = g2;
-      cx.beginPath();
-      cx.arc(p.sx, p.sy, glowR, 0, Math.PI * 2);
-      cx.fill();
-      cx.fillStyle = `rgba(240,250,255,${alpha})`;
-      cx.beginPath();
-      cx.arc(p.sx, p.sy, sz, 0, Math.PI * 2);
-      cx.fill();
+  proj.forEach(p => {
+    const ty=ifty[p.i], br=ifbr[p.i], dep=p.depth, sz=ifsz[p.i]*p.sc;
+    if(ty===0) {
+      const al=dep*0.22*(0.3+br*0.4);
+      cx.fillStyle=`rgba(200,220,245,${al})`;
+      cx.fillRect(p.sx-sz*0.4,p.sy-sz*0.4,sz*0.8,sz*0.8);
+    } else if(ty===1) {
+      cx.fillStyle=`rgba(210,230,255,${dep*0.45*(0.4+br*0.4)})`;
+      cx.beginPath(); cx.arc(p.sx,p.sy,sz*0.7,0,Math.PI*2); cx.fill();
+    } else if(ty===2) {
+      const al=dep*0.65*(0.6+br*0.4);
+      const gr=cx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,sz*3);
+      gr.addColorStop(0,`rgba(220,240,255,${al})`);
+      gr.addColorStop(0.4,`rgba(180,215,255,${al*0.25})`);
+      gr.addColorStop(1,'rgba(160,200,255,0)');
+      cx.fillStyle=gr; cx.beginPath(); cx.arc(p.sx,p.sy,sz*3,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(240,250,255,${al})`; cx.beginPath(); cx.arc(p.sx,p.sy,sz,0,Math.PI*2); cx.fill();
     } else {
-      // Focal — rare, bright, pulsing
-      const pulse2 = Math.sin(T * 0.08 + pphase[p.i]) * 0.5 + 0.5;
-      alpha = depth * (0.8 + pulse2 * 0.2);
-      const glowR = sz * 6 * (1 + pulse2 * 0.5);
-      const g2 = cx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, glowR);
-      g2.addColorStop(0, `rgba(240,250,255,${alpha})`);
-      g2.addColorStop(0.2, `rgba(200,225,255,${alpha * 0.5})`);
-      g2.addColorStop(0.6, `rgba(180,210,255,${alpha * 0.1})`);
-      g2.addColorStop(1, 'rgba(180,210,255,0)');
-      cx.fillStyle = g2;
-      cx.beginPath();
-      cx.arc(p.sx, p.sy, glowR, 0, Math.PI * 2);
-      cx.fill();
-      cx.fillStyle = `rgba(255,255,255,${alpha})`;
-      cx.beginPath();
-      cx.arc(p.sx, p.sy, sz, 0, Math.PI * 2);
-      cx.fill();
+      const pulse3=Math.sin(T*0.09+ifph[p.i])*0.5+0.5;
+      const al=dep*(0.8+pulse3*0.2);
+      const gr=cx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,sz*6*(1+pulse3*0.4));
+      gr.addColorStop(0,`rgba(240,250,255,${al})`);
+      gr.addColorStop(0.25,`rgba(200,230,255,${al*0.4})`);
+      gr.addColorStop(1,'rgba(180,215,255,0)');
+      cx.fillStyle=gr; cx.beginPath(); cx.arc(p.sx,p.sy,sz*6*(1+pulse3*0.4),0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(255,255,255,${al})`; cx.beginPath(); cx.arc(p.sx,p.sy,sz,0,Math.PI*2); cx.fill();
     }
   });
 
-  // Pulse wave visualization
-  pulses.forEach(pulse => {
-    if (pulse.t < 60) {
-      const wR = (pulse.t / 60) * R * 0.8;
-      const wa = (1 - pulse.t / 60) * 0.3;
-      const wx = cx_ + pulse.x * R;
-      const wy = cy_ - pulse.y * R;
-      cx.beginPath();
-      cx.arc(wx, wy, wR, 0, Math.PI * 2);
-      cx.strokeStyle = `rgba(180,220,255,${wa})`;
-      cx.lineWidth = 1;
-      cx.stroke();
-      // Secondary inner ring
-      if (pulse.t > 10) {
-        cx.beginPath();
-        cx.arc(wx, wy, wR * 0.5, 0, Math.PI * 2);
-        cx.strokeStyle = `rgba(200,235,255,${wa * 0.5})`;
-        cx.lineWidth = 0.5;
-        cx.stroke();
-      }
+  // Pulse rings
+  ifPulses.forEach(p => {
+    if(p.t<70) {
+      const wr=(p.t/70)*R*0.75;
+      const wa=(1-p.t/70)*0.28;
+      const wx=cx_+p.x*R*0.9, wy=cy_-p.y*R*0.9;
+      cx.beginPath(); cx.arc(wx,wy,wr,0,Math.PI*2);
+      cx.strokeStyle=`rgba(180,220,255,${wa})`; cx.lineWidth=1; cx.stroke();
     }
   });
-}
 
-// ── MAIN LOOP ──
-function drawFrame() {
-  T += 0.006;
-  mouse.x = mouse.x + (mTarget.x - mouse.x) * 0.04;
-  mouse.y = mouse.y + (mTarget.y - mouse.y) * 0.04;
-  vp.x = lp(vp.x, vpTarget.x, 0.018);
-  vp.y = lp(vp.y, vpTarget.y, 0.018);
-  draw2D();
   requestAnimationFrame(drawFrame);
 }
-
-// ── CHAMBER MODE SWITCH ──
-// Patch setVP after IIFE so chamber changes update particle mode
-const _origSetVP2 = setVP;
-function setVP(c) {
-  _origSetVP2(c);
-  targetMode = {...(CHAMBER_MODE[c] || CHAMBER_MODE.entry)};
-  chamberT = 0;
-}
-
-})();
 
 
 setVP('entry');

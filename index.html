@@ -3132,7 +3132,7 @@ function ifUpdate() {
       // Outer: full chaos — fast, noisy, barely contained
       targetR = maxR*(0.7+ifR[i]*0.3);
       orbitStr = 0.0001;
-      noiseStr = 2.8*(1-ifMode.order*0.2);
+      noiseStr = 5.5*(1-ifMode.order*0.15);
       chaosStr = 1.0;
     } else if(isMid){
       // Mid: transitional — part chaos, part structured
@@ -3156,8 +3156,8 @@ function ifUpdate() {
 
     // Radial restoration — keep particles in their layer
     const radErr = dist - targetR;
-    ifVX[i] -= (dx/dist)*radErr*0.004*(isOuter?0.08:isMid?0.5:1.2);
-    ifVY[i] -= (dy/dist)*radErr*0.004*(isOuter?0.08:isMid?0.5:1.2);
+    ifVX[i] -= (dx/dist)*radErr*0.004*(isOuter?0.025:isMid?0.5:1.2);
+    ifVY[i] -= (dy/dist)*radErr*0.004*(isOuter?0.025:isMid?0.5:1.2);
 
     // Orbital tangential force
     const tang = ifMode.order*(isOuter?0.3:isMid?0.6:0.9);
@@ -3166,8 +3166,9 @@ function ifUpdate() {
 
     // Noise field
     const nt=T*0.00015+ifPH[i];
-    const nx=ifN(ifX[i]*0.005+nt,ifY[i]*0.005)*noiseStr*spd*0.7;
-    const ny=ifN(ifX[i]*0.005,ifY[i]*0.005+nt+3.7)*noiseStr*spd*0.7;
+    const nFreq=isOuter?0.0035:0.005;
+    const nx=ifN(ifX[i]*nFreq+nt,ifY[i]*nFreq)*noiseStr*spd*0.7;
+    const ny=ifN(ifX[i]*nFreq,ifY[i]*nFreq+nt+3.7)*noiseStr*spd*0.7;
     ifVX[i]+=nx; ifVY[i]+=ny;
 
     // Thinking spike — outward
@@ -3192,17 +3193,17 @@ function ifUpdate() {
     });
 
     // Damping — outer looser, inner tighter
-    const damp=isOuter?0.96:isMid?0.90:isInner?0.85:0.82;
+    const damp=isOuter?0.978:isMid?0.90:isInner?0.85:0.82;
     ifVX[i]*=damp; ifVY[i]*=damp;
     const spd2=Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
-    const maxSpd=isOuter?5.5:isMid?2.8:isInner?1.2:0.6;
+    const maxSpd=isOuter?11.0:isMid?2.8:isInner?1.2:0.6;
     if(spd2>maxSpd){ifVX[i]*=maxSpd/spd2;ifVY[i]*=maxSpd/spd2;}
 
     ifX[i]+=ifVX[i]; ifY[i]+=ifVY[i];
 
     // Hard boundary
     const od=Math.sqrt((ifX[i]-cx_)*(ifX[i]-cx_)+(ifY[i]-cy_)*(ifY[i]-cy_));
-    if(od>maxR*(isOuter?1.45:1.15)){
+    if(od>maxR*(isOuter?1.65:1.15)){
       ifX[i]=cx_+(ifX[i]-cx_)/od*maxR*0.95;
       ifY[i]=cy_+(ifY[i]-cy_)/od*maxR*0.95;
       ifVX[i]*=-0.3;ifVY[i]*=-0.3;

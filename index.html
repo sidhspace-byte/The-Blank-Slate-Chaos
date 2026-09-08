@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="THE SYSTEM">
@@ -3248,29 +3249,29 @@ function ifDraw() {
   cx.save();
 
   // ── PARTICLE-CHAIN RADIAL SPOKES: centre → outer edge ──
-  // 12 spokes, each a chain of small dots with slight radial scatter
+  // 12 spokes, dense dot chains — close enough to read as lines
   const spokeAngles = 12;
-  const dotsPerSpoke = 38;
+  const dotsPerSpoke = 110;
   for(let s=0; s<spokeAngles; s++){
     const sang = (s/spokeAngles)*Math.PI*2 + T*0.00008;
     for(let d=0; d<dotsPerSpoke; d++){
       const t = d/dotsPerSpoke;
-      const r = maxR * 0.04 + maxR * 0.96 * t;
-      // small lateral jitter so it reads as particle chain not ruler line
-      const jit = maxR*0.006 * Math.sin(d*2.3 + T*0.0004 + s*1.1);
+      const r = maxR * 0.03 + maxR * 0.97 * t;
+      // tiny lateral jitter — barely off axis, just enough to feel organic
+      const jit = maxR*0.003 * Math.sin(d*3.1 + T*0.0004 + s*1.7);
       const perpAng = sang + Math.PI*0.5;
       const x = cx_ + Math.cos(sang)*r + Math.cos(perpAng)*jit;
       const y = cy_ + Math.sin(sang)*r + Math.sin(perpAng)*jit;
-      // fade near centre and near outer edge, brighter mid
-      const fade = Math.sin(t*Math.PI)*0.85;
-      // gap at the inner sphere and mid boundaries — dots thin out there
-      const onBoundary = (t>0.13&&t<0.16)||(t>0.37&&t<0.40)||(t>0.67&&t<0.70);
-      const al = fade * (onBoundary?0.04:0.13) * (1+ifThinking*0.3);
-      if(al<0.015) continue;
-      const sz = 0.7 + t*0.5; // slightly larger toward outside
+      // brightness: fades at dead centre, constant out to edge, dims slightly at outer
+      const fade = Math.min(1, t*8) * (t>0.85 ? (1-t)*6.5 : 1);
+      // thin out at boundary zones — visible gap so layers read
+      const onBoundary = (t>0.12&&t<0.17)||(t>0.36&&t<0.41)||(t>0.66&&t<0.71);
+      const al = fade * (onBoundary ? 0.05 : 0.28) * (1+ifThinking*0.35);
+      if(al<0.02) continue;
+      const sz = 0.55 + t*0.4;
       cx.beginPath();
       cx.arc(x,y,sz,0,Math.PI*2);
-      cx.fillStyle=`rgba(190,220,255,${al})`;
+      cx.fillStyle=`rgba(195,222,255,${al})`;
       cx.fill();
     }
   }
@@ -3278,11 +3279,11 @@ function ifDraw() {
   // ── PARTICLE-CHAIN CONCENTRIC RINGS ──
   // 5 rings at key radii — drawn as rotating dot chains with small radial noise
   const pRings = [
-    { nr:0.14, dots:60,  rotSpeed: 0.00020, nAmp:0.008, al:0.18 },
-    { nr:0.39, dots:110, rotSpeed:-0.00014, nAmp:0.010, al:0.14 },
-    { nr:0.47, dots:130, rotSpeed: 0.00025, nAmp:0.014, al:0.11 },
-    { nr:0.60, dots:155, rotSpeed:-0.00018, nAmp:0.012, al:0.09 },
-    { nr:0.69, dots:180, rotSpeed: 0.00012, nAmp:0.009, al:0.08 },
+    { nr:0.14, dots:90,  rotSpeed: 0.00020, nAmp:0.005, al:0.32 },
+    { nr:0.39, dots:180, rotSpeed:-0.00014, nAmp:0.007, al:0.26 },
+    { nr:0.47, dots:210, rotSpeed: 0.00025, nAmp:0.009, al:0.20 },
+    { nr:0.60, dots:250, rotSpeed:-0.00018, nAmp:0.008, al:0.16 },
+    { nr:0.69, dots:280, rotSpeed: 0.00012, nAmp:0.006, al:0.14 },
   ];
   pRings.forEach((g,gi)=>{
     const baseR = maxR * g.nr;

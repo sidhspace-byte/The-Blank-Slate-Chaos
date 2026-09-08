@@ -3129,17 +3129,17 @@ function ifUpdate() {
     // Layer-specific behaviour
     let targetR, orbitStr, noiseStr, chaosStr;
     if(isOuter){
-      // Outer: pure chaos, noise-driven, loose orbiting
+      // Outer: full chaos — fast, noisy, barely contained
       targetR = maxR*(0.7+ifR[i]*0.3);
-      orbitStr = 0.0003;
-      noiseStr = 0.9*(1-ifMode.order*0.4);
+      orbitStr = 0.0001;
+      noiseStr = 2.8*(1-ifMode.order*0.2);
       chaosStr = 1.0;
     } else if(isMid){
       // Mid: transitional — part chaos, part structured
       targetR = maxR*(0.42+ifR[i]*0.26);
-      orbitStr = 0.0008;
-      noiseStr = 0.45*(1-ifMode.order*0.5);
-      chaosStr = 0.5;
+      orbitStr = 0.0005;
+      noiseStr = 1.2*(1-ifMode.order*0.4);
+      chaosStr = 0.6;
     } else if(isInner){
       // Inner: spherical orbiting, minimal noise
       targetR = maxR*(0.16+ifR[i]*0.22);
@@ -3156,8 +3156,8 @@ function ifUpdate() {
 
     // Radial restoration — keep particles in their layer
     const radErr = dist - targetR;
-    ifVX[i] -= (dx/dist)*radErr*0.004*(isOuter?0.4:isMid?0.8:1.2);
-    ifVY[i] -= (dy/dist)*radErr*0.004*(isOuter?0.4:isMid?0.8:1.2);
+    ifVX[i] -= (dx/dist)*radErr*0.004*(isOuter?0.08:isMid?0.5:1.2);
+    ifVY[i] -= (dy/dist)*radErr*0.004*(isOuter?0.08:isMid?0.5:1.2);
 
     // Orbital tangential force
     const tang = ifMode.order*(isOuter?0.3:isMid?0.6:0.9);
@@ -3192,17 +3192,17 @@ function ifUpdate() {
     });
 
     // Damping — outer looser, inner tighter
-    const damp=isOuter?0.91:isMid?0.88:isInner?0.85:0.82;
+    const damp=isOuter?0.96:isMid?0.90:isInner?0.85:0.82;
     ifVX[i]*=damp; ifVY[i]*=damp;
     const spd2=Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
-    const maxSpd=isOuter?2.5:isMid?1.8:isInner?1.2:0.6;
+    const maxSpd=isOuter?5.5:isMid?2.8:isInner?1.2:0.6;
     if(spd2>maxSpd){ifVX[i]*=maxSpd/spd2;ifVY[i]*=maxSpd/spd2;}
 
     ifX[i]+=ifVX[i]; ifY[i]+=ifVY[i];
 
     // Hard boundary
     const od=Math.sqrt((ifX[i]-cx_)*(ifX[i]-cx_)+(ifY[i]-cy_)*(ifY[i]-cy_));
-    if(od>maxR*1.15){
+    if(od>maxR*(isOuter?1.45:1.15)){
       ifX[i]=cx_+(ifX[i]-cx_)/od*maxR*0.95;
       ifY[i]=cy_+(ifY[i]-cy_)/od*maxR*0.95;
       ifVX[i]*=-0.3;ifVY[i]*=-0.3;
@@ -3224,7 +3224,7 @@ function ifDraw() {
       const d2=dx*dx+dy*dy;
       const lrAvg=(ifLR[ii]+ifLR[jj])*0.5;
       // Connection distance varies by layer
-      const cD=lrAvg<0.14?30:lrAvg<0.39?40:lrAvg<0.69?32:25;
+      const cD=lrAvg<0.14?30:lrAvg<0.39?40:lrAvg<0.69?32:60;
       if(d2<cD*cD&&d2>0){
         const d=Math.sqrt(d2);
         const depth=1-lrAvg;
@@ -3277,7 +3277,8 @@ function ifDraw() {
     const sz=ifSZ[i]*(1+(ifThinking>0.1&&lr<0.4?ifThinking*1.2:0));
 
     if(ty===0){
-      const al=depth*0.08*(0.2+br*0.5);
+      const outerBoost=lr>0.69?2.5:1;
+      const al=depth*0.08*(0.2+br*0.5)*outerBoost;
       if(al<0.01)continue;
       cx.fillStyle=`rgba(195,218,245,${al})`;
       cx.fillRect(ifX[i]-sz*0.4,ifY[i]-sz*0.4,sz*0.8,sz*0.8);

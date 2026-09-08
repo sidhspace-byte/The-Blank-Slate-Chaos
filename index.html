@@ -3070,48 +3070,36 @@ function ifInit() {
   const w=CW, h=CH, cx_=w*0.5, cy_=h*0.5;
   const maxR = Math.min(w,h)*0.46;
   for (let i=0; i<NIF; i++) {
-    // 6 zones: core / inner / mid / mid-outer / mid-outer-2 / outer
+    // Fill the gap — heavy density in mid and mid-outer zones
     const t = Math.random();
     let nr;
-    if      (t<0.04) nr = Math.random()*0.14;
-    else if (t<0.12) nr = 0.14 + Math.random()*0.25;
-    else if (t<0.22) nr = 0.39 + Math.random()*0.30;
-    else if (t<0.42) {
-      // mid-outer: bias toward outer edge of band (0.69–0.77) for ring shape
-      const u = Math.random(); nr = 0.69 + 0.08*(1-Math.pow(1-u,2));
-    } else if (t<0.62) {
-      // mid-outer-2: bias toward outer edge (0.77–0.85)
-      const u = Math.random(); nr = 0.77 + 0.08*(1-Math.pow(1-u,2));
-    } else {
-      // outer: bias toward inner edge (0.85–1.0) — forms dense outer ring, sparse beyond
-      const u = Math.random(); nr = 0.85 + 0.15*Math.pow(u,1.5);
-    }
+    if      (t<0.04) nr = Math.random()*0.14;                                    // core — 4%
+    else if (t<0.14) nr = 0.14 + Math.random()*0.25;                             // inner — 10%
+    else if (t<0.30) nr = 0.39 + Math.random()*0.30;                             // mid — 16%
+    else if (t<0.52) { const u=Math.random(); nr = 0.69+0.08*(1-Math.pow(1-u,2)); } // mid-outer — 22%
+    else if (t<0.72) { const u=Math.random(); nr = 0.77+0.08*(1-Math.pow(1-u,2)); } // mid-outer-2 — 20%
+    else             { const u=Math.random(); nr = 0.85+0.15*Math.pow(u,1.5);    }  // outer — 28%
     const ang = Math.random()*Math.PI*2;
-    ifR[i]   = nr;
-    ifANG[i] = ang;
-    ifLR[i]  = nr;
-    const pr = nr * maxR;
-    ifX[i] = cx_ + Math.cos(ang)*pr;
-    ifY[i] = cy_ + Math.sin(ang)*pr;
-    ifVX[i] = (Math.random()-0.5)*0.2;
-    ifVY[i] = (Math.random()-0.5)*0.2;
-    ifPH[i] = Math.random()*Math.PI*2;
+    ifR[i]=nr; ifANG[i]=ang; ifLR[i]=nr;
+    const pr=nr*maxR;
+    ifX[i]=cx_+Math.cos(ang)*pr; ifY[i]=cy_+Math.sin(ang)*pr;
+    ifVX[i]=(Math.random()-0.5)*0.2; ifVY[i]=(Math.random()-0.5)*0.2;
+    ifPH[i]=Math.random()*Math.PI*2;
     const rnd=Math.random();
-    const isOuter = nr > 0.69;
-    if(isOuter){
-      // outer particles: larger size range, more glowy types
-      const rnd2 = Math.random();
-      if      (rnd2<0.40){ifTY[i]=0;ifSZ[i]=0.7+Math.random()*1.2;}
-      else if (rnd2<0.72){ifTY[i]=1;ifSZ[i]=1.1+Math.random()*1.4;}
-      else if (rnd2<0.92){ifTY[i]=2;ifSZ[i]=1.5+Math.random()*1.6;}
-      else               {ifTY[i]=3;ifSZ[i]=2.0+Math.random()*1.8;}
+    // All outer zones: bigger, brighter particle types
+    if(nr>0.69){
+      const rnd2=Math.random();
+      if      (rnd2<0.35){ifTY[i]=0;ifSZ[i]=0.8+Math.random()*1.4;}
+      else if (rnd2<0.68){ifTY[i]=1;ifSZ[i]=1.2+Math.random()*1.6;}
+      else if (rnd2<0.90){ifTY[i]=2;ifSZ[i]=1.6+Math.random()*1.8;}
+      else               {ifTY[i]=3;ifSZ[i]=2.2+Math.random()*2.0;}
     } else {
       if      (rnd<0.62){ifTY[i]=0;ifSZ[i]=0.35+Math.random()*0.7;}
       else if (rnd<0.84){ifTY[i]=1;ifSZ[i]=0.7+Math.random()*0.9;}
       else if (rnd<0.97){ifTY[i]=2;ifSZ[i]=1.0+Math.random()*1.1;}
-      else               {ifTY[i]=3;ifSZ[i]=1.4+Math.random()*1.2;}
+      else              {ifTY[i]=3;ifSZ[i]=1.4+Math.random()*1.2;}
     }
-    ifBR[i]=Math.pow(Math.random(),1.5);
+    ifBR[i]=Math.pow(Math.random(),1.3);
   }
 }
 

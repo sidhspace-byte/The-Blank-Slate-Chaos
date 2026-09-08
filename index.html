@@ -3262,13 +3262,13 @@ function ifDraw() {
   // ── RADIATING LINES: straight, irregular angles, stop at different layers ──
   // len: ~0.15 = inner, ~0.42 = mid, ~0.72+ = outer
   const radLines = [
-    { ang:0.13, rotSpd:0.00011, len:1.28, dots:138 },
+    { ang:0.13, rotSpd:0.00011, len:1.28, dots:138 }, // outer
     { ang:1.19, rotSpd:0.00014, len:0.43, dots:48  },
-    { ang:2.03, rotSpd:0.00009, len:1.35, dots:145 },
-    { ang:2.79, rotSpd:0.00006, len:0.88, dots:96  },
-    { ang:3.31, rotSpd:0.00016, len:1.20, dots:130 },
-    { ang:4.29, rotSpd:0.00008, len:0.41, dots:46  },
-    { ang:5.08, rotSpd:0.00011, len:1.32, dots:142 },
+    { ang:2.03, rotSpd:0.00009, len:0.88, dots:96  },
+    { ang:2.79, rotSpd:0.00006, len:0.41, dots:46  },
+    { ang:3.31, rotSpd:0.00016, len:1.22, dots:132 }, // outer
+    { ang:4.29, rotSpd:0.00008, len:0.67, dots:74  },
+    { ang:5.08, rotSpd:0.00011, len:0.44, dots:49  },
     { ang:5.77, rotSpd:0.00009, len:0.72, dots:79  },
   ];
 

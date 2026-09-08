@@ -3070,13 +3070,13 @@ function ifInit() {
   const w=CW, h=CH, cx_=w*0.5, cy_=h*0.5;
   const maxR = Math.min(w,h)*0.46;
   for (let i=0; i<NIF; i++) {
-    // Distribute across layers with density weighting
+    // Distribute across layers — outer gets much heavier weighting
     const t = Math.random();
     let nr;
-    if      (t<0.08) nr = Math.random()*0.14;             // core — sparse
-    else if (t<0.30) nr = 0.14 + Math.random()*0.25;      // inner sphere
-    else if (t<0.65) nr = 0.39 + Math.random()*0.30;      // mid ring
-    else             nr = 0.69 + Math.random()*0.31;       // outer chaos
+    if      (t<0.05) nr = Math.random()*0.14;             // core — sparse
+    else if (t<0.18) nr = 0.14 + Math.random()*0.25;      // inner sphere
+    else if (t<0.38) nr = 0.39 + Math.random()*0.30;      // mid ring
+    else             nr = 0.69 + Math.random()*0.31;       // outer chaos — 62% of all particles
     const ang = Math.random()*Math.PI*2;
     ifR[i]   = nr;
     ifANG[i] = ang;
@@ -3088,10 +3088,10 @@ function ifInit() {
     ifVY[i] = (Math.random()-0.5)*0.2;
     ifPH[i] = Math.random()*Math.PI*2;
     const rnd=Math.random();
-    if      (rnd<0.62){ifTY[i]=0;ifSZ[i]=0.25+Math.random()*0.45;}
-    else if (rnd<0.84){ifTY[i]=1;ifSZ[i]=0.55+Math.random()*0.65;}
-    else if (rnd<0.97){ifTY[i]=2;ifSZ[i]=0.8+Math.random()*0.8;}
-    else              {ifTY[i]=3;ifSZ[i]=1.2+Math.random()*1.0;}
+    if      (rnd<0.62){ifTY[i]=0;ifSZ[i]=0.35+Math.random()*0.7;}
+    else if (rnd<0.84){ifTY[i]=1;ifSZ[i]=0.7+Math.random()*0.9;}
+    else if (rnd<0.97){ifTY[i]=2;ifSZ[i]=1.0+Math.random()*1.1;}
+    else              {ifTY[i]=3;ifSZ[i]=1.4+Math.random()*1.2;}
     ifBR[i]=Math.pow(Math.random(),1.8);
   }
 }
@@ -3283,33 +3283,29 @@ function ifDraw() {
       // ── spine dot ──
       const fade = Math.min(1, t*10) * (t > 0.88 ? (1-t)*8 : 1);
       const onBnd = (t>0.12&&t<0.17)||(t>0.36&&t<0.41)||(t>0.66&&t<0.71);
-      const spineAl = fade * (onBnd ? 0.05 : 0.32) * (1+ifThinking*0.3);
+      const spineAl = fade * (onBnd ? 0.06 : 0.42) * (1+ifThinking*0.3);
       if(spineAl > 0.02){
         cx.beginPath();
-        cx.arc(cx_+cosA*r, cy_+sinA*r, 0.65, 0, Math.PI*2);
-        cx.fillStyle = `rgba(200,225,255,${spineAl})`;
+        cx.arc(cx_+cosA*r, cy_+sinA*r, 1.2, 0, Math.PI*2);
+        cx.fillStyle = `rgba(210,232,255,${spineAl})`;
         cx.fill();
       }
 
-      // ── lateral bleed: 3–4 particles bleeding off the line perpendicularly ──
-      // only every few spine dots, density varies with position
+      // ── lateral bleed ──
       if(d % 3 !== 0) continue;
-      const bleedCount = 2 + Math.floor(Math.abs(Math.sin(d*0.5+li))*2); // 2–3
+      const bleedCount = 2 + Math.floor(Math.abs(Math.sin(d*0.5+li))*2);
       for(let b=0; b<bleedCount; b++){
-        // each bleed particle: random-ish lateral offset, slight radial drift
         const side   = (b%2===0?1:-1);
         const bleedT = (b+1) / (bleedCount+1);
-        // distance from spine — grows with a noise-like variation
-        const bleedR = maxR * 0.025 * (0.4 + bleedT) *
+        const bleedR = maxR * 0.038 * (0.4 + bleedT) *
                        (0.6 + 0.4*Math.abs(Math.sin(d*0.73+li*1.4+b*2.1)));
         const bleedX = cx_ + cosA*r + cosP*side*bleedR;
         const bleedY = cy_ + sinA*r + sinP*side*bleedR;
-        // bleed fades fast with distance from spine
-        const bleedAl = spineAl * 0.45 * (1 - bleedT*0.5) * (onBnd?0.2:1);
+        const bleedAl = spineAl * 0.5 * (1 - bleedT*0.5) * (onBnd?0.2:1);
         if(bleedAl < 0.015) continue;
         cx.beginPath();
-        cx.arc(bleedX, bleedY, 0.45, 0, Math.PI*2);
-        cx.fillStyle = `rgba(190,218,255,${bleedAl})`;
+        cx.arc(bleedX, bleedY, 0.7, 0, Math.PI*2);
+        cx.fillStyle = `rgba(195,220,255,${bleedAl})`;
         cx.fill();
       }
     }
@@ -3404,18 +3400,21 @@ function ifDraw() {
     const ty=ifTY[i],br=ifBR[i],lr=ifLR[i];
     const depth=1-lr; // core=1(bright), outer=0(dim)
     const sz=ifSZ[i]*(1+(ifThinking>0.1&&lr<0.4?ifThinking*1.2:0));
+    const isOuterP = lr>0.69;
 
     if(ty===0){
-      const outerBoost=lr>0.69?2.5:1;
-      const al=depth*0.08*(0.2+br*0.5)*outerBoost;
+      const outerBoost=isOuterP?5.0:1;
+      const al=depth*0.08*(0.2+br*0.5)*outerBoost + (isOuterP?0.06:0);
       if(al<0.01)continue;
-      cx.fillStyle=`rgba(195,218,245,${al})`;
-      cx.fillRect(ifX[i]-sz*0.4,ifY[i]-sz*0.4,sz*0.8,sz*0.8);
+      const drawSz = isOuterP ? sz*1.4 : sz*0.8;
+      cx.fillStyle=`rgba(195,218,245,${Math.min(al,0.5)})`;
+      cx.fillRect(ifX[i]-drawSz*0.5,ifY[i]-drawSz*0.5,drawSz,drawSz);
     } else if(ty===1){
-      const al=depth*0.18*(0.3+br*0.5);
+      const outerBoost=isOuterP?3.5:1;
+      const al=depth*0.18*(0.3+br*0.5)*outerBoost + (isOuterP?0.05:0);
       if(al<0.01)continue;
-      cx.fillStyle=`rgba(210,230,252,${al})`;
-      cx.beginPath();cx.arc(ifX[i],ifY[i],sz*0.6,0,Math.PI*2);cx.fill();
+      cx.fillStyle=`rgba(210,230,252,${Math.min(al,0.5)})`;
+      cx.beginPath();cx.arc(ifX[i],ifY[i],isOuterP?sz*0.9:sz*0.6,0,Math.PI*2);cx.fill();
     } else if(ty===2){
       const al=depth*0.28*(0.5+br*0.4);
       if(al<0.01)continue;

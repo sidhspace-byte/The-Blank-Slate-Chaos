@@ -3245,81 +3245,64 @@ function ifDraw() {
     }
   }
 
-  // Core spokes — lines from core to inner ring
   cx.save();
-  const spokeCount=8;
-  for(let s=0;s<spokeCount;s++){
-    const sang=(s/spokeCount)*Math.PI*2+T*0.0003;
-    const r1=maxR*0.06, r2=maxR*0.38;
-    const al=0.12+ifThinking*0.08;
-    cx.beginPath();
-    cx.moveTo(cx_+Math.cos(sang)*r1,cy_+Math.sin(sang)*r1);
-    cx.lineTo(cx_+Math.cos(sang)*r2,cy_+Math.sin(sang)*r2);
-    cx.strokeStyle=`rgba(190,220,255,${al})`;
-    cx.lineWidth=0.4;
-    cx.stroke();
+
+  // ── PARTICLE-CHAIN RADIAL SPOKES: centre → outer edge ──
+  // 12 spokes, each a chain of small dots with slight radial scatter
+  const spokeAngles = 12;
+  const dotsPerSpoke = 38;
+  for(let s=0; s<spokeAngles; s++){
+    const sang = (s/spokeAngles)*Math.PI*2 + T*0.00008;
+    for(let d=0; d<dotsPerSpoke; d++){
+      const t = d/dotsPerSpoke;
+      const r = maxR * 0.04 + maxR * 0.96 * t;
+      // small lateral jitter so it reads as particle chain not ruler line
+      const jit = maxR*0.006 * Math.sin(d*2.3 + T*0.0004 + s*1.1);
+      const perpAng = sang + Math.PI*0.5;
+      const x = cx_ + Math.cos(sang)*r + Math.cos(perpAng)*jit;
+      const y = cy_ + Math.sin(sang)*r + Math.sin(perpAng)*jit;
+      // fade near centre and near outer edge, brighter mid
+      const fade = Math.sin(t*Math.PI)*0.85;
+      // gap at the inner sphere and mid boundaries — dots thin out there
+      const onBoundary = (t>0.13&&t<0.16)||(t>0.37&&t<0.40)||(t>0.67&&t<0.70);
+      const al = fade * (onBoundary?0.04:0.13) * (1+ifThinking*0.3);
+      if(al<0.015) continue;
+      const sz = 0.7 + t*0.5; // slightly larger toward outside
+      cx.beginPath();
+      cx.arc(x,y,sz,0,Math.PI*2);
+      cx.fillStyle=`rgba(190,220,255,${al})`;
+      cx.fill();
+    }
   }
 
-  // Hard boundary rings — inner, mid-zone boundaries, outer
-  [0.14,0.39,0.69].forEach((nr,idx)=>{
-    const rr=maxR*nr;
-    const al=[0.12,0.08,0.05][idx]*(1+ifThinking*0.3);
-    cx.beginPath();
-    cx.arc(cx_,cy_,rr,0,Math.PI*2);
-    cx.strokeStyle=`rgba(180,215,255,${al})`;
-    cx.lineWidth=0.4;
-    cx.stroke();
-  });
-
-  // ── GAP RINGS: 3 concentric rings drifting in the mid zone (0.39→0.69) ──
-  const gapRings = [
-    { nr:0.47, rotSpeed: 0.00022, warpAmp:0.038, warpFreq:5, phase:0.0  },
-    { nr:0.55, rotSpeed:-0.00016, warpAmp:0.052, warpFreq:7, phase:1.4  },
-    { nr:0.63, rotSpeed: 0.00028, warpAmp:0.030, warpFreq:4, phase:2.7  },
+  // ── PARTICLE-CHAIN CONCENTRIC RINGS ──
+  // 5 rings at key radii — drawn as rotating dot chains with small radial noise
+  const pRings = [
+    { nr:0.14, dots:60,  rotSpeed: 0.00020, nAmp:0.008, al:0.18 },
+    { nr:0.39, dots:110, rotSpeed:-0.00014, nAmp:0.010, al:0.14 },
+    { nr:0.47, dots:130, rotSpeed: 0.00025, nAmp:0.014, al:0.11 },
+    { nr:0.60, dots:155, rotSpeed:-0.00018, nAmp:0.012, al:0.09 },
+    { nr:0.69, dots:180, rotSpeed: 0.00012, nAmp:0.009, al:0.08 },
   ];
-  const gapSegs = 240;
-  gapRings.forEach((g, gi) => {
+  pRings.forEach((g,gi)=>{
     const baseR = maxR * g.nr;
     const rot   = T * g.rotSpeed;
-    // rings clearly visible — brighter closer to inner, fading toward outer
-    const al = [0.22, 0.17, 0.13][gi] * (1 + ifThinking*0.5);
-
-    cx.beginPath();
-    for(let s=0; s<=gapSegs; s++){
-      const ang = (s/gapSegs)*Math.PI*2;
-      const warp = g.warpAmp * maxR * (
-        Math.sin(ang * g.warpFreq + rot + g.phase) * 0.65 +
-        Math.sin(ang * (g.warpFreq+3) - rot*1.9 + g.phase+1.2) * 0.35
-      );
-      // high-freq jitter — small chaos riding the ring
-      const jitter = maxR * 0.009 * Math.sin(ang*31 + T*0.0005 + gi*2.3);
-      const r = baseR + warp + jitter;
+    const alBase = g.al * (1 + ifThinking*0.4);
+    for(let d=0; d<g.dots; d++){
+      const ang = (d/g.dots)*Math.PI*2 + rot;
+      // small radial noise — each dot sits slightly off the perfect circle
+      const rNoise = maxR * g.nAmp * Math.sin(d*1.7 + T*0.00028 + gi*2.1);
+      const r = baseR + rNoise;
       const x = cx_ + Math.cos(ang)*r;
       const y = cy_ + Math.sin(ang)*r;
-      s===0 ? cx.moveTo(x,y) : cx.lineTo(x,y);
-    }
-    cx.closePath();
-    cx.strokeStyle = `rgba(175,215,255,${al})`;
-    cx.lineWidth   = 0.6;
-    cx.stroke();
-
-    // Chaos ticks — short radial bursts sitting on the ring, breathing
-    const tickCount = [14, 18, 10][gi];
-    for(let t=0; t<tickCount; t++){
-      const tang    = (t/tickCount)*Math.PI*2 + rot*4 + gi*1.1;
-      const warp2   = g.warpAmp * maxR * Math.sin(tang*g.warpFreq + rot + g.phase)*0.65;
-      const jr2     = maxR*0.009*Math.sin(tang*31 + T*0.0005 + gi*2.3);
-      const rBase   = baseR + warp2 + jr2;
-      // each tick pulses at its own rate
-      const tpulse  = 0.4 + 0.6*Math.abs(Math.sin(T*0.0011 + t*0.73 + gi*1.7));
-      const tickLen = maxR * 0.022 * tpulse;
-      const tal     = al * 1.6 * tpulse;
+      // dots pulse slightly in brightness — not all at once
+      const bp = 0.5 + 0.5*Math.sin(d*0.4 + T*0.0008 + gi);
+      const al = alBase * (0.5 + 0.5*bp);
+      const sz = 0.55 + 0.35*bp;
       cx.beginPath();
-      cx.moveTo(cx_+Math.cos(tang)*(rBase-tickLen*0.35), cy_+Math.sin(tang)*(rBase-tickLen*0.35));
-      cx.lineTo(cx_+Math.cos(tang)*(rBase+tickLen*0.65), cy_+Math.sin(tang)*(rBase+tickLen*0.65));
-      cx.strokeStyle = `rgba(200,232,255,${tal})`;
-      cx.lineWidth   = 0.7;
-      cx.stroke();
+      cx.arc(x,y,sz,0,Math.PI*2);
+      cx.fillStyle=`rgba(195,225,255,${al})`;
+      cx.fill();
     }
   });
 

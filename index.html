@@ -3249,19 +3249,25 @@ function ifDraw() {
   cx.save();
 
   // ── RADIATING LINES: straight, uneven spacing, lateral particle bleed ──
+  // ── RADIATING LINES: straight, irregular angles, stop at different layers ──
+  // len: ~0.15 = inner, ~0.42 = mid, ~0.72+ = outer
   const radLines = [
-    { ang:0.00, rotSpd:0.00011, len:0.92, dots:100 },
-    { ang:0.58, rotSpd:0.00007, len:0.78, dots:85  },
-    { ang:1.02, rotSpd:0.00014, len:0.95, dots:103 },
-    { ang:1.83, rotSpd:0.00009, len:0.65, dots:72  },
-    { ang:2.31, rotSpd:0.00013, len:0.88, dots:96  },
-    { ang:2.98, rotSpd:0.00006, len:0.72, dots:79  },
-    { ang:3.52, rotSpd:0.00016, len:0.97, dots:105 },
-    { ang:4.08, rotSpd:0.00010, len:0.60, dots:66  },
-    { ang:4.73, rotSpd:0.00008, len:0.85, dots:92  },
-    { ang:5.19, rotSpd:0.00015, len:0.76, dots:83  },
-    { ang:5.61, rotSpd:0.00012, len:0.91, dots:99  },
-    { ang:6.02, rotSpd:0.00009, len:0.68, dots:74  },
+    { ang:0.13, rotSpd:0.00011, len:0.73, dots:80  },
+    { ang:0.71, rotSpd:0.00007, len:0.18, dots:22  },
+    { ang:1.19, rotSpd:0.00014, len:0.95, dots:103 },
+    { ang:1.55, rotSpd:0.00018, len:0.41, dots:46  },
+    { ang:2.03, rotSpd:0.00009, len:0.16, dots:20  },
+    { ang:2.44, rotSpd:0.00013, len:0.88, dots:96  },
+    { ang:2.79, rotSpd:0.00006, len:0.43, dots:48  },
+    { ang:3.31, rotSpd:0.00016, len:0.97, dots:105 },
+    { ang:3.67, rotSpd:0.00020, len:0.19, dots:23  },
+    { ang:4.02, rotSpd:0.00010, len:0.67, dots:74  },
+    { ang:4.29, rotSpd:0.00008, len:0.40, dots:45  },
+    { ang:4.81, rotSpd:0.00015, len:0.85, dots:93  },
+    { ang:5.08, rotSpd:0.00011, len:0.17, dots:21  },
+    { ang:5.38, rotSpd:0.00012, len:0.78, dots:85  },
+    { ang:5.77, rotSpd:0.00009, len:0.44, dots:49  },
+    { ang:6.11, rotSpd:0.00017, len:0.91, dots:99  },
   ];
 
   radLines.forEach((rl, li) => {

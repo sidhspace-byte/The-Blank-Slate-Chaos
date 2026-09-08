@@ -3259,7 +3259,8 @@ function ifDraw() {
     cx.lineWidth=0.4;
     cx.stroke();
   }
-  // Concentric ring outlines — subtle
+
+  // Hard boundary rings — inner, mid-zone boundaries, outer
   [0.14,0.39,0.69].forEach((nr,idx)=>{
     const rr=maxR*nr;
     const al=[0.12,0.08,0.05][idx]*(1+ifThinking*0.3);
@@ -3269,6 +3270,111 @@ function ifDraw() {
     cx.lineWidth=0.4;
     cx.stroke();
   });
+
+  // ── GAP RINGS: concentric warping rings in the mid zone (0.39→0.69) ──
+  // Three rings, each rotating at slightly different rates and warping
+  const gapRings = [
+    { nr: 0.47, rotSpeed: 0.00018, warpAmp: 0.022, warpFreq: 5, phase: 0.0  },
+    { nr: 0.54, rotSpeed:-0.00012, warpAmp: 0.032, warpFreq: 7, phase: 1.4  },
+    { nr: 0.62, rotSpeed: 0.00022, warpAmp: 0.018, warpFreq: 4, phase: 2.7  },
+  ];
+  const gapSegs = 180;
+  gapRings.forEach((g, gi) => {
+    const baseR = maxR * g.nr;
+    const rot   = T * g.rotSpeed;
+    const al    = (0.055 - gi*0.008) * (1 + ifThinking*0.4);
+    cx.beginPath();
+    for(let s=0; s<=gapSegs; s++){
+      const ang  = (s/gapSegs)*Math.PI*2;
+      // warp radius — two layered sine waves for organic feel
+      const warp = g.warpAmp * maxR * (
+        Math.sin(ang * g.warpFreq + rot + g.phase) * 0.6 +
+        Math.sin(ang * (g.warpFreq+2) - rot*1.7 + g.phase+1) * 0.4
+      );
+      // small high-freq chaos noise on top
+      const jitter = maxR * 0.006 * Math.sin(ang*23 + T*0.00035 + gi*1.1);
+      const r = baseR + warp + jitter;
+      const x = cx_ + Math.cos(ang) * r;
+      const y = cy_ + Math.sin(ang) * r;
+      s===0 ? cx.moveTo(x,y) : cx.lineTo(x,y);
+    }
+    cx.closePath();
+    cx.strokeStyle = `rgba(170,210,255,${al})`;
+    cx.lineWidth   = 0.35;
+    cx.stroke();
+
+    // Chaos micro-bursts on each gap ring — short radial ticks
+    const tickCount = 12 + gi*4;
+    for(let t=0; t<tickCount; t++){
+      const tang = (t/tickCount)*Math.PI*2 + rot*3 + gi*0.8;
+      const warp2 = g.warpAmp * maxR * Math.sin(tang * g.warpFreq + rot + g.phase)*0.6;
+      const jr    = maxR * 0.006 * Math.sin(tang*23 + T*0.00035 + gi*1.1);
+      const rBase = baseR + warp2 + jr;
+      const tickLen = maxR * (0.012 + 0.008*Math.abs(Math.sin(T*0.0007+t*0.6+gi)));
+      const tal   = al * 1.8;
+      cx.beginPath();
+      cx.moveTo(cx_ + Math.cos(tang)*(rBase - tickLen*0.3), cy_ + Math.sin(tang)*(rBase - tickLen*0.3));
+      cx.lineTo(cx_ + Math.cos(tang)*(rBase + tickLen*0.7), cy_ + Math.sin(tang)*(rBase + tickLen*0.7));
+      cx.strokeStyle = `rgba(190,225,255,${tal})`;
+      cx.lineWidth = 0.5;
+      cx.stroke();
+    }
+  });
+
+  // ── OUTER COMMUNICATION SPIKES ──
+  // Sharp spikes firing outward from the outer ring boundary (0.69*maxR)
+  // A few are always present, more fire during thinking
+  const spikeBaseR  = maxR * 0.69;
+  const spikeOuter  = maxR * 1.05; // how far they can reach
+  const spikeCount  = 7;
+  // Persistent slow-rotating spikes
+  for(let sp=0; sp<spikeCount; sp++){
+    const ang    = (sp/spikeCount)*Math.PI*2 + T*0.00025 + sp*0.31;
+    // Each spike pulses independently
+    const pulse  = Math.pow(Math.max(0, Math.sin(T*0.0015 + sp*1.3)), 3);
+    if(pulse < 0.05) continue;
+    const sLen   = (spikeOuter - spikeBaseR) * pulse;
+    const sAl    = 0.18 * pulse * (1 + ifThinking*0.8);
+    // Tip glow
+    const tipX   = cx_ + Math.cos(ang)*(spikeBaseR + sLen);
+    const tipY   = cy_ + Math.sin(ang)*(spikeBaseR + sLen);
+    const baseX  = cx_ + Math.cos(ang)*spikeBaseR;
+    const baseY  = cy_ + Math.sin(ang)*spikeBaseR;
+    const grad   = cx.createLinearGradient(baseX,baseY,tipX,tipY);
+    grad.addColorStop(0, `rgba(170,215,255,0)`);
+    grad.addColorStop(0.3, `rgba(200,230,255,${sAl})`);
+    grad.addColorStop(1, `rgba(230,248,255,0)`);
+    cx.beginPath();
+    cx.moveTo(baseX,baseY);
+    cx.lineTo(tipX,tipY);
+    cx.strokeStyle = grad;
+    cx.lineWidth   = 0.6 + pulse*0.8;
+    cx.stroke();
+    // Tiny tip dot
+    cx.beginPath();
+    cx.arc(tipX,tipY,1.2*pulse,0,Math.PI*2);
+    cx.fillStyle=`rgba(230,248,255,${sAl*1.5})`;
+    cx.fill();
+  }
+  // Thinking burst — extra fast spikes that fire erratically
+  if(ifThinking > 0.15){
+    const burstCount = 5;
+    for(let sp=0; sp<burstCount; sp++){
+      const ang    = (sp/burstCount)*Math.PI*2 + T*0.0018 + sp*0.77 + Math.sin(T*0.003+sp)*0.6;
+      const pulse  = Math.pow(Math.max(0, Math.sin(T*0.006 + sp*2.1)), 2) * ifThinking;
+      if(pulse < 0.1) continue;
+      const sLen   = (spikeOuter - spikeBaseR) * pulse * 1.4;
+      const sAl    = 0.28 * pulse * ifThinking;
+      const tipX   = cx_ + Math.cos(ang)*(spikeBaseR + sLen);
+      const tipY   = cy_ + Math.sin(ang)*(spikeBaseR + sLen);
+      const baseX  = cx_ + Math.cos(ang)*(spikeBaseR*0.9);
+      const baseY  = cy_ + Math.sin(ang)*(spikeBaseR*0.9);
+      cx.beginPath();cx.moveTo(baseX,baseY);cx.lineTo(tipX,tipY);
+      cx.strokeStyle=`rgba(215,238,255,${sAl})`;
+      cx.lineWidth=0.8;cx.stroke();
+    }
+  }
+
   cx.restore();
 
   // Draw particles

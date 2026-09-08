@@ -3252,21 +3252,21 @@ function ifDraw() {
   // ── RADIATING LINES: straight, irregular angles, stop at different layers ──
   // len: ~0.15 = inner, ~0.42 = mid, ~0.72+ = outer
   const radLines = [
-    { ang:0.13, rotSpd:0.00011, len:0.73, dots:80  },
+    { ang:0.13, rotSpd:0.00011, len:1.25, dots:135 }, // reaches well into outer
     { ang:0.71, rotSpd:0.00007, len:0.18, dots:22  },
     { ang:1.19, rotSpd:0.00014, len:0.95, dots:103 },
     { ang:1.55, rotSpd:0.00018, len:0.41, dots:46  },
-    { ang:2.03, rotSpd:0.00009, len:0.16, dots:20  },
-    { ang:2.44, rotSpd:0.00013, len:0.88, dots:96  },
+    { ang:2.03, rotSpd:0.00009, len:1.38, dots:148 }, // reaches well into outer
+    { ang:2.44, rotSpd:0.00013, len:0.16, dots:20  },
     { ang:2.79, rotSpd:0.00006, len:0.43, dots:48  },
-    { ang:3.31, rotSpd:0.00016, len:0.97, dots:105 },
+    { ang:3.31, rotSpd:0.00016, len:1.18, dots:127 }, // reaches outer
     { ang:3.67, rotSpd:0.00020, len:0.19, dots:23  },
     { ang:4.02, rotSpd:0.00010, len:0.67, dots:74  },
     { ang:4.29, rotSpd:0.00008, len:0.40, dots:45  },
     { ang:4.81, rotSpd:0.00015, len:0.85, dots:93  },
-    { ang:5.08, rotSpd:0.00011, len:0.17, dots:21  },
-    { ang:5.38, rotSpd:0.00012, len:0.78, dots:85  },
-    { ang:5.77, rotSpd:0.00009, len:0.44, dots:49  },
+    { ang:5.08, rotSpd:0.00011, len:1.30, dots:140 }, // reaches outer
+    { ang:5.38, rotSpd:0.00012, len:0.44, dots:49  },
+    { ang:5.77, rotSpd:0.00009, len:0.18, dots:22  },
     { ang:6.11, rotSpd:0.00017, len:0.91, dots:99  },
   ];
 
@@ -3281,28 +3281,27 @@ function ifDraw() {
       const r = maxR * 0.04 + maxR * rl.len * t;
 
       // ── spine dot ──
-      const fade = Math.min(1, t*10) * (t > 0.88 ? (1-t)*8 : 1);
-      const onBnd = (t>0.12&&t<0.17)||(t>0.36&&t<0.41)||(t>0.66&&t<0.71);
-      const spineAl = fade * (onBnd ? 0.06 : 0.42) * (1+ifThinking*0.3);
-      if(spineAl > 0.02){
+      const fade = Math.min(1, t*10) * (t > 0.9 ? (1-t)*10 : 1);
+      const onBnd = (t>0.10&&t<0.15)||(t>0.33&&t<0.38)||(t>0.60&&t<0.65);
+      const spineAl = fade * (onBnd ? 0.04 : 0.22) * (1+ifThinking*0.25);
+      if(spineAl > 0.015){
         cx.beginPath();
-        cx.arc(cx_+cosA*r, cy_+sinA*r, 1.2, 0, Math.PI*2);
+        cx.arc(cx_+cosA*r, cy_+sinA*r, 1.4, 0, Math.PI*2);
         cx.fillStyle = `rgba(210,232,255,${spineAl})`;
         cx.fill();
       }
 
-      // ── lateral bleed ──
-      if(d % 3 !== 0) continue;
-      const bleedCount = 2 + Math.floor(Math.abs(Math.sin(d*0.5+li))*2);
+      // ── lateral bleed: every 4th dot, tight spread ──
+      if(d % 4 !== 0) continue;
+      const bleedCount = 2;
       for(let b=0; b<bleedCount; b++){
-        const side   = (b%2===0?1:-1);
-        const bleedT = (b+1) / (bleedCount+1);
-        const bleedR = maxR * 0.038 * (0.4 + bleedT) *
-                       (0.6 + 0.4*Math.abs(Math.sin(d*0.73+li*1.4+b*2.1)));
+        const side   = b===0 ? 1 : -1;
+        const bleedR = maxR * 0.022 *
+                       (0.5 + 0.5*Math.abs(Math.sin(d*0.73+li*1.4+b*2.1)));
         const bleedX = cx_ + cosA*r + cosP*side*bleedR;
         const bleedY = cy_ + sinA*r + sinP*side*bleedR;
-        const bleedAl = spineAl * 0.5 * (1 - bleedT*0.5) * (onBnd?0.2:1);
-        if(bleedAl < 0.015) continue;
+        const bleedAl = spineAl * 0.4 * (onBnd?0.15:1);
+        if(bleedAl < 0.012) continue;
         cx.beginPath();
         cx.arc(bleedX, bleedY, 0.7, 0, Math.PI*2);
         cx.fillStyle = `rgba(195,220,255,${bleedAl})`;

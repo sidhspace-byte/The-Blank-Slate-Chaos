@@ -3271,107 +3271,106 @@ function ifDraw() {
     cx.stroke();
   });
 
-  // ── GAP RINGS: concentric warping rings in the mid zone (0.39→0.69) ──
-  // Three rings, each rotating at slightly different rates and warping
+  // ── GAP RINGS: 3 concentric rings drifting in the mid zone (0.39→0.69) ──
   const gapRings = [
-    { nr: 0.47, rotSpeed: 0.00018, warpAmp: 0.022, warpFreq: 5, phase: 0.0  },
-    { nr: 0.54, rotSpeed:-0.00012, warpAmp: 0.032, warpFreq: 7, phase: 1.4  },
-    { nr: 0.62, rotSpeed: 0.00022, warpAmp: 0.018, warpFreq: 4, phase: 2.7  },
+    { nr:0.47, rotSpeed: 0.00022, warpAmp:0.038, warpFreq:5, phase:0.0  },
+    { nr:0.55, rotSpeed:-0.00016, warpAmp:0.052, warpFreq:7, phase:1.4  },
+    { nr:0.63, rotSpeed: 0.00028, warpAmp:0.030, warpFreq:4, phase:2.7  },
   ];
-  const gapSegs = 180;
+  const gapSegs = 240;
   gapRings.forEach((g, gi) => {
     const baseR = maxR * g.nr;
     const rot   = T * g.rotSpeed;
-    const al    = (0.055 - gi*0.008) * (1 + ifThinking*0.4);
+    // rings clearly visible — brighter closer to inner, fading toward outer
+    const al = [0.22, 0.17, 0.13][gi] * (1 + ifThinking*0.5);
+
     cx.beginPath();
     for(let s=0; s<=gapSegs; s++){
-      const ang  = (s/gapSegs)*Math.PI*2;
-      // warp radius — two layered sine waves for organic feel
+      const ang = (s/gapSegs)*Math.PI*2;
       const warp = g.warpAmp * maxR * (
-        Math.sin(ang * g.warpFreq + rot + g.phase) * 0.6 +
-        Math.sin(ang * (g.warpFreq+2) - rot*1.7 + g.phase+1) * 0.4
+        Math.sin(ang * g.warpFreq + rot + g.phase) * 0.65 +
+        Math.sin(ang * (g.warpFreq+3) - rot*1.9 + g.phase+1.2) * 0.35
       );
-      // small high-freq chaos noise on top
-      const jitter = maxR * 0.006 * Math.sin(ang*23 + T*0.00035 + gi*1.1);
+      // high-freq jitter — small chaos riding the ring
+      const jitter = maxR * 0.009 * Math.sin(ang*31 + T*0.0005 + gi*2.3);
       const r = baseR + warp + jitter;
-      const x = cx_ + Math.cos(ang) * r;
-      const y = cy_ + Math.sin(ang) * r;
+      const x = cx_ + Math.cos(ang)*r;
+      const y = cy_ + Math.sin(ang)*r;
       s===0 ? cx.moveTo(x,y) : cx.lineTo(x,y);
     }
     cx.closePath();
-    cx.strokeStyle = `rgba(170,210,255,${al})`;
-    cx.lineWidth   = 0.35;
+    cx.strokeStyle = `rgba(175,215,255,${al})`;
+    cx.lineWidth   = 0.6;
     cx.stroke();
 
-    // Chaos micro-bursts on each gap ring — short radial ticks
-    const tickCount = 12 + gi*4;
+    // Chaos ticks — short radial bursts sitting on the ring, breathing
+    const tickCount = [14, 18, 10][gi];
     for(let t=0; t<tickCount; t++){
-      const tang = (t/tickCount)*Math.PI*2 + rot*3 + gi*0.8;
-      const warp2 = g.warpAmp * maxR * Math.sin(tang * g.warpFreq + rot + g.phase)*0.6;
-      const jr    = maxR * 0.006 * Math.sin(tang*23 + T*0.00035 + gi*1.1);
-      const rBase = baseR + warp2 + jr;
-      const tickLen = maxR * (0.012 + 0.008*Math.abs(Math.sin(T*0.0007+t*0.6+gi)));
-      const tal   = al * 1.8;
+      const tang    = (t/tickCount)*Math.PI*2 + rot*4 + gi*1.1;
+      const warp2   = g.warpAmp * maxR * Math.sin(tang*g.warpFreq + rot + g.phase)*0.65;
+      const jr2     = maxR*0.009*Math.sin(tang*31 + T*0.0005 + gi*2.3);
+      const rBase   = baseR + warp2 + jr2;
+      // each tick pulses at its own rate
+      const tpulse  = 0.4 + 0.6*Math.abs(Math.sin(T*0.0011 + t*0.73 + gi*1.7));
+      const tickLen = maxR * 0.022 * tpulse;
+      const tal     = al * 1.6 * tpulse;
       cx.beginPath();
-      cx.moveTo(cx_ + Math.cos(tang)*(rBase - tickLen*0.3), cy_ + Math.sin(tang)*(rBase - tickLen*0.3));
-      cx.lineTo(cx_ + Math.cos(tang)*(rBase + tickLen*0.7), cy_ + Math.sin(tang)*(rBase + tickLen*0.7));
-      cx.strokeStyle = `rgba(190,225,255,${tal})`;
-      cx.lineWidth = 0.5;
+      cx.moveTo(cx_+Math.cos(tang)*(rBase-tickLen*0.35), cy_+Math.sin(tang)*(rBase-tickLen*0.35));
+      cx.lineTo(cx_+Math.cos(tang)*(rBase+tickLen*0.65), cy_+Math.sin(tang)*(rBase+tickLen*0.65));
+      cx.strokeStyle = `rgba(200,232,255,${tal})`;
+      cx.lineWidth   = 0.7;
       cx.stroke();
     }
   });
 
   // ── OUTER COMMUNICATION SPIKES ──
-  // Sharp spikes firing outward from the outer ring boundary (0.69*maxR)
-  // A few are always present, more fire during thinking
-  const spikeBaseR  = maxR * 0.69;
-  const spikeOuter  = maxR * 1.05; // how far they can reach
-  const spikeCount  = 7;
-  // Persistent slow-rotating spikes
+  // Spikes fire outward from the outer boundary — system signalling outward
+  const spikeBaseR = maxR * 0.70;
+  const spikeReach = maxR * 0.28; // max extension beyond base
+  const spikeCount = 9;
   for(let sp=0; sp<spikeCount; sp++){
-    const ang    = (sp/spikeCount)*Math.PI*2 + T*0.00025 + sp*0.31;
-    // Each spike pulses independently
-    const pulse  = Math.pow(Math.max(0, Math.sin(T*0.0015 + sp*1.3)), 3);
-    if(pulse < 0.05) continue;
-    const sLen   = (spikeOuter - spikeBaseR) * pulse;
-    const sAl    = 0.18 * pulse * (1 + ifThinking*0.8);
-    // Tip glow
-    const tipX   = cx_ + Math.cos(ang)*(spikeBaseR + sLen);
-    const tipY   = cy_ + Math.sin(ang)*(spikeBaseR + sLen);
-    const baseX  = cx_ + Math.cos(ang)*spikeBaseR;
-    const baseY  = cy_ + Math.sin(ang)*spikeBaseR;
-    const grad   = cx.createLinearGradient(baseX,baseY,tipX,tipY);
-    grad.addColorStop(0, `rgba(170,215,255,0)`);
-    grad.addColorStop(0.3, `rgba(200,230,255,${sAl})`);
-    grad.addColorStop(1, `rgba(230,248,255,0)`);
-    cx.beginPath();
-    cx.moveTo(baseX,baseY);
-    cx.lineTo(tipX,tipY);
+    const ang   = (sp/spikeCount)*Math.PI*2 + T*0.00018;
+    // each spike has its own pulse rhythm — sin² so it spends time near zero, spikes cleanly
+    const raw   = Math.sin(T*0.0022 + sp*0.91 + sp*sp*0.07);
+    const pulse = raw*raw * Math.sign(raw); // signed square: fast rise, clean tip
+    if(pulse < 0.08) continue;
+    const sLen  = spikeReach * pulse;
+    const sAl   = 0.55 * pulse;
+    const baseX = cx_ + Math.cos(ang)*spikeBaseR;
+    const baseY = cy_ + Math.sin(ang)*spikeBaseR;
+    const tipX  = cx_ + Math.cos(ang)*(spikeBaseR + sLen);
+    const tipY  = cy_ + Math.sin(ang)*(spikeBaseR + sLen);
+    // gradient: dim at root, bright mid, fades at tip
+    const grad  = cx.createLinearGradient(baseX,baseY,tipX,tipY);
+    grad.addColorStop(0,   `rgba(160,210,255,0)`);
+    grad.addColorStop(0.25,`rgba(200,232,255,${sAl*0.9})`);
+    grad.addColorStop(0.65,`rgba(220,242,255,${sAl})`);
+    grad.addColorStop(1,   `rgba(240,252,255,0)`);
+    cx.beginPath();cx.moveTo(baseX,baseY);cx.lineTo(tipX,tipY);
     cx.strokeStyle = grad;
-    cx.lineWidth   = 0.6 + pulse*0.8;
+    cx.lineWidth   = 0.5 + pulse*1.2;
     cx.stroke();
-    // Tiny tip dot
-    cx.beginPath();
-    cx.arc(tipX,tipY,1.2*pulse,0,Math.PI*2);
-    cx.fillStyle=`rgba(230,248,255,${sAl*1.5})`;
-    cx.fill();
+    // tip pinpoint
+    cx.beginPath();cx.arc(tipX,tipY,1.4*pulse,0,Math.PI*2);
+    cx.fillStyle=`rgba(235,250,255,${sAl*1.2})`;cx.fill();
   }
-  // Thinking burst — extra fast spikes that fire erratically
-  if(ifThinking > 0.15){
-    const burstCount = 5;
-    for(let sp=0; sp<burstCount; sp++){
-      const ang    = (sp/burstCount)*Math.PI*2 + T*0.0018 + sp*0.77 + Math.sin(T*0.003+sp)*0.6;
-      const pulse  = Math.pow(Math.max(0, Math.sin(T*0.006 + sp*2.1)), 2) * ifThinking;
-      if(pulse < 0.1) continue;
-      const sLen   = (spikeOuter - spikeBaseR) * pulse * 1.4;
-      const sAl    = 0.28 * pulse * ifThinking;
-      const tipX   = cx_ + Math.cos(ang)*(spikeBaseR + sLen);
-      const tipY   = cy_ + Math.sin(ang)*(spikeBaseR + sLen);
-      const baseX  = cx_ + Math.cos(ang)*(spikeBaseR*0.9);
-      const baseY  = cy_ + Math.sin(ang)*(spikeBaseR*0.9);
+  // Thinking: 4 faster erratic spikes overlay
+  if(ifThinking > 0.12){
+    for(let sp=0; sp<4; sp++){
+      const ang   = (sp/4)*Math.PI*2 + T*0.0025 + Math.sin(T*0.004+sp*1.3)*0.9;
+      const raw   = Math.sin(T*0.008 + sp*1.7);
+      const pulse = raw*raw * ifThinking;
+      if(pulse < 0.15) continue;
+      const sLen  = spikeReach * pulse * 1.5;
+      const sAl   = 0.7 * pulse * ifThinking;
+      const baseX = cx_+Math.cos(ang)*(spikeBaseR*0.92);
+      const baseY = cy_+Math.sin(ang)*(spikeBaseR*0.92);
+      const tipX  = cx_+Math.cos(ang)*(spikeBaseR+sLen);
+      const tipY  = cy_+Math.sin(ang)*(spikeBaseR+sLen);
       cx.beginPath();cx.moveTo(baseX,baseY);cx.lineTo(tipX,tipY);
-      cx.strokeStyle=`rgba(215,238,255,${sAl})`;
-      cx.lineWidth=0.8;cx.stroke();
+      cx.strokeStyle=`rgba(220,242,255,${sAl})`;cx.lineWidth=1.0;cx.stroke();
+      cx.beginPath();cx.arc(tipX,tipY,1.8*pulse,0,Math.PI*2);
+      cx.fillStyle=`rgba(245,255,255,${sAl})`;cx.fill();
     }
   }
 

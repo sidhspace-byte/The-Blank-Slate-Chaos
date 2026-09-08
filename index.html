@@ -3070,14 +3070,15 @@ function ifInit() {
   const w=CW, h=CH, cx_=w*0.5, cy_=h*0.5;
   const maxR = Math.min(w,h)*0.46;
   for (let i=0; i<NIF; i++) {
-    // 5 zones: core / inner / mid / mid-outer / outer
+    // 6 zones: core / inner / mid / mid-outer / mid-outer-2 / outer
     const t = Math.random();
     let nr;
-    if      (t<0.04) nr = Math.random()*0.14;              // core
-    else if (t<0.13) nr = 0.14 + Math.random()*0.25;       // inner
-    else if (t<0.25) nr = 0.39 + Math.random()*0.30;       // mid
-    else if (t<0.58) nr = 0.69 + Math.random()*0.16;       // mid-outer — 33%
-    else             nr = 0.85 + Math.random()*0.15;        // outer chaos — 42%
+    if      (t<0.04) nr = Math.random()*0.14;
+    else if (t<0.12) nr = 0.14 + Math.random()*0.25;
+    else if (t<0.22) nr = 0.39 + Math.random()*0.30;
+    else if (t<0.42) nr = 0.69 + Math.random()*0.08;  // mid-outer  — 20%
+    else if (t<0.62) nr = 0.77 + Math.random()*0.08;  // mid-outer-2 — 20%
+    else             nr = 0.85 + Math.random()*0.15;   // outer      — 38%
     const ang = Math.random()*Math.PI*2;
     ifR[i]   = nr;
     ifANG[i] = ang;
@@ -3131,11 +3132,12 @@ function ifUpdate() {
 
   for(let i=0;i<NIF;i++){
     const lr=ifLR[i];
-    const isOuter  = lr>0.85;
-    const isMidOut = lr>0.69&&lr<=0.85;  // NEW — between mid and outer chaos
-    const isMid    = lr>0.39&&lr<=0.69;
-    const isInner  = lr>0.14&&lr<=0.39;
-    const isCore   = lr<=0.14;
+    const isOuter   = lr>0.85;
+    const isMidOut2 = lr>0.77&&lr<=0.85;  // new — loosely structured turbulent ring
+    const isMidOut  = lr>0.69&&lr<=0.77;  // existing mid-outer, tightened band
+    const isMid     = lr>0.39&&lr<=0.69;
+    const isInner   = lr>0.14&&lr<=0.39;
+    const isCore    = lr<=0.14;
 
     const dx=ifX[i]-cx_, dy=ifY[i]-cy_;
     const dist=Math.sqrt(dx*dx+dy*dy)+0.001;
@@ -3143,51 +3145,56 @@ function ifUpdate() {
 
     let targetR, orbitStr, noiseStr, chaosStr;
     if(isOuter){
-      // Outer: full chaos — fast, noisy, barely contained
-      targetR = maxR*(0.86+ifR[i]*0.14);
+      targetR  = maxR*(0.86+ifR[i]*0.14);
       orbitStr = 0.0001;
-      noiseStr = 5.5*(1-ifMode.order*0.15);
+      noiseStr = 3.8*(1-ifMode.order*0.15);  // was 5.5
       chaosStr = 1.0;
+    } else if(isMidOut2){
+      // mid-outer-2: turbulent but loosely orbital, moderate chaos
+      targetR  = maxR*(0.78+ifR[i]*0.07);
+      orbitStr = 0.00028;
+      noiseStr = 2.4*(1-ifMode.order*0.2);
+      chaosStr = 0.65;
     } else if(isMidOut){
-      // Mid-outer: chaotic but loosely orbital — swirling, turbulent
-      targetR = maxR*(0.70+ifR[i]*0.14);
-      orbitStr = 0.00035;
-      noiseStr = 3.2*(1-ifMode.order*0.2);
-      chaosStr = 0.78;
+      // mid-outer: swirling, chaotic with partial orbit
+      targetR  = maxR*(0.70+ifR[i]*0.07);
+      orbitStr = 0.00040;
+      noiseStr = 1.8*(1-ifMode.order*0.25);
+      chaosStr = 0.50;
     } else if(isMid){
-      targetR = maxR*(0.42+ifR[i]*0.26);
+      targetR  = maxR*(0.42+ifR[i]*0.26);
       orbitStr = 0.0005;
       noiseStr = 1.2*(1-ifMode.order*0.4);
       chaosStr = 0.6;
     } else if(isInner){
-      targetR = maxR*(0.16+ifR[i]*0.22);
+      targetR  = maxR*(0.16+ifR[i]*0.22);
       orbitStr = 0.002;
       noiseStr = 0.15*(1-ifMode.order*0.7);
       chaosStr = 0.15;
     } else {
-      targetR = maxR*0.06*(1+Math.sin(T*0.001+ifPH[i])*0.4);
+      targetR  = maxR*0.06*(1+Math.sin(T*0.001+ifPH[i])*0.4);
       orbitStr = 0.003;
       noiseStr = 0.05;
       chaosStr = 0.05;
     }
 
     const radErr = dist - targetR;
-    const radLease = isOuter?0.025:isMidOut?0.12:isMid?0.5:1.2;
+    const radLease = isOuter?0.025:isMidOut2?0.09:isMidOut?0.14:isMid?0.5:1.2;
     ifVX[i] -= (dx/dist)*radErr*0.004*radLease;
     ifVY[i] -= (dy/dist)*radErr*0.004*radLease;
 
-    const tang = ifMode.order*(isOuter?0.3:isMidOut?0.45:isMid?0.6:0.9);
+    const tang = ifMode.order*(isOuter?0.3:isMidOut2?0.38:isMidOut?0.48:isMid?0.6:0.9);
     ifVX[i] += (-dy/dist)*orbitStr*dist*tang*(1+T*0.000001%0.1);
     ifVY[i] += ( dx/dist)*orbitStr*dist*tang*(1+T*0.000001%0.1);
 
     const nt=T*0.00015+ifPH[i];
-    const nFreq=isOuter?0.0035:isMidOut?0.004:0.005;
+    const nFreq=isOuter?0.0035:isMidOut2?0.0038:isMidOut?0.0042:0.005;
     const nx=ifN(ifX[i]*nFreq+nt,ifY[i]*nFreq)*noiseStr*spd*0.7;
     const ny=ifN(ifX[i]*nFreq,ifY[i]*nFreq+nt+3.7)*noiseStr*spd*0.7;
     ifVX[i]+=nx; ifVY[i]+=ny;
 
     if(ifThinking>0.05 && !isCore){
-      const spike=ifThinking*ifMode.spike*(isOuter?0.06:isMidOut?0.05:isMid?0.04:0.02);
+      const spike=ifThinking*ifMode.spike*(isOuter?0.06:isMidOut2?0.055:isMidOut?0.05:isMid?0.04:0.02);
       ifVX[i]+=(dx/dist)*spike;
       ifVY[i]+=(dy/dist)*spike;
     }
@@ -3204,17 +3211,17 @@ function ifUpdate() {
       ifVX[i]+=(pdx/pd)*wf;ifVY[i]+=(pdy/pd)*wf;
     });
 
-    const damp=isOuter?0.978:isMidOut?0.970:isMid?0.90:isInner?0.85:0.82;
+    const damp   = isOuter?0.978:isMidOut2?0.972:isMidOut?0.968:isMid?0.90:isInner?0.85:0.82;
     ifVX[i]*=damp; ifVY[i]*=damp;
-    const spd2=Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
-    const maxSpd=isOuter?11.0:isMidOut?6.5:isMid?2.8:isInner?1.2:0.6;
+    const spd2   = Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
+    const maxSpd = isOuter?9.0:isMidOut2?5.5:isMidOut?4.0:isMid?2.8:isInner?1.2:0.6;
     if(spd2>maxSpd){ifVX[i]*=maxSpd/spd2;ifVY[i]*=maxSpd/spd2;}
 
     ifX[i]+=ifVX[i]; ifY[i]+=ifVY[i];
 
     // Hard boundary
     const od=Math.sqrt((ifX[i]-cx_)*(ifX[i]-cx_)+(ifY[i]-cy_)*(ifY[i]-cy_));
-    if(od>maxR*(isOuter?1.65:isMidOut?1.35:1.15)){
+    if(od>maxR*(isOuter?1.65:isMidOut2?1.45:isMidOut?1.32:1.15)){
       ifX[i]=cx_+(ifX[i]-cx_)/od*maxR*0.95;
       ifY[i]=cy_+(ifY[i]-cy_)/od*maxR*0.95;
       ifVX[i]*=-0.3;ifVY[i]*=-0.3;
@@ -3406,22 +3413,23 @@ function ifDraw() {
     const ty=ifTY[i],br=ifBR[i],lr=ifLR[i];
     const depth=1-lr; // core=1(bright), outer=0(dim)
     const sz=ifSZ[i]*(1+(ifThinking>0.1&&lr<0.4?ifThinking*1.2:0));
-    const isOuterP  = lr>0.85;
-    const isMidOutP = lr>0.69&&lr<=0.85;
+    const isOuterP   = lr>0.85;
+    const isMidOut2P = lr>0.77&&lr<=0.85;
+    const isMidOutP  = lr>0.69&&lr<=0.77;
 
     if(ty===0){
-      const boost = isOuterP?5.0:isMidOutP?3.0:1;
-      const al=depth*0.08*(0.2+br*0.5)*boost + (isOuterP?0.06:isMidOutP?0.04:0);
+      const boost = isOuterP?5.0:isMidOut2P?3.8:isMidOutP?3.0:1;
+      const al=depth*0.08*(0.2+br*0.5)*boost + (isOuterP?0.06:isMidOut2P?0.05:isMidOutP?0.04:0);
       if(al<0.01)continue;
-      const drawSz = isOuterP?sz*1.4:isMidOutP?sz*1.1:sz*0.8;
+      const drawSz = isOuterP?sz*1.4:isMidOut2P?sz*1.2:isMidOutP?sz*1.1:sz*0.8;
       cx.fillStyle=`rgba(195,218,245,${Math.min(al,0.5)})`;
       cx.fillRect(ifX[i]-drawSz*0.5,ifY[i]-drawSz*0.5,drawSz,drawSz);
     } else if(ty===1){
-      const boost = isOuterP?3.5:isMidOutP?2.2:1;
-      const al=depth*0.18*(0.3+br*0.5)*boost + (isOuterP?0.05:isMidOutP?0.03:0);
+      const boost = isOuterP?3.5:isMidOut2P?2.8:isMidOutP?2.2:1;
+      const al=depth*0.18*(0.3+br*0.5)*boost + (isOuterP?0.05:isMidOut2P?0.04:isMidOutP?0.03:0);
       if(al<0.01)continue;
       cx.fillStyle=`rgba(210,230,252,${Math.min(al,0.5)})`;
-      cx.beginPath();cx.arc(ifX[i],ifY[i],isOuterP?sz*0.9:isMidOutP?sz*0.75:sz*0.6,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.arc(ifX[i],ifY[i],isOuterP?sz*0.9:isMidOut2P?sz*0.82:isMidOutP?sz*0.75:sz*0.6,0,Math.PI*2);cx.fill();
     } else if(ty===2){
       const al=depth*0.28*(0.5+br*0.4);
       if(al<0.01)continue;

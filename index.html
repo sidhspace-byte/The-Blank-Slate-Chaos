@@ -3141,18 +3141,18 @@ function ifUpdate() {
     let targetR, orbitStr, noiseStr, chaosStr;
     if(isOuter){
       targetR  = maxR*(0.86+ifR[i]*0.14);
-      orbitStr = 0.0001;
-      noiseStr = 2.8*(1-ifMode.order*0.15);
+      orbitStr = 0.0002;
+      noiseStr = 1.8*(1-ifMode.order*0.15);
       chaosStr = 1.0;
     } else if(isMidOut2){
       targetR  = maxR*(0.78+ifR[i]*0.06);
       orbitStr = 0.00045;
-      noiseStr = 1.4*(1-ifMode.order*0.2);
+      noiseStr = 1.2*(1-ifMode.order*0.2);
       chaosStr = 0.55;
     } else if(isMidOut){
       targetR  = maxR*(0.70+ifR[i]*0.06);
       orbitStr = 0.00060;
-      noiseStr = 0.9*(1-ifMode.order*0.25);
+      noiseStr = 0.8*(1-ifMode.order*0.25);
       chaosStr = 0.40;
     } else if(isMid){
       targetR  = maxR*(0.42+ifR[i]*0.26);
@@ -3172,8 +3172,7 @@ function ifUpdate() {
     }
 
     const radErr = dist - targetR;
-    // mid-outer zones: much tighter leash so they hold their ring radius
-    const radLease = isOuter?0.025:isMidOut2?0.55:isMidOut?0.75:isMid?0.5:1.2;
+    const radLease = isOuter?0.35:isMidOut2?0.65:isMidOut?0.80:isMid?0.5:1.2;
     ifVX[i] -= (dx/dist)*radErr*0.004*radLease;
     ifVY[i] -= (dy/dist)*radErr*0.004*radLease;
 
@@ -3205,10 +3204,10 @@ function ifUpdate() {
       ifVX[i]+=(pdx/pd)*wf;ifVY[i]+=(pdy/pd)*wf;
     });
 
-    const damp   = isOuter?0.978:isMidOut2?0.88:isMidOut?0.85:isMid?0.90:isInner?0.85:0.82;
+    const damp   = isOuter?0.92:isMidOut2?0.88:isMidOut?0.85:isMid?0.90:isInner?0.85:0.82;
     ifVX[i]*=damp; ifVY[i]*=damp;
     const spd2   = Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
-    const maxSpd = isOuter?9.0:isMidOut2?2.2:isMidOut?1.8:isMid?2.8:isInner?1.2:0.6;
+    const maxSpd = isOuter?3.5:isMidOut2?2.2:isMidOut?1.8:isMid?2.8:isInner?1.2:0.6;
     if(spd2>maxSpd){ifVX[i]*=maxSpd/spd2;ifVY[i]*=maxSpd/spd2;}
 
     ifX[i]+=ifVX[i]; ifY[i]+=ifVY[i];

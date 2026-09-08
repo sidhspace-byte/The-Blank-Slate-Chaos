@@ -3248,33 +3248,46 @@ function ifDraw() {
 
   cx.save();
 
-  // ── PARTICLE-CHAIN RADIAL SPOKES: centre → outer edge ──
-  // 12 spokes, dense dot chains — close enough to read as lines
-  const spokeAngles = 12;
-  const dotsPerSpoke = 110;
-  for(let s=0; s<spokeAngles; s++){
-    const sang = (s/spokeAngles)*Math.PI*2 + T*0.00008;
-    for(let d=0; d<dotsPerSpoke; d++){
-      const t = d/dotsPerSpoke;
-      const r = maxR * 0.03 + maxR * 0.97 * t;
-      // tiny lateral jitter — barely off axis, just enough to feel organic
-      const jit = maxR*0.003 * Math.sin(d*3.1 + T*0.0004 + s*1.7);
-      const perpAng = sang + Math.PI*0.5;
-      const x = cx_ + Math.cos(sang)*r + Math.cos(perpAng)*jit;
-      const y = cy_ + Math.sin(sang)*r + Math.sin(perpAng)*jit;
-      // brightness: fades at dead centre, constant out to edge, dims slightly at outer
-      const fade = Math.min(1, t*8) * (t>0.85 ? (1-t)*6.5 : 1);
-      // thin out at boundary zones — visible gap so layers read
+  // ── ORGANIC RADIATING LINES: chaotic, rotating, uneven ──
+  // Not evenly spaced — each line has its own angle offset, rotation speed, length, and wobble
+  const radLines = [
+    { baseAng:0.00, rotSpd:0.00011, len:0.92, wobFreq:2.1, wobAmp:0.018, dots:95  },
+    { baseAng:0.61, rotSpd:0.00007, len:0.78, wobFreq:3.4, wobAmp:0.025, dots:80  },
+    { baseAng:1.05, rotSpd:0.00014, len:0.95, wobFreq:2.7, wobAmp:0.014, dots:98  },
+    { baseAng:1.80, rotSpd:0.00009, len:0.65, wobFreq:4.1, wobAmp:0.031, dots:68  },
+    { baseAng:2.30, rotSpd:0.00013, len:0.88, wobFreq:1.9, wobAmp:0.020, dots:91  },
+    { baseAng:2.95, rotSpd:0.00006, len:0.72, wobFreq:3.8, wobAmp:0.027, dots:74  },
+    { baseAng:3.55, rotSpd:0.00016, len:0.97, wobFreq:2.3, wobAmp:0.016, dots:100 },
+    { baseAng:4.10, rotSpd:0.00010, len:0.58, wobFreq:4.6, wobAmp:0.033, dots:60  },
+    { baseAng:4.70, rotSpd:0.00008, len:0.83, wobFreq:3.1, wobAmp:0.022, dots:86  },
+    { baseAng:5.20, rotSpd:0.00015, len:0.76, wobFreq:2.8, wobAmp:0.019, dots:78  },
+    { baseAng:5.65, rotSpd:0.00012, len:0.91, wobFreq:3.5, wobAmp:0.024, dots:94  },
+    { baseAng:6.05, rotSpd:0.00009, len:0.68, wobFreq:1.7, wobAmp:0.029, dots:70  },
+  ];
+
+  radLines.forEach((rl, li) => {
+    const ang = rl.baseAng + T * rl.rotSpd;
+    for(let d=0; d<rl.dots; d++){
+      const t = d / rl.dots;
+      const r = maxR * 0.04 + maxR * rl.len * t;
+      // wobble: two sine waves at different frequencies for organic bend
+      const wob1 = maxR * rl.wobAmp * Math.sin(t * rl.wobFreq * Math.PI*2 + T*0.00035 + li*1.3);
+      const wob2 = maxR * rl.wobAmp * 0.4 * Math.sin(t * rl.wobFreq*1.7 * Math.PI*2 - T*0.00022 + li*0.7);
+      const perpAng = ang + Math.PI*0.5;
+      const x = cx_ + Math.cos(ang)*r + Math.cos(perpAng)*(wob1+wob2);
+      const y = cy_ + Math.sin(ang)*r + Math.sin(perpAng)*(wob1+wob2);
+      // brightness: ramps up from centre, constant, fades at tip
+      const fade = Math.min(1, t*10) * (t > rl.len*0.85 ? (1 - (t-rl.len*0.85)/(rl.len*0.15)) : 1);
+      // thin at boundary crossings
       const onBoundary = (t>0.12&&t<0.17)||(t>0.36&&t<0.41)||(t>0.66&&t<0.71);
-      const al = fade * (onBoundary ? 0.05 : 0.28) * (1+ifThinking*0.35);
-      if(al<0.02) continue;
-      const sz = 0.55 + t*0.4;
+      const al = fade * (onBoundary ? 0.06 : 0.30) * (1 + ifThinking*0.35);
+      if(al < 0.02) continue;
       cx.beginPath();
-      cx.arc(x,y,sz,0,Math.PI*2);
-      cx.fillStyle=`rgba(195,222,255,${al})`;
+      cx.arc(x, y, 0.6 + t*0.5, 0, Math.PI*2);
+      cx.fillStyle = `rgba(195,222,255,${al})`;
       cx.fill();
     }
-  }
+  });
 
   // ── PARTICLE-CHAIN CONCENTRIC RINGS ──
   // 5 rings at key radii — drawn as rotating dot chains with small radial noise

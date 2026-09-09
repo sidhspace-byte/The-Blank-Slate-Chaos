@@ -3250,21 +3250,20 @@ function ifDraw() {
       const dx=ifX[ii]-ifX[jj],dy=ifY[ii]-ifY[jj];
       const d2=dx*dx+dy*dy;
       const lrAvg=(ifLR[ii]+ifLR[jj])*0.5;
-      // Connection distance varies by layer
       const cD=lrAvg<0.14?30:lrAvg<0.39?40:lrAvg<0.69?32:60;
       if(d2<cD*cD&&d2>0){
         const d=Math.sqrt(d2);
-        const depth=1-lrAvg;
-        const al=(1-d/cD)*depth*0.25*(1+ifThinking*0.6);
+        const al=(1-d/cD)*0.28*(1+ifThinking*0.6);
         const tb=(ifTY[ii]+ifTY[jj])>2?1.5:1;
-        const fin=Math.min(al*tb,0.3);
+        const fin=Math.min(al*tb,0.35);
         if(fin>0.012){
           cx.beginPath();cx.moveTo(ifX[ii],ifY[ii]);cx.lineTo(ifX[jj],ifY[jj]);
-          // Outer: cool blue; inner: slightly warmer
-          const rr=170+Math.floor(depth*30);
-          const gg=205+Math.floor(depth*25);
-          cx.strokeStyle=`rgba(${rr},${gg},245,${fin})`;
-          cx.lineWidth=0.25+(depth*0.3);
+          let sc;
+          if(lrAvg<0.39)       sc=`rgba(90,180,204,${fin})`;
+          else if(lrAvg<0.69)  sc=`rgba(140,195,215,${fin*0.8})`;
+          else                  sc=`rgba(200,144,42,${fin*0.9})`;
+          cx.strokeStyle=sc;
+          cx.lineWidth=lrAvg<0.39?0.5:0.35;
           cx.stroke();cc++;
         }
       }
@@ -3415,37 +3414,6 @@ function ifDraw() {
   }
 
   cx.restore();
-
-  // ── ORB CONNECTION DOT-CHAINS on particle canvas ──
-  if(typeof orbGetNodeXY==='function' && typeof ORB!=='undefined'
-     && ORB.active && Array.isArray(ORB.nodes) && Array.isArray(orbConnections)){
-    try{
-      orbConnections.forEach(([aid,bid])=>{
-        const a=ORB.nodes.find(n=>n.id===aid);
-        const b=ORB.nodes.find(n=>n.id===bid);
-        if(!a||!b) return;
-        const ap=orbGetNodeXY(a), bp=orbGetNodeXY(b);
-        const isCenter=a.ring===0||b.ring===0;
-        const dx2=bp.x-ap.x, dy2=bp.y-ap.y;
-        const len=Math.sqrt(dx2*dx2+dy2*dy2);
-        if(len<2) return;
-        const steps=Math.floor(len/4);
-        for(let s=0;s<=steps;s++){
-          const tt=s/steps;
-          const x=ap.x+dx2*tt, y=ap.y+dy2*tt;
-          const jit=Math.sin(s*2.1+T*0.0004)*2.0;
-          const px2=x+(-dy2/len)*jit, py2=y+(dx2/len)*jit;
-          const pulse=0.5+0.5*Math.sin(tt*Math.PI*3-T*0.002);
-          const al=isCenter
-            ?(0.25+pulse*0.10)*(1+ifThinking*0.4)
-            :(0.14+pulse*0.07)*(1+ifThinking*0.3);
-          cx.beginPath();cx.arc(px2,py2,isCenter?1.0:0.7,0,Math.PI*2);
-          cx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
-          cx.fill();
-        }
-      });
-    }catch(e){}
-  }
 
   // Draw particles
   for(let i=0;i<NIF;i++){

@@ -3255,17 +3255,18 @@ function ifDraw() {
         const ddx=bp.x-ap.x, ddy=bp.y-ap.y;
         const len=Math.sqrt(ddx*ddx+ddy*ddy);
         if(len<2) return;
-        const steps=Math.max(2,Math.floor(len/3));
+        const steps=Math.max(2,Math.floor(len/8));
         for(let s=0;s<=steps;s++){
           const tt=s/steps;
           const px=ap.x+ddx*tt, py=ap.y+ddy*tt;
-          const jit=Math.sin(s*1.8+T*0.0005)*2.2;
+          const jit=Math.sin(s*1.8+T*0.0005)*3.5;
           const nx2=px+(-ddy/len)*jit, ny2=py+(ddx/len)*jit;
-          const pulse=0.55+0.45*Math.sin(tt*Math.PI*4-T*0.0018+(aid||0)*0.3);
+          const pulse=0.4+0.6*Math.abs(Math.sin(tt*Math.PI*3-T*0.002+(aid||0)*0.7));
           const al=isCenter
-            ?(0.30+pulse*0.15)*(1+ifThinking*0.5)
-            :(0.18+pulse*0.10)*(1+ifThinking*0.4);
-          cx.beginPath();cx.arc(nx2,ny2,isCenter?1.1:0.8,0,Math.PI*2);
+            ?(0.35+pulse*0.30)*(1+ifThinking*0.5)
+            :(0.20+pulse*0.20)*(1+ifThinking*0.4);
+          const sz=isCenter?(1.4+pulse*0.8):(1.0+pulse*0.5);
+          cx.beginPath();cx.arc(nx2,ny2,sz,0,Math.PI*2);
           cx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
           cx.fill();
         }

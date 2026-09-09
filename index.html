@@ -3242,38 +3242,6 @@ function ifDraw() {
   const cx_=CW*0.5, cy_=CH*0.5;
   const maxR=Math.min(CW,CH)*0.46;
 
-  // ── NODAL MAP CONNECTIONS AS PARTICLE CHAINS ──
-  if(typeof orbGetNodeXY==='function' && typeof ORB!=='undefined'
-     && ORB.active && Array.isArray(ORB.nodes) && Array.isArray(orbConnections)){
-    try{
-      orbConnections.forEach(([aid,bid])=>{
-        const a=ORB.nodes.find(n=>n.id===aid);
-        const b=ORB.nodes.find(n=>n.id===bid);
-        if(!a||!b) return;
-        const ap=orbGetNodeXY(a), bp=orbGetNodeXY(b);
-        const isCenter=a.ring===0||b.ring===0;
-        const ddx=bp.x-ap.x, ddy=bp.y-ap.y;
-        const len=Math.sqrt(ddx*ddx+ddy*ddy);
-        if(len<2) return;
-        const steps=Math.max(2,Math.floor(len/8));
-        for(let s=0;s<=steps;s++){
-          const tt=s/steps;
-          const px=ap.x+ddx*tt, py=ap.y+ddy*tt;
-          const jit=Math.sin(s*1.8+T*0.0005)*3.5;
-          const nx2=px+(-ddy/len)*jit, ny2=py+(ddx/len)*jit;
-          const pulse=0.4+0.6*Math.abs(Math.sin(tt*Math.PI*3-T*0.002+(aid||0)*0.7));
-          const al=isCenter
-            ?(0.35+pulse*0.30)*(1+ifThinking*0.5)
-            :(0.20+pulse*0.20)*(1+ifThinking*0.4);
-          const sz=isCenter?(1.4+pulse*0.8):(1.0+pulse*0.5);
-          cx.beginPath();cx.arc(nx2,ny2,sz,0,Math.PI*2);
-          cx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
-          cx.fill();
-        }
-      });
-    }catch(e){}
-  }
-
   cx.save();
 
   // ── RADIATING LINES: straight, uneven spacing, lateral particle bleed ──
@@ -6390,6 +6358,34 @@ function orbDraw() {
   // Rings removed — plain wires only
 
   // Node connections drawn as particle chains in ifDraw
+  // ── NODAL CONNECTION PARTICLE CHAINS ──
+  if (Array.isArray(orbConnections)) {
+    orbConnections.forEach(([aid, bid]) => {
+      const a = ORB.nodes.find(n=>n.id===aid);
+      const b = ORB.nodes.find(n=>n.id===bid);
+      if (!a||!b) return;
+      const ap = orbGetNodeXY(a), bp = orbGetNodeXY(b);
+      const isCenter = a.ring===0||b.ring===0;
+      const ddx=bp.x-ap.x, ddy=bp.y-ap.y;
+      const len=Math.sqrt(ddx*ddx+ddy*ddy);
+      if(len<2) return;
+      const steps=Math.max(2,Math.floor(len/8));
+      for(let s=0;s<=steps;s++){
+        const tt=s/steps;
+        const px=ap.x+ddx*tt, py=ap.y+ddy*tt;
+        const jit=Math.sin(s*1.8+ORB.t*0.5)*3.5;
+        const nx2=px+(-ddy/len)*jit, ny2=py+(ddx/len)*jit;
+        const pulse=0.4+0.6*Math.abs(Math.sin(tt*Math.PI*3-ORB.t*0.12+(aid||0)*0.7));
+        const al=isCenter
+          ?(0.35+pulse*0.30)
+          :(0.20+pulse*0.20);
+        const sz=isCenter?(1.4+pulse*0.8):(1.0+pulse*0.5);
+        ctx.beginPath();ctx.arc(nx2,ny2,sz,0,Math.PI*2);
+        ctx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
+        ctx.fill();
+      }
+    });
+  }
 
   // ── NODES ──
   ORB.nodes.forEach(n => {

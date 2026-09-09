@@ -65,7 +65,7 @@ body {
   top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 2;
+  z-index: 0;
   pointer-events: none;
   display: block;
 }
@@ -1450,7 +1450,7 @@ body {
   <span id="leg-word" style="display:none;"></span>
 
 
-  <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:1;"></canvas>
+  <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:3;"></canvas>
   <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
@@ -3241,6 +3241,37 @@ function ifDraw() {
   cx.clearRect(0,0,CW,CH);
   const cx_=CW*0.5, cy_=CH*0.5;
   const maxR=Math.min(CW,CH)*0.46;
+
+  // ── NODAL MAP CONNECTIONS AS PARTICLE CHAINS ──
+  if(typeof orbGetNodeXY==='function' && typeof ORB!=='undefined'
+     && ORB.active && Array.isArray(ORB.nodes) && Array.isArray(orbConnections)){
+    try{
+      orbConnections.forEach(([aid,bid])=>{
+        const a=ORB.nodes.find(n=>n.id===aid);
+        const b=ORB.nodes.find(n=>n.id===bid);
+        if(!a||!b) return;
+        const ap=orbGetNodeXY(a), bp=orbGetNodeXY(b);
+        const isCenter=a.ring===0||b.ring===0;
+        const ddx=bp.x-ap.x, ddy=bp.y-ap.y;
+        const len=Math.sqrt(ddx*ddx+ddy*ddy);
+        if(len<2) return;
+        const steps=Math.max(2,Math.floor(len/3));
+        for(let s=0;s<=steps;s++){
+          const tt=s/steps;
+          const px=ap.x+ddx*tt, py=ap.y+ddy*tt;
+          const jit=Math.sin(s*1.8+T*0.0005)*2.2;
+          const nx2=px+(-ddy/len)*jit, ny2=py+(ddx/len)*jit;
+          const pulse=0.55+0.45*Math.sin(tt*Math.PI*4-T*0.0018+(aid||0)*0.3);
+          const al=isCenter
+            ?(0.30+pulse*0.15)*(1+ifThinking*0.5)
+            :(0.18+pulse*0.10)*(1+ifThinking*0.4);
+          cx.beginPath();cx.arc(nx2,ny2,isCenter?1.1:0.8,0,Math.PI*2);
+          cx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
+          cx.fill();
+        }
+      });
+    }catch(e){}
+  }
 
   cx.save();
 
@@ -6357,21 +6388,7 @@ function orbDraw() {
 
   // Rings removed — plain wires only
 
-  // ── NODE CONNECTIONS ──
-  if (Array.isArray(orbConnections)) {
-    orbConnections.forEach(([aid, bid]) => {
-      const a = ORB.nodes.find(n=>n.id===aid);
-      const b = ORB.nodes.find(n=>n.id===bid);
-      if (!a||!b) return;
-      const ap = orbGetNodeXY(a), bp = orbGetNodeXY(b);
-      const isCenter = a.ring===0||b.ring===0;
-      ctx.beginPath();
-      ctx.moveTo(ap.x, ap.y); ctx.lineTo(bp.x, bp.y);
-      ctx.strokeStyle = isCenter ? 'rgba(90,180,204,0.55)' : 'rgba(200,144,42,0.40)';
-      ctx.lineWidth = isCenter ? 1.4 : 1.0;
-      ctx.stroke();
-    });
-  }
+  // Node connections drawn as particle chains in ifDraw
 
   // ── NODES ──
   ORB.nodes.forEach(n => {

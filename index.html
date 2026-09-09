@@ -3253,17 +3253,17 @@ function ifDraw() {
       const cD=lrAvg<0.14?30:lrAvg<0.39?40:lrAvg<0.69?32:60;
       if(d2<cD*cD&&d2>0){
         const d=Math.sqrt(d2);
-        const al=(1-d/cD)*0.28*(1+ifThinking*0.6);
+        const al=(1-d/cD)*0.45*(1+ifThinking*0.6);
         const tb=(ifTY[ii]+ifTY[jj])>2?1.5:1;
-        const fin=Math.min(al*tb,0.35);
-        if(fin>0.012){
+        const fin=Math.min(al*tb,0.55);
+        if(fin>0.015){
           cx.beginPath();cx.moveTo(ifX[ii],ifY[ii]);cx.lineTo(ifX[jj],ifY[jj]);
           let sc;
           if(lrAvg<0.39)       sc=`rgba(90,180,204,${fin})`;
           else if(lrAvg<0.69)  sc=`rgba(140,195,215,${fin*0.8})`;
           else                  sc=`rgba(200,144,42,${fin*0.9})`;
           cx.strokeStyle=sc;
-          cx.lineWidth=lrAvg<0.39?0.5:0.35;
+          cx.lineWidth=lrAvg<0.39?0.7:0.5;
           cx.stroke();cc++;
         }
       }
@@ -6385,7 +6385,21 @@ function orbDraw() {
 
   // Rings removed — plain wires only
 
-  // Connections drawn as particle dot-chains on particle canvas
+  // ── NODE CONNECTIONS ──
+  if (Array.isArray(orbConnections)) {
+    orbConnections.forEach(([aid, bid]) => {
+      const a = ORB.nodes.find(n=>n.id===aid);
+      const b = ORB.nodes.find(n=>n.id===bid);
+      if (!a||!b) return;
+      const ap = orbGetNodeXY(a), bp = orbGetNodeXY(b);
+      const isCenter = a.ring===0||b.ring===0;
+      ctx.beginPath();
+      ctx.moveTo(ap.x, ap.y); ctx.lineTo(bp.x, bp.y);
+      ctx.strokeStyle = isCenter ? 'rgba(90,180,204,0.55)' : 'rgba(200,144,42,0.40)';
+      ctx.lineWidth = isCenter ? 1.4 : 1.0;
+      ctx.stroke();
+    });
+  }
 
   // ── NODES ──
   ORB.nodes.forEach(n => {

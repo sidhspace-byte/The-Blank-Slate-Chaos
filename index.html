@@ -3197,20 +3197,21 @@ function ifUpdate() {
     if(md<100){const mf=(100-md)/100*0.5;ifVX[i]+=(mdx/md)*mf;ifVY[i]+=(mdy/md)*mf;}
 
     // Chamber node repulsion — each node pushes particles away
-    if(typeof ORB!=='undefined' && ORB.active){
+    if(typeof orbGetNodeXY==='function' && typeof ORB!=='undefined' && ORB.active && ORB.nodes){
       ORB.nodes.forEach(n=>{
-        if(n.ring===0) return; // centre node handled by core physics
-        const np=orbGetNodeXY(n);
-        const ndx=ifX[i]-np.x, ndy=ifY[i]-np.y;
-        const nd=Math.sqrt(ndx*ndx+ndy*ndy)+1;
-        // repulsion radius and strength vary by ring — inner rings stronger, outer softer
-        const repR  = [0,120,90,70,55][n.ring]||60;
-        const repStr= [0,0.8,0.5,0.3,0.2][n.ring]||0.3;
-        if(nd<repR){
-          const f=(1-nd/repR)*repStr;
-          ifVX[i]+=(ndx/nd)*f;
-          ifVY[i]+=(ndy/nd)*f;
-        }
+        if(n.ring===0) return;
+        try{
+          const np=orbGetNodeXY(n);
+          const ndx=ifX[i]-np.x, ndy=ifY[i]-np.y;
+          const nd=Math.sqrt(ndx*ndx+ndy*ndy)+1;
+          const repR  = [0,120,90,70,55][n.ring]||60;
+          const repStr= [0,0.8,0.5,0.3,0.2][n.ring]||0.3;
+          if(nd<repR){
+            const f=(1-nd/repR)*repStr;
+            ifVX[i]+=(ndx/nd)*f;
+            ifVY[i]+=(ndy/nd)*f;
+          }
+        }catch(e){}
       });
     }
 
@@ -3418,35 +3419,34 @@ function ifDraw() {
   }
 
   // ── ORB CONNECTION LINES AS PARTICLE DOT-CHAINS ──
-  // Draw nodal map connections on same canvas as particles
-  if (typeof ORB !== 'undefined' && ORB.active && Array.isArray(orbConnections)) {
-    orbConnections.forEach(([aid, bid]) => {
-      const a = ORB.nodes.find(n=>n.id===aid);
-      const b = ORB.nodes.find(n=>n.id===bid);
-      if (!a||!b) return;
-      const ap = orbGetNodeXY(a), bp = orbGetNodeXY(b);
-      const isCenter = a.ring===0||b.ring===0;
-      const dx2=bp.x-ap.x, dy2=bp.y-ap.y;
-      const len=Math.sqrt(dx2*dx2+dy2*dy2);
-      if(len<1) return;
-      const steps = Math.floor(len/4);
-      for(let s=0;s<=steps;s++){
-        const tt=s/steps;
-        const x=ap.x+dx2*tt, y=ap.y+dy2*tt;
-        // jitter perpendicular — tiny, keeps line readable
-        const jit=(Math.sin(s*2.1+T*0.0004)*2.5);
-        const px2=x+(-dy2/len)*jit, py2=y+(dx2/len)*jit;
-        // pulse along the line
-        const pulse=0.5+0.5*Math.sin(tt*Math.PI*3-T*0.002);
-        const al=isCenter
-          ? (0.28+pulse*0.12)*(1+ifThinking*0.4)
-          : (0.16+pulse*0.08)*(1+ifThinking*0.3);
-        const sz2=isCenter?1.0:0.7;
-        cx.beginPath();cx.arc(px2,py2,sz2,0,Math.PI*2);
-        cx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
-        cx.fill();
-      }
-    });
+  if (typeof orbGetNodeXY==='function' && typeof ORB!=='undefined' && ORB.active && ORB.nodes && Array.isArray(orbConnections)) {
+    try {
+      orbConnections.forEach(([aid, bid]) => {
+        const a = ORB.nodes.find(n=>n.id===aid);
+        const b = ORB.nodes.find(n=>n.id===bid);
+        if (!a||!b) return;
+        const ap = orbGetNodeXY(a), bp = orbGetNodeXY(b);
+        const isCenter = a.ring===0||b.ring===0;
+        const dx2=bp.x-ap.x, dy2=bp.y-ap.y;
+        const len=Math.sqrt(dx2*dx2+dy2*dy2);
+        if(len<1) return;
+        const steps = Math.floor(len/4);
+        for(let s=0;s<=steps;s++){
+          const tt=s/steps;
+          const x=ap.x+dx2*tt, y=ap.y+dy2*tt;
+          const jit=(Math.sin(s*2.1+T*0.0004)*2.5);
+          const px2=x+(-dy2/len)*jit, py2=y+(dx2/len)*jit;
+          const pulse=0.5+0.5*Math.sin(tt*Math.PI*3-T*0.002);
+          const al=isCenter
+            ? (0.28+pulse*0.12)*(1+ifThinking*0.4)
+            : (0.16+pulse*0.08)*(1+ifThinking*0.3);
+          const sz2=isCenter?1.0:0.7;
+          cx.beginPath();cx.arc(px2,py2,sz2,0,Math.PI*2);
+          cx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
+          cx.fill();
+        }
+      });
+    } catch(e){}
   }
 
   cx.restore();

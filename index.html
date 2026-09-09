@@ -3172,9 +3172,9 @@ function ifUpdate() {
     }
 
     const radErr = dist - targetR;
-    const radLease = isOuter?0.35:isMidOut2?0.65:isMidOut?0.80:isMid?0.5:1.2;
-    ifVX[i] -= (dx/dist)*radErr*0.004*radLease;
-    ifVY[i] -= (dy/dist)*radErr*0.004*radLease;
+    const radLease = isOuter?0.40:isMidOut2?0.70:isMidOut?0.85:isMid?0.70:isInner?1.4:2.0;
+    ifVX[i] -= (dx/dist)*radErr*0.006*radLease;
+    ifVY[i] -= (dy/dist)*radErr*0.006*radLease;
 
     const tang = ifMode.order*(isOuter?0.3:isMidOut2?0.38:isMidOut?0.48:isMid?0.6:0.9);
     ifVX[i] += (-dy/dist)*orbitStr*dist*tang*(1+T*0.000001%0.1);
@@ -3196,21 +3196,6 @@ function ifUpdate() {
     const md=Math.sqrt(mdx*mdx+mdy*mdy)+1;
     if(md<100){const mf=(100-md)/100*0.5;ifVX[i]+=(mdx/md)*mf;ifVY[i]+=(mdy/md)*mf;}
 
-    // Chamber repulsion
-    if(typeof orbGetNodeXY==='function' && typeof ORB!=='undefined' && ORB.active && Array.isArray(ORB.nodes)){
-      try{
-        for(let ni=0;ni<ORB.nodes.length;ni++){
-          const n=ORB.nodes[ni]; if(n.ring===0) continue;
-          const np=orbGetNodeXY(n);
-          const ndx=ifX[i]-np.x, ndy=ifY[i]-np.y;
-          const nd=Math.sqrt(ndx*ndx+ndy*ndy)+1;
-          const repR=[0,110,85,65,50][n.ring]||55;
-          const repStr=[0,0.7,0.4,0.25,0.15][n.ring]||0.25;
-          if(nd<repR){const f=(1-nd/repR)*repStr;ifVX[i]+=(ndx/nd)*f;ifVY[i]+=(ndy/nd)*f;}
-        }
-      }catch(e){}
-    }
-
     ifPulses.forEach(p=>{
       const pdx=ifX[i]-p.x,pdy=ifY[i]-p.y;
       const pd=Math.sqrt(pdx*pdx+pdy*pdy)+1;
@@ -3219,13 +3204,17 @@ function ifUpdate() {
       ifVX[i]+=(pdx/pd)*wf;ifVY[i]+=(pdy/pd)*wf;
     });
 
-    const damp   = isOuter?0.92:isMidOut2?0.88:isMidOut?0.85:isMid?0.90:isInner?0.85:0.82;
+    const damp   = isOuter?0.92:isMidOut2?0.88:isMidOut?0.85:isMid?0.88:isInner?0.80:0.75;
     ifVX[i]*=damp; ifVY[i]*=damp;
     const spd2   = Math.sqrt(ifVX[i]*ifVX[i]+ifVY[i]*ifVY[i]);
-    const maxSpd = isOuter?3.5:isMidOut2?2.2:isMidOut?1.8:isMid?2.8:isInner?1.2:0.6;
+    const maxSpd = isOuter?3.5:isMidOut2?2.2:isMidOut?1.8:isMid?2.0:isInner?0.9:0.4;
     if(spd2>maxSpd){ifVX[i]*=maxSpd/spd2;ifVY[i]*=maxSpd/spd2;}
 
     ifX[i]+=ifVX[i]; ifY[i]+=ifVY[i];
+
+    // Update live radius so zone physics stays accurate
+    const lrNew=Math.sqrt((ifX[i]-cx_)*(ifX[i]-cx_)+(ifY[i]-cy_)*(ifY[i]-cy_))/maxR;
+    ifLR[i]=lrNew;
 
     // Hard boundary
     const od=Math.sqrt((ifX[i]-cx_)*(ifX[i]-cx_)+(ifY[i]-cy_)*(ifY[i]-cy_));
@@ -6301,7 +6290,7 @@ function orbDraw() {
   // Node connections drawn as particle chains in ifDraw
   // ── NODAL CONNECTION PARTICLE CHAINS ──
   if (Array.isArray(orbConnections)) {
-    orbConnections.forEach(([aid, bid]) => {
+    orbConnections.forEach(([aid, bid], ci) => {
       const a = ORB.nodes.find(n=>n.id===aid);
       const b = ORB.nodes.find(n=>n.id===bid);
       if (!a||!b) return;
@@ -6316,7 +6305,7 @@ function orbDraw() {
         const px=ap.x+ddx*tt, py=ap.y+ddy*tt;
         const jit=Math.sin(s*1.8+ORB.t*0.5)*3.5;
         const nx2=px+(-ddy/len)*jit, ny2=py+(ddx/len)*jit;
-        const pulse=0.4+0.6*Math.abs(Math.sin(tt*Math.PI*3-ORB.t*0.12+(aid||0)*0.7));
+        const pulse=0.4+0.6*Math.abs(Math.sin(tt*Math.PI*3-ORB.t*0.12+ci*0.7));
         const al=isCenter
           ?(0.35+pulse*0.30)
           :(0.20+pulse*0.20);

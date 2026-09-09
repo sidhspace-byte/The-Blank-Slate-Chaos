@@ -3244,65 +3244,6 @@ function ifDraw() {
 
   cx.save();
 
-  // ── RADIATING LINES: straight, uneven spacing, lateral particle bleed ──
-  // ── RADIATING LINES: straight, irregular angles, stop at different layers ──
-  // len: ~0.15 = inner, ~0.42 = mid, ~0.72+ = outer
-  const radLines = [
-    { ang:0.13, rotSpd:0.00011, len:1.28, dots:138 }, // outer
-    { ang:1.19, rotSpd:0.00014, len:0.43, dots:48  },
-    { ang:2.03, rotSpd:0.00009, len:0.88, dots:96  },
-    { ang:2.79, rotSpd:0.00006, len:0.41, dots:46  },
-    { ang:3.31, rotSpd:0.00016, len:1.22, dots:132 }, // outer
-    { ang:4.29, rotSpd:0.00008, len:0.67, dots:74  },
-    { ang:5.08, rotSpd:0.00011, len:0.44, dots:49  },
-    { ang:5.77, rotSpd:0.00009, len:0.72, dots:79  },
-  ];
-
-  radLines.forEach((rl, li) => {
-    const ang = rl.ang + T * rl.rotSpd;
-    const cosA = Math.cos(ang), sinA = Math.sin(ang);
-    const perpA = ang + Math.PI*0.5;
-    const cosP = Math.cos(perpA), sinP = Math.sin(perpA);
-
-    for(let d=0; d<rl.dots; d++){
-      const t = d / rl.dots;
-      const r = maxR * 0.04 + maxR * rl.len * t;
-      const fade = Math.min(1, t*10) * (t > 0.9 ? (1-t)*10 : 1);
-      const onBnd = (t>0.10&&t<0.15)||(t>0.33&&t<0.38)||(t>0.60&&t<0.65);
-      const spineAl = fade * (onBnd ? 0.04 : 0.20) * (1+ifThinking*0.25);
-
-      // ── spine dot ──
-      if(spineAl > 0.015){
-        cx.beginPath();
-        cx.arc(cx_+cosA*r, cy_+sinA*r, 1.5, 0, Math.PI*2);
-        cx.fillStyle = `rgba(210,232,255,${spineAl})`;
-        cx.fill();
-      }
-
-      // ── chaos bleed: particles scattered around the line, not just perpendicular ──
-      if(d % 3 !== 0) continue;
-      const bleedN = 3 + Math.floor(Math.abs(Math.sin(d*1.3+li*2.7))*3); // 3–5
-      for(let b=0; b<bleedN; b++){
-        // random-ish angle around the spine point — full 360° chaos, biased perpendicular
-        const bleedAng = perpA + (Math.random()-0.5)*Math.PI*1.4;
-        // distance: exponential falloff from spine — most particles close, few far
-        const bleedDist = maxR * 0.012 * Math.pow(Math.random(), 0.6) *
-                          (1.0 + 1.5*Math.abs(Math.sin(d*0.61+b*1.9+li)));
-        // slight radial scatter too — not locked to spine radius
-        const radialJit = (Math.random()-0.5) * maxR * 0.018;
-        const bx = cx_ + cosA*(r+radialJit) + Math.cos(bleedAng)*bleedDist;
-        const by = cy_ + sinA*(r+radialJit) + Math.sin(bleedAng)*bleedDist;
-        const bAl = spineAl * (0.3 + Math.random()*0.3) * (onBnd?0.1:1);
-        if(bAl < 0.01) continue;
-        const bSz = 0.5 + Math.random()*0.8;
-        cx.beginPath();
-        cx.arc(bx, by, bSz, 0, Math.PI*2);
-        cx.fillStyle = `rgba(195,220,255,${bAl})`;
-        cx.fill();
-      }
-    }
-  });
-
   // ── PARTICLE-CHAIN CONCENTRIC RINGS ──
   // 5 rings at key radii — drawn as rotating dot chains with small radial noise
   const pRings = [

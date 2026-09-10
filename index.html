@@ -6356,45 +6356,43 @@ function orbInit() {
   }, {passive:false});
 
   // ── CLICK / TAP ──
-  let nedJustOpened = false;
-  let pointerDownTime = 0;
-  let pointerDownNode = null;
+  let touchStartTime = 0;
+  let touchStartNode = null;
+  let longPressHandled = false;
+
+  ORB.cv.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const n = orbHitTest(t.clientX, t.clientY);
+    touchStartTime = Date.now();
+    touchStartNode = n ? n.id : null;
+    longPressHandled = false;
+  }, {passive:true});
 
   ORB.cv.addEventListener('click', e => {
     if (orbDragMoved) { orbDragMoved = false; return; }
-    if (nedJustOpened) { nedJustOpened=false; return; }
+    if (longPressHandled) { longPressHandled=false; return; }
     const n = orbHitTest(e.clientX, e.clientY);
     if (n) { orbEnter(n.id); }
   });
+
   ORB.cv.addEventListener('touchend', e => {
-    if (nedJustOpened) { nedJustOpened=false; orbDragMoved=false; e.preventDefault(); return; }
-    if (e.changedTouches.length===1 && !p0 && !dtActive && !orbDragMoved) {
-      const t = e.changedTouches[0];
-      const n = orbHitTest(t.clientX, t.clientY);
-      if (n) { orbEnter(n.id); }
+    if (orbDragMoved) { orbDragMoved = false; return; }
+    if (e.changedTouches.length !== 1) return;
+    const held = Date.now() - touchStartTime;
+    const t = e.changedTouches[0];
+    const n = orbHitTest(t.clientX, t.clientY);
+    if (!n) { orbDragMoved=false; return; }
+    if (held > 420 && touchStartNode === n.id) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      longPressHandled = true;
+      nedOpen(n.id);
+    } else if (!p0 && !dtActive) {
+      orbEnter(n.id);
     }
     orbDragMoved = false;
   }, {passive:false});
-
-  // ── LONG-PRESS → Node Editor ──
-  let nedLongTimer = null;
-  ORB.cv.addEventListener('pointerdown', e=>{
-    const n = orbHitTest(e.clientX, e.clientY);
-    if(!n) return;
-    pointerDownNode = n.id;
-    pointerDownTime = Date.now();
-    nedLongTimer = setTimeout(()=>{
-      nedLongTimer=null;
-      nedJustOpened=true;
-      nedOpen(pointerDownNode);
-    }, 550);
-  });
-  ORB.cv.addEventListener('pointerup', ()=>{
-    if(nedLongTimer){ clearTimeout(nedLongTimer); nedLongTimer=null; }
-  });
-  ORB.cv.addEventListener('pointermove', e=>{
-    if(nedLongTimer){ clearTimeout(nedLongTimer); nedLongTimer=null; }
-  });
 
   // ── HOVER ──
   ORB.cv.addEventListener('mousemove', e => {

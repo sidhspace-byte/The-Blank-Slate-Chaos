@@ -6368,7 +6368,7 @@ function orbDraw() {
     });
   }
 
-  // ── NODES ──
+  // ── NODES — wound thread chambers ──
   ORB.nodes.forEach(n => {
     if (n.ring === 0) return;
     const rv = orbRingVis(n.ring, z);
@@ -6380,37 +6380,60 @@ function orbDraw() {
     const pulse = isHover ? 1+Math.sin(ORB.t*5)*0.07 : 1;
     const col = n.color;
 
-    // Glow
-    const g = ctx.createRadialGradient(nx,ny,0,nx,ny,nr*2.5*pulse);
-    g.addColorStop(0, col+'30');
+    // Outer glow — subtle
+    const g = ctx.createRadialGradient(nx,ny,0,nx,ny,nr*2.8*pulse);
+    g.addColorStop(0, col+'00');
+    g.addColorStop(0.6, col+'12');
     g.addColorStop(1, col+'00');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(nx,ny,nr*2.5*pulse,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(nx,ny,nr*2.8*pulse,0,Math.PI*2); ctx.fill();
 
-    // Circle
-    ctx.beginPath(); ctx.arc(nx,ny,nr*pulse,0,Math.PI*2);
-    ctx.fillStyle = col+'15';
-    ctx.fill();
-    ctx.strokeStyle = isHover ? col+'ee' : col+(Math.round(0.5*rv*255).toString(16).padStart(2,'0'));
-    ctx.lineWidth = isHover ? 1.8 : 1.2;
-    ctx.stroke();
+    // ── Wound thread ring — splines wrapping the circumference ──
+    // Each thread is a small arc-spline that wraps partially around the node boundary
+    // Opacity: zero at centre, peaks at nr (boundary)
+    const nThreads = isHover ? 22 : 16;
+    for(let ti=0; ti<nThreads; ti++){
+      const tSeed  = ti*2.399 + n.ring*1.1; // golden angle spacing
+      const tOff   = ORB.t*0.018 + tSeed;
+      // Each thread spans a different arc of the circle
+      const arcStart = tSeed + Math.sin(tOff*0.4)*0.3;
+      const arcSpan  = (0.6 + 0.8*Math.abs(Math.sin(tSeed*0.7)))*Math.PI;
+      const arcSteps = 28;
+      // Radial offset from boundary: threads sit near nr but wobble in/out
+      const rBase = nr * pulse;
 
-    // Symbol
+      ctx.beginPath();
+      for(let s=0; s<=arcSteps; s++){
+        const tt  = s/arcSteps;
+        const ang = arcStart + arcSpan*tt;
+        // Radial wobble — thread weaves in and out of boundary
+        const rWob = rBase * (0.82 + 0.22*Math.sin(tt*Math.PI*3 + tSeed*1.3 + ORB.t*0.06));
+        const px   = nx + Math.cos(ang)*rWob;
+        const py   = ny + Math.sin(ang)*rWob;
+        s===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+      }
+      // Opacity: ramps up near boundary, zero toward centre
+      // Thread sits at ~0.85-1.0× nr so opacity is always near-boundary
+      const al = (0.10 + 0.18*Math.abs(Math.sin(tSeed + ORB.t*0.022))) * rv * pulse;
+      ctx.strokeStyle = `${col}`;
+      ctx.globalAlpha = Math.min(al, 0.55);
+      ctx.lineWidth = 0.5 + 0.3*Math.abs(Math.sin(tSeed));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Symbol only — no filled circle, no stroke ring
     const fs = Math.max(9, 13*z);
     ctx.font = `${fs}px 'DM Mono',monospace`;
-    ctx.fillStyle = col+(Math.round(rv*220).toString(16).padStart(2,'0'));
+    ctx.fillStyle = col+(Math.round(rv*200).toString(16).padStart(2,'0'));
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(n.sym, nx, ny);
 
-    // Label
     if (rv > 0.25 && z > 0.45) {
       const lfs = Math.max(7,9*z);
       ctx.font = `${lfs}px 'DM Mono',monospace`;
       ctx.fillStyle = `rgba(216,208,200,${0.75*rv})`;
       ctx.fillText(n.label, nx, ny+nr*pulse+lfs*1.4);
     }
-
-    // Desc on hover
     if (isHover && rv>0.3) {
       const dfs = Math.max(8,10*z);
       ctx.font = `italic ${dfs}px 'Instrument Serif',serif`;
@@ -6426,25 +6449,49 @@ function orbDraw() {
   ctx.fillStyle=cg;
   ctx.beginPath(); ctx.arc(cx,cy,30*z,0,Math.PI*2); ctx.fill();
 
-  // ── WIRING — CENTER NODE ──
+  // ── WIRING — CENTER NODE — wound thread chamber ──
   const wNode = ORB.nodes.find(n=>n.ring===0);
   if (wNode) {
     const wr = Math.max(24, 28*z);
     const isHW = ORB.hover && ORB.hover.id===wNode.id;
     const wp = isHW ? 1+Math.sin(ORB.t*5)*0.08 : 1;
-    // Glow
-    const wg = ctx.createRadialGradient(cx,cy,0,cx,cy,wr*3*wp);
-    wg.addColorStop(0,'rgba(90,180,204,0.25)');
+
+    // Outer glow — zero at centre, builds outward
+    const wg = ctx.createRadialGradient(cx,cy,0,cx,cy,wr*3.5*wp);
+    wg.addColorStop(0,'rgba(90,180,204,0)');
+    wg.addColorStop(0.55,'rgba(90,180,204,0.08)');
+    wg.addColorStop(0.85,'rgba(90,180,204,0.18)');
     wg.addColorStop(1,'rgba(90,180,204,0)');
     ctx.fillStyle=wg;
-    ctx.beginPath(); ctx.arc(cx,cy,wr*3*wp,0,Math.PI*2); ctx.fill();
-    // Circle
-    ctx.beginPath(); ctx.arc(cx,cy,wr*wp,0,Math.PI*2);
-    ctx.fillStyle = isHW ? 'rgba(90,180,204,0.18)' : 'rgba(90,180,204,0.10)';
-    ctx.fill();
-    ctx.strokeStyle = isHW ? 'rgba(90,180,204,0.95)' : 'rgba(90,180,204,0.6)';
-    ctx.lineWidth = isHW ? 2 : 1.4;
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,wr*3.5*wp,0,Math.PI*2); ctx.fill();
+
+    // Wound threads — more strands, denser for centre node
+    const nW = isHW ? 30 : 22;
+    for(let ti=0; ti<nW; ti++){
+      const tSeed  = ti*2.399 + 7.3;
+      const tOff   = ORB.t*0.020 + tSeed;
+      const arcStart = tSeed + Math.sin(tOff*0.35)*0.4;
+      const arcSpan  = (0.5 + 0.9*Math.abs(Math.sin(tSeed*0.6)))*Math.PI;
+      const arcSteps = 32;
+      const rBase = wr * wp;
+
+      ctx.beginPath();
+      for(let s=0; s<=arcSteps; s++){
+        const tt  = s/arcSteps;
+        const ang = arcStart + arcSpan*tt;
+        const rWob = rBase * (0.80 + 0.24*Math.sin(tt*Math.PI*3.5 + tSeed*1.1 + ORB.t*0.05));
+        const px   = cx + Math.cos(ang)*rWob;
+        const py   = cy + Math.sin(ang)*rWob;
+        s===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+      }
+      const al = 0.12 + 0.22*Math.abs(Math.sin(tSeed + ORB.t*0.020));
+      ctx.globalAlpha = Math.min(al * wp, 0.65);
+      ctx.strokeStyle = 'rgba(90,180,204,1)';
+      ctx.lineWidth = 0.5 + 0.35*Math.abs(Math.sin(tSeed));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     // Label
     ctx.font = `${Math.max(9,12*z)}px 'DM Mono',monospace`;
     ctx.fillStyle = isHW ? 'rgba(90,180,204,1)' : 'rgba(90,180,204,0.75)';

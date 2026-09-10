@@ -6311,7 +6311,7 @@ function orbDraw() {
   // Rings removed — plain wires only
 
   // Node connections drawn as particle chains in ifDraw
-  // ── SPLINE FIBER THREADS — multi-point wandering strands ──
+  // ── SPLINE FIBER THREADS — visible at all zoom levels ──
   if (Array.isArray(orbConnections)) {
     orbConnections.forEach(([aid, bid], ci) => {
       const a = ORB.nodes.find(n=>n.id===aid);
@@ -6327,36 +6327,27 @@ function orbDraw() {
 
       for(let fi=0; fi<nStrands; fi++){
         const seed = fi*2.718 + ci*1.618;
-        // slow living drift per strand
         const t0 = ORB.t*0.025;
 
-        // 3 intermediate waypoints — each thread takes its own wandering path
-        // waypoints are at t=0.25, 0.5, 0.75 along the straight line,
-        // perturbed laterally by different amounts
-        const wp = [0.22, 0.48, 0.76].map((tt, wi) => {
+        // Wider waypoint offsets — readable at zoom-out
+        const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
           const bx = ap.x + ddx*tt;
           const by = ap.y + ddy*tt;
-          // each waypoint has independent lateral wander
-          const amp = (isCenter?7:5) * Math.sin(seed + wi*1.9);
-          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?3.5:2.2);
-          const lat = amp + slow;
+          const amp  = (isCenter?22:16) * Math.sin(seed + wi*1.9);
+          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?8:5);
+          const lat  = amp + slow;
           return { x: bx + perpX*lat, y: by + perpY*lat };
         });
 
-        // Build catmull-rom style: moveTo start, curve through waypoints to end
         const pts = [ap, ...wp, bp];
 
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
-
-        // Cubic bezier segments through all waypoints
-        // For n points, draw n-1 cubic segments using midpoints as anchors
         for(let p=0; p<pts.length-1; p++){
           const p0 = pts[Math.max(0,p-1)];
           const p1 = pts[p];
           const p2 = pts[p+1];
           const p3 = pts[Math.min(pts.length-1,p+2)];
-          // Catmull-Rom to bezier conversion
           const cp1x = p1.x + (p2.x-p0.x)/6;
           const cp1y = p1.y + (p2.y-p0.y)/6;
           const cp2x = p2.x - (p3.x-p1.x)/6;
@@ -6365,13 +6356,13 @@ function orbDraw() {
         }
 
         const al = isCenter
-          ? 0.06 + 0.10*Math.abs(Math.sin(seed + t0*0.8))
-          : 0.04 + 0.07*Math.abs(Math.sin(seed + t0*0.7));
+          ? 0.18 + 0.18*Math.abs(Math.sin(seed + t0*0.8))
+          : 0.12 + 0.12*Math.abs(Math.sin(seed + t0*0.7));
 
         ctx.strokeStyle = isCenter
-          ? `rgba(90,180,204,${Math.min(al,0.5)})`
-          : `rgba(200,144,42,${Math.min(al,0.38)})`;
-        ctx.lineWidth = 0.35 + 0.2*Math.abs(Math.sin(seed));
+          ? `rgba(90,180,204,${Math.min(al,0.65)})`
+          : `rgba(200,144,42,${Math.min(al,0.50)})`;
+        ctx.lineWidth = 0.6 + 0.4*Math.abs(Math.sin(seed));
         ctx.stroke();
       }
     });

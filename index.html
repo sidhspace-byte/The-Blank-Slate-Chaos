@@ -6323,46 +6323,35 @@ function orbDraw() {
       const len=Math.sqrt(ddx*ddx+ddy*ddy);
       if(len<2) return;
       const perpX=-ddy/len, perpY=ddx/len;
-      const nStrands = isCenter ? 16 : 10;
+      const zc = Math.max(0.2, Math.min(z, 1.5));
+      const nStrands = Math.max(2, Math.round((isCenter?12:7)*Math.min(zc,1.0)));
+      const alScale  = Math.min(1, zc*1.1);
 
       for(let fi=0; fi<nStrands; fi++){
         const seed = fi*2.718 + ci*1.618;
         const t0 = ORB.t*0.025;
-
-        // Wider waypoint offsets — readable at zoom-out
         const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
           const bx = ap.x + ddx*tt;
           const by = ap.y + ddy*tt;
           const amp  = (isCenter?22:16) * Math.sin(seed + wi*1.9);
           const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?8:5);
-          const lat  = amp + slow;
-          return { x: bx + perpX*lat, y: by + perpY*lat };
+          return { x: bx + perpX*(amp+slow), y: by + perpY*(amp+slow) };
         });
-
         const pts = [ap, ...wp, bp];
-
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
         for(let p=0; p<pts.length-1; p++){
-          const p0 = pts[Math.max(0,p-1)];
-          const p1 = pts[p];
-          const p2 = pts[p+1];
-          const p3 = pts[Math.min(pts.length-1,p+2)];
-          const cp1x = p1.x + (p2.x-p0.x)/6;
-          const cp1y = p1.y + (p2.y-p0.y)/6;
-          const cp2x = p2.x - (p3.x-p1.x)/6;
-          const cp2y = p2.y - (p3.y-p1.y)/6;
-          ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
+          const p0=pts[Math.max(0,p-1)],p1=pts[p],p2=pts[p+1],p3=pts[Math.min(pts.length-1,p+2)];
+          ctx.bezierCurveTo(p1.x+(p2.x-p0.x)/6,p1.y+(p2.y-p0.y)/6,p2.x-(p3.x-p1.x)/6,p2.y-(p3.y-p1.y)/6,p2.x,p2.y);
         }
-
-        const al = isCenter
-          ? 0.18 + 0.18*Math.abs(Math.sin(seed + t0*0.8))
-          : 0.12 + 0.12*Math.abs(Math.sin(seed + t0*0.7));
-
+        const alBase = isCenter
+          ? 0.07+0.09*Math.abs(Math.sin(seed+t0*0.8))
+          : 0.05+0.06*Math.abs(Math.sin(seed+t0*0.7));
+        const al = alBase * alScale;
         ctx.strokeStyle = isCenter
-          ? `rgba(90,180,204,${Math.min(al,0.65)})`
-          : `rgba(200,144,42,${Math.min(al,0.50)})`;
-        ctx.lineWidth = 0.6 + 0.4*Math.abs(Math.sin(seed));
+          ? `rgba(90,180,204,${Math.min(al,0.55)})`
+          : `rgba(200,144,42,${Math.min(al,0.40)})`;
+        ctx.lineWidth = 0.5+0.3*Math.abs(Math.sin(seed));
         ctx.stroke();
       }
     });

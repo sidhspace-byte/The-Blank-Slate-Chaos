@@ -1455,6 +1455,7 @@ body {
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
     <input type="file" id="import-file-top" accept=".json" onchange="importAll(this)" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+    <button onclick="pfeOpen()" style="background:none;border:1px solid rgba(90,140,180,0.4);color:rgba(120,180,220,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">field</button>
     <div id="data-status-top" style="font-size:9px;color:rgba(180,140,90,0.6);letter-spacing:0.1em;"></div>
   </div>
   <div id="orb-hint" style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(90,84,80,0.7);pointer-events:none;">scroll to zoom · click to enter</div>
@@ -1576,6 +1577,33 @@ body {
     </div>
 
     <div style="padding:14px 18px;border-bottom:1px solid #1a1a1a;">
+      <div style="font-size:8px;letter-spacing:0.2em;color:#555;margin-bottom:10px;text-transform:uppercase;">Wire Style</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:8px;color:#666;letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:6px;">Line Type</label>
+        <select id="ned-wire-type" onchange="nedWirePreview()" style="background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px 8px;border-radius:2px;width:100%;">
+          <option value="thread">Threads (spline)</option>
+          <option value="straight">Straight</option>
+          <option value="dashed">Dashed</option>
+          <option value="dots">Dot chain</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:8px;color:#666;letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:6px;">Wire Color</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="ned-wire-color" oninput="nedWirePreview()" style="width:32px;height:24px;border:1px solid #2a2a2a;background:#111;cursor:pointer;border-radius:2px;" value="#5ab4cc">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="ned-wire-color-on" onchange="nedWirePreview()" style="accent-color:#5ab4cc;">
+            <span style="font-size:8px;color:#666;text-transform:uppercase;letter-spacing:0.1em;">Custom</span>
+          </label>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:8px;color:#666;letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:4px;">Strands: <span id="ned-wire-strands-val">12</span></label>
+        <input type="range" id="ned-wire-strands" min="1" max="22" value="12" oninput="document.getElementById('ned-wire-strands-val').textContent=this.value;nedWirePreview();" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;border-bottom:1px solid #1a1a1a;">
       <div style="font-size:8px;letter-spacing:0.2em;color:#555;margin-bottom:10px;text-transform:uppercase;">Operations</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <button onclick="nedClone()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:7px 10px;cursor:pointer;border-radius:2px;text-align:left;text-transform:uppercase;">⬡ Clone Node</button>
@@ -1594,7 +1622,95 @@ body {
     </div>
   </div>
 
-  <!-- ghost nav-tabs for JS .on tracking — hidden -->
+  <!-- ── PARTICLE FIELD EDITOR ── -->
+  <div id="pfe-overlay" onclick="if(event.target===this)pfeClose()" style="display:none;position:fixed;inset:0;z-index:500;"></div>
+  <div id="pfe-panel" style="display:none;position:fixed;top:0;left:0;bottom:0;width:290px;background:rgba(7,6,8,0.97);border-right:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:501;transform:translateX(-100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Particle Field</div>
+      <button onclick="pfeClose()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;line-height:1;">×</button>
+    </div>
+
+    <!-- GLOBAL -->
+    <div style="padding:14px 18px;border-bottom:1px solid #1a1a1a;">
+      <div style="font-size:8px;letter-spacing:0.2em;color:#555;margin-bottom:12px;text-transform:uppercase;">Global</div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Particle Count <span id="pfe-count-val"></span></label>
+        <input type="range" id="pfe-count" min="2000" max="20000" step="1000" oninput="pfeSync('count',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Global Speed <span id="pfe-speed-val"></span></label>
+        <input type="range" id="pfe-speed" min="0.1" max="3.0" step="0.05" oninput="pfeSync('speed',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Global Brightness <span id="pfe-bright-val"></span></label>
+        <input type="range" id="pfe-bright" min="0.2" max="3.0" step="0.05" oninput="pfeSync('bright',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Particle Size <span id="pfe-size-val"></span></label>
+        <input type="range" id="pfe-size" min="0.3" max="3.0" step="0.05" oninput="pfeSync('size',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+    </div>
+
+    <!-- LAYERS -->
+    <div style="padding:14px 18px;border-bottom:1px solid #1a1a1a;">
+      <div style="font-size:8px;letter-spacing:0.2em;color:#555;margin-bottom:12px;text-transform:uppercase;">Layers</div>
+      <div id="pfe-layers"><!-- populated by JS --></div>
+      <button onclick="pfeAddLayer()" style="margin-top:10px;width:100%;background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:7px;cursor:pointer;border-radius:2px;text-transform:uppercase;">+ Add Layer</button>
+    </div>
+
+    <!-- CHAOS -->
+    <div style="padding:14px 18px;border-bottom:1px solid #1a1a1a;">
+      <div style="font-size:8px;letter-spacing:0.2em;color:#555;margin-bottom:12px;text-transform:uppercase;">Chaos & Physics</div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Outer Chaos <span id="pfe-ochaos-val"></span></label>
+        <input type="range" id="pfe-ochaos" min="0.1" max="6.0" step="0.1" oninput="pfeSync('ochaos',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Mid Chaos <span id="pfe-mchaos-val"></span></label>
+        <input type="range" id="pfe-mchaos" min="0.1" max="4.0" step="0.1" oninput="pfeSync('mchaos',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Radial Leash <span id="pfe-leash-val"></span></label>
+        <input type="range" id="pfe-leash" min="0.1" max="1.5" step="0.05" oninput="pfeSync('leash',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Orbit Strength <span id="pfe-orbit-val"></span></label>
+        <input type="range" id="pfe-orbit" min="0" max="0.003" step="0.0001" oninput="pfeSync('orbit',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+    </div>
+
+    <!-- PATTERN -->
+    <div style="padding:14px 18px;border-bottom:1px solid #1a1a1a;">
+      <div style="font-size:8px;letter-spacing:0.2em;color:#555;margin-bottom:12px;text-transform:uppercase;">Pattern</div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Anti-Crescent Bias <span id="pfe-bias-val"></span></label>
+        <input type="range" id="pfe-bias" min="0" max="0.05" step="0.001" oninput="pfeSync('bias',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div class="pfe-row">
+        <label class="pfe-lbl">Connection Distance <span id="pfe-conn-val"></span></label>
+        <input type="range" id="pfe-conn" min="10" max="100" step="2" oninput="pfeSync('conn',this)" style="width:100%;accent-color:#5ab4cc;">
+      </div>
+      <div style="margin-top:10px;">
+        <label style="font-size:8px;color:#666;letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:6px;">Particle Color Tint</label>
+        <input type="color" id="pfe-tint" value="#c3deff" oninput="pfeSync('tint',this)" style="width:44px;height:28px;border:1px solid #2a2a2a;background:#111;cursor:pointer;border-radius:2px;">
+        <label style="display:flex;align-items:center;gap:5px;margin-top:6px;cursor:pointer;display:inline-flex;">
+          <input type="checkbox" id="pfe-tint-on" onchange="pfeSync('tint',document.getElementById('pfe-tint'))" style="accent-color:#5ab4cc;">
+          <span style="font-size:8px;color:#666;text-transform:uppercase;letter-spacing:0.1em;">Use tint</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;display:flex;gap:8px;">
+      <button onclick="pfeSave()" style="flex:1;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:9px;cursor:pointer;border-radius:2px;text-transform:uppercase;">Save</button>
+      <button onclick="pfeReset()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:9px;cursor:pointer;border-radius:2px;text-transform:uppercase;">Reset</button>
+    </div>
+    <div id="pfe-status" style="font-size:8px;color:#555;text-align:center;padding-bottom:14px;min-height:12px;"></div>
+  </div>
+
+  <style>
+    .pfe-row { margin-bottom:10px; }
+    .pfe-lbl { font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:4px; }
+  </style>
   <div style="display:none;">
     <button class="nav-tab" data-c="load">Ld</button>
     <button class="nav-tab" data-c="lens">◎</button>
@@ -3206,7 +3322,7 @@ function ifUpdate() {
 
   const w=CW,h=CH,cx_=w*0.5,cy_=h*0.5;
   const maxR=Math.min(w,h)*0.46;
-  const spd=ifMode.speed*(1+ifThinking*0.8);
+  const spd=ifMode.speed*PFE.speed*(1+ifThinking*0.8);
 
   // Outer crescent direction — sample every 8th outer particle
   let comX=0,comY=0,comN=0;
@@ -3230,18 +3346,18 @@ function ifUpdate() {
     let targetR, orbitStr, noiseStr, chaosStr;
     if(isOuter){
       targetR  = maxR*(0.86+ifR[i]*0.14);
-      orbitStr = 0.0003;
-      noiseStr = 1.2*(1-ifMode.order*0.15);
+      orbitStr = PFE.orbit;
+      noiseStr = PFE.ochaos*(1-ifMode.order*0.15);
       chaosStr = 1.0;
     } else if(isMidOut2){
       targetR  = maxR*(0.78+ifR[i]*0.06);
       orbitStr = 0.00045;
-      noiseStr = 0.9*(1-ifMode.order*0.2);
+      noiseStr = PFE.mchaos*0.75*(1-ifMode.order*0.2);
       chaosStr = 0.55;
     } else if(isMidOut){
       targetR  = maxR*(0.70+ifR[i]*0.06);
       orbitStr = 0.00060;
-      noiseStr = 0.6*(1-ifMode.order*0.25);
+      noiseStr = PFE.mchaos*0.5*(1-ifMode.order*0.25);
       chaosStr = 0.40;
     } else if(isMid){
       targetR  = maxR*(0.42+ifR[i]*0.26);
@@ -3261,7 +3377,7 @@ function ifUpdate() {
     }
 
     const radErr = dist - targetR;
-    const radLease = isOuter?0.70:isMidOut2?0.70:isMidOut?0.85:isMid?0.70:isInner?1.4:2.0;
+    const radLease = isOuter?PFE.leash:isMidOut2?0.70:isMidOut?0.85:isMid?0.70:isInner?1.4:2.0;
     ifVX[i] -= (dx/dist)*radErr*0.007*radLease;
     ifVY[i] -= (dy/dist)*radErr*0.007*radLease;
 
@@ -3293,7 +3409,7 @@ function ifUpdate() {
       while(dAng>Math.PI) dAng-=Math.PI*2;
       while(dAng<-Math.PI) dAng+=Math.PI*2;
       // gentle tangential push toward anti-crescent side
-      const biasStr = 0.012 * Math.abs(Math.sin(dAng*0.5));
+      const biasStr = PFE.bias * Math.abs(Math.sin(dAng*0.5));
       ifVX[i] += Math.cos(antiAng) * biasStr;
       ifVY[i] += Math.sin(antiAng) * biasStr;
     }
@@ -3422,19 +3538,19 @@ function ifDraw() {
   // Draw particles
   for(let i=0;i<NIF;i++){
     const ty=ifTY[i],br=ifBR[i],lr=ifLR[i];
-    const sz=ifSZ[i]*(1+(ifThinking>0.1&&lr<0.4?ifThinking*1.2:0));
+    const sz=ifSZ[i]*PFE.size*(1+(ifThinking>0.1&&lr<0.4?ifThinking*1.2:0));
     const isOuterP   = lr>0.85;
     const isMidOut2P = lr>0.77&&lr<=0.85;
     const isMidOutP  = lr>0.69&&lr<=0.77;
 
     // Per-zone brightness — outer zones flat, not killed by 1-lr
-    const baseBr = isOuterP   ? 0.55 + br*0.45
+    const baseBr = (isOuterP   ? 0.55 + br*0.45
                  : isMidOut2P ? 0.42 + br*0.45
                  : isMidOutP  ? 0.32 + br*0.45
-                 : lr<0.14    ? 0.70 + br*0.30   // core — bright
-                 : lr<0.39    ? 0.55 + br*0.35   // inner — visible
-                 : lr<0.69    ? 0.38 + br*0.40   // mid
-                 : (1-lr)*(0.6+br*0.4);
+                 : lr<0.14    ? 0.70 + br*0.30
+                 : lr<0.39    ? 0.55 + br*0.35
+                 : lr<0.69    ? 0.38 + br*0.40
+                 : (1-lr)*(0.6+br*0.4)) * PFE.bright;
 
     if(ty===0){
       const al = baseBr * 0.22;
@@ -6242,11 +6358,12 @@ function orbInit() {
   // ── CLICK / TAP ──
   ORB.cv.addEventListener('click', e => {
     if (orbDragMoved) { orbDragMoved = false; return; }
-    if (nedNode) return; // long-press just opened editor
+    if (nedJustOpened) { nedJustOpened=false; return; }
     const n = orbHitTest(e.clientX, e.clientY);
     if (n) { orbEnter(n.id); }
   });
   ORB.cv.addEventListener('touchend', e => {
+    if (nedJustOpened) { nedJustOpened=false; orbDragMoved=false; return; }
     if (e.changedTouches.length===1 && !p0 && !dtActive && !orbDragMoved) {
       const t = e.changedTouches[0];
       const n = orbHitTest(t.clientX, t.clientY);
@@ -6257,10 +6374,11 @@ function orbInit() {
 
   // ── LONG-PRESS → Node Editor ──
   let nedLongTimer = null;
+  let nedJustOpened = false;
   ORB.cv.addEventListener('pointerdown', e=>{
     const n = orbHitTest(e.clientX, e.clientY);
     if(!n) return;
-    nedLongTimer = setTimeout(()=>{ nedLongTimer=null; nedOpen(n.id); }, 600);
+    nedLongTimer = setTimeout(()=>{ nedLongTimer=null; nedJustOpened=true; nedOpen(n.id); }, 600);
   });
   ORB.cv.addEventListener('pointerup',   ()=>{ if(nedLongTimer){clearTimeout(nedLongTimer);nedLongTimer=null;} });
   ORB.cv.addEventListener('pointermove', ()=>{ if(nedLongTimer){clearTimeout(nedLongTimer);nedLongTimer=null;} });
@@ -6276,7 +6394,154 @@ function orbInit() {
   orbDraw();
 }
 
+// ── PARTICLE FIELD EDITOR (PFE) ────────────────────────────────────────────
+
+// Live editable field params — all physics reads from here
+const PFE = {
+  count:   12000,
+  speed:   1.0,
+  bright:  1.0,
+  size:    1.0,
+  ochaos:  1.2,
+  mchaos:  0.9,
+  leash:   0.70,
+  orbit:   0.0003,
+  bias:    0.012,
+  conn:    60,
+  tint:    '#c3deff',
+  tintOn:  false,
+  layers: [
+    { id:'core',     minR:0.00, maxR:0.14, density:0.08, chaos:0.05, bright:1.0, on:true },
+    { id:'inner',    minR:0.14, maxR:0.39, density:0.16, chaos:0.35, bright:1.0, on:true },
+    { id:'mid',      minR:0.39, maxR:0.54, density:0.12, chaos:0.9,  bright:1.0, on:true },
+    { id:'mid2',     minR:0.54, maxR:0.69, density:0.12, chaos:1.2,  bright:1.0, on:true },
+    { id:'midout',   minR:0.69, maxR:0.77, density:0.16, chaos:1.8,  bright:1.0, on:true },
+    { id:'midout2',  minR:0.77, maxR:0.85, density:0.16, chaos:2.4,  bright:1.0, on:true },
+    { id:'outer',    minR:0.85, maxR:1.00, density:0.20, chaos:3.8,  bright:1.0, on:true },
+  ]
+};
+
+// Load saved PFE
+(function pfeRestore(){
+  const s = localStorage.getItem('dr_pfe');
+  if(s){ try{ Object.assign(PFE, JSON.parse(s)); }catch(e){} }
+})();
+
+function pfeOpen(){
+  const p = document.getElementById('pfe-panel');
+  const o = document.getElementById('pfe-overlay');
+  p.style.display='block'; o.style.display='block';
+  requestAnimationFrame(()=>p.style.transform='translateX(0)');
+  pfePopulate();
+}
+
+function pfeClose(){
+  const p=document.getElementById('pfe-panel');
+  p.style.transform='translateX(-100%)';
+  setTimeout(()=>p.style.display='none',240);
+  document.getElementById('pfe-overlay').style.display='none';
+}
+
+function pfePopulate(){
+  const sliders = ['count','speed','bright','size','ochaos','mchaos','leash','orbit','bias','conn'];
+  sliders.forEach(k=>{
+    const el=document.getElementById('pfe-'+k);
+    const val=document.getElementById('pfe-'+k+'-val');
+    if(el){ el.value=PFE[k]; }
+    if(val){ val.textContent=typeof PFE[k]==='number'&&PFE[k]<0.01?PFE[k].toFixed(4):Number(PFE[k]).toFixed(2); }
+  });
+  document.getElementById('pfe-tint').value = PFE.tint;
+  document.getElementById('pfe-tint-on').checked = PFE.tintOn;
+  pfeRenderLayers();
+}
+
+function pfeSync(key, el){
+  let val = el.type==='color' ? el.value : parseFloat(el.value);
+  if(key==='tint'){ PFE.tint=el.value; PFE.tintOn=document.getElementById('pfe-tint-on').checked; return; }
+  if(key==='tintOn'){ PFE.tintOn=el.checked; return; }
+  PFE[key] = val;
+  const lbl = document.getElementById('pfe-'+key+'-val');
+  if(lbl) lbl.textContent = val<0.01?val.toFixed(4):val.toFixed(2);
+  // Live apply where possible
+  if(key==='count' && typeof ifInit==='function'){ NIF=val; ifInited=false; }
+}
+
+function pfeRenderLayers(){
+  const div = document.getElementById('pfe-layers');
+  div.innerHTML = PFE.layers.map((l,i)=>`
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:2px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <input value="${l.id}" onchange="PFE.layers[${i}].id=this.value" style="background:none;border:none;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;width:80px;text-transform:uppercase;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" ${l.on?'checked':''} onchange="PFE.layers[${i}].on=this.checked" style="accent-color:#5ab4cc;">
+            <span style="font-size:8px;color:#555;">on</span>
+          </label>
+          <button onclick="pfeDeleteLayer(${i})" style="background:none;border:none;color:#644;font-size:11px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:8px;color:#666;">
+        <div>
+          <div style="margin-bottom:2px;">minR <span style="color:#888;">${l.minR.toFixed(2)}</span></div>
+          <input type="range" min="0" max="1" step="0.01" value="${l.minR}" oninput="PFE.layers[${i}].minR=+this.value;this.previousElementSibling.querySelector('span').textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;">
+        </div>
+        <div>
+          <div style="margin-bottom:2px;">maxR <span style="color:#888;">${l.maxR.toFixed(2)}</span></div>
+          <input type="range" min="0" max="1.2" step="0.01" value="${l.maxR}" oninput="PFE.layers[${i}].maxR=+this.value;this.previousElementSibling.querySelector('span').textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;">
+        </div>
+        <div>
+          <div style="margin-bottom:2px;">density <span style="color:#888;">${l.density.toFixed(2)}</span></div>
+          <input type="range" min="0.01" max="0.5" step="0.01" value="${l.density}" oninput="PFE.layers[${i}].density=+this.value;this.previousElementSibling.querySelector('span').textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;">
+        </div>
+        <div>
+          <div style="margin-bottom:2px;">chaos <span style="color:#888;">${l.chaos.toFixed(2)}</span></div>
+          <input type="range" min="0.01" max="6" step="0.1" value="${l.chaos}" oninput="PFE.layers[${i}].chaos=+this.value;this.previousElementSibling.querySelector('span').textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;">
+        </div>
+        <div>
+          <div style="margin-bottom:2px;">brightness <span style="color:#888;">${l.bright.toFixed(2)}</span></div>
+          <input type="range" min="0.1" max="3.0" step="0.05" value="${l.bright}" oninput="PFE.layers[${i}].bright=+this.value;this.previousElementSibling.querySelector('span').textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function pfeAddLayer(){
+  PFE.layers.push({ id:'layer'+PFE.layers.length, minR:0.5, maxR:0.7, density:0.10, chaos:1.0, bright:1.0, on:true });
+  pfeRenderLayers();
+}
+
+function pfeDeleteLayer(i){
+  if(PFE.layers.length<=1) return;
+  PFE.layers.splice(i,1);
+  pfeRenderLayers();
+}
+
+function pfeSave(){
+  localStorage.setItem('dr_pfe', JSON.stringify(PFE));
+  if(typeof ifInit==='function'){ ifInited=false; }
+  const s=document.getElementById('pfe-status');
+  if(s){ s.textContent='Saved — field will reinit'; setTimeout(()=>s.textContent='',2000); }
+}
+
+function pfeReset(){
+  localStorage.removeItem('dr_pfe');
+  location.reload();
+}
+
+// Wire style per node — stored on the node object
+function nedWirePreview(){
+  if(!nedNode) return;
+  const n = ORB.nodes.find(x=>x.id===nedNode);
+  if(!n) return;
+  n.wireType    = document.getElementById('ned-wire-type').value;
+  n.wireStrands = parseInt(document.getElementById('ned-wire-strands').value);
+  n.wireColor   = document.getElementById('ned-wire-color-on').checked
+    ? document.getElementById('ned-wire-color').value : null;
+}
+
 // ── NODE EDITOR (NED) ──────────────────────────────────────────────────────
+
 const NED_COLORS = ['#5ab4cc','#4a82cc','#8a5acc','#e02a18','#c8902a','#e83a20',
                     '#38a870','#38a8cc','#cc7a38','#38ccaa','#e87040','#e8a020',
                     '#cc4488','#88cc44','#ffffff','#aaaaaa'];

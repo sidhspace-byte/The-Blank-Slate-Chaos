@@ -6333,8 +6333,8 @@ function orbDraw() {
         const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
           const bx = ap.x + ddx*tt;
           const by = ap.y + ddy*tt;
-          const amp  = (isCenter?22:16) * Math.sin(seed + wi*1.9);
-          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?8:5);
+          const amp  = (isCenter?22:16) * Math.sin(seed + wi*1.9) * zc;
+          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?8:5) * zc;
           return { x: bx + perpX*(amp+slow), y: by + perpY*(amp+slow) };
         });
         const pts = [ap, ...wp, bp];

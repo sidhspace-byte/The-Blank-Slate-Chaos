@@ -6311,7 +6311,7 @@ function orbDraw() {
   // Rings removed — plain wires only
 
   // Node connections drawn as particle chains in ifDraw
-  // ── NODAL CONNECTION PARTICLE CHAINS ──
+  // ── WOVEN FIBER THREADS — organic strands converging into nodes ──
   if (Array.isArray(orbConnections)) {
     orbConnections.forEach(([aid, bid], ci) => {
       const a = ORB.nodes.find(n=>n.id===aid);
@@ -6322,20 +6322,48 @@ function orbDraw() {
       const ddx=bp.x-ap.x, ddy=bp.y-ap.y;
       const len=Math.sqrt(ddx*ddx+ddy*ddy);
       if(len<2) return;
-      const steps=Math.max(2,Math.floor(len/8));
-      for(let s=0;s<=steps;s++){
-        const tt=s/steps;
-        const px=ap.x+ddx*tt, py=ap.y+ddy*tt;
-        const jit=Math.sin(s*1.8+ORB.t*0.5)*3.5;
-        const nx2=px+(-ddy/len)*jit, ny2=py+(ddx/len)*jit;
-        const pulse=0.4+0.6*Math.abs(Math.sin(tt*Math.PI*3-ORB.t*0.12+ci*0.7));
-        const al=isCenter
-          ?(0.35+pulse*0.30)
-          :(0.20+pulse*0.20);
-        const sz=isCenter?(1.4+pulse*0.8):(1.0+pulse*0.5);
-        ctx.beginPath();ctx.arc(nx2,ny2,sz,0,Math.PI*2);
-        ctx.fillStyle=isCenter?`rgba(90,180,204,${al})`:`rgba(200,144,42,${al})`;
-        ctx.fill();
+      const perpX=-ddy/len, perpY=ddx/len;
+
+      // Number of fiber strands per connection
+      const nStrands = isCenter ? 6 : 4;
+
+      for(let fi=0; fi<nStrands; fi++){
+        // Each strand has unique lateral offset profile and frequency
+        const fPhase  = (fi/nStrands)*Math.PI*2 + ci*0.9;
+        const fAmp    = (1.5 + fi*1.8) * (isCenter?1.0:0.7); // spread — wider bundle
+        const fFreq   = 2.1 + fi*0.7;                         // wave frequency along path
+        const fSpeed  = 0.08 + fi*0.03;                       // drift speed
+        const fOpBase = isCenter
+          ? (0.12 + 0.10*Math.sin(fPhase))
+          : (0.07 + 0.06*Math.sin(fPhase));
+
+        // Strand converges: spread wide at midpoint, pinch tight at both endpoints
+        const steps = Math.max(8, Math.floor(len/5));
+        for(let s=0; s<=steps; s++){
+          const tt = s/steps;
+          // Convergence envelope — zero at endpoints, peak at middle
+          const env = Math.sin(tt*Math.PI);
+          // Lateral displacement: envelope × wave + slow drift
+          const wave = Math.sin(tt*fFreq*Math.PI + ORB.t*fSpeed + fPhase);
+          const lat  = env * fAmp * wave;
+          const px   = ap.x + ddx*tt + perpX*lat;
+          const py   = ap.y + ddy*tt + perpY*lat;
+
+          // Opacity: brightest at tips (nodes) and at wave peaks, dim in slack sections
+          const tipBright = Math.pow(1-Math.min(tt,1-tt)*2, 2.5)*0.6; // bright near nodes
+          const waveBright= Math.abs(wave)*0.4;
+          const al = (fOpBase + tipBright + waveBright) * (1+ifThinking*0.5);
+
+          // Size tapers toward endpoints
+          const sz = (isCenter?0.9:0.65) * (0.3 + env*0.7);
+
+          ctx.beginPath();
+          ctx.arc(px, py, sz, 0, Math.PI*2);
+          ctx.fillStyle = isCenter
+            ? `rgba(90,180,204,${Math.min(al,0.7)})`
+            : `rgba(200,144,42,${Math.min(al,0.55)})`;
+          ctx.fill();
+        }
       }
     });
   }

@@ -6311,7 +6311,7 @@ function orbDraw() {
   // Rings removed — plain wires only
 
   // Node connections drawn as particle chains in ifDraw
-  // ── WOVEN FIBER THREADS — organic strands converging into nodes ──
+  // ── WOVEN FIBER THREADS — fine organic strands converging into nodes ──
   if (Array.isArray(orbConnections)) {
     orbConnections.forEach(([aid, bid], ci) => {
       const a = ORB.nodes.find(n=>n.id===aid);
@@ -6324,44 +6324,37 @@ function orbDraw() {
       if(len<2) return;
       const perpX=-ddy/len, perpY=ddx/len;
 
-      // Number of fiber strands per connection
-      const nStrands = isCenter ? 6 : 4;
+      const nStrands = isCenter ? 12 : 8;
 
       for(let fi=0; fi<nStrands; fi++){
-        // Each strand has unique lateral offset profile and frequency
-        const fPhase  = (fi/nStrands)*Math.PI*2 + ci*0.9;
-        const fAmp    = (1.5 + fi*1.8) * (isCenter?1.0:0.7); // spread — wider bundle
-        const fFreq   = 2.1 + fi*0.7;                         // wave frequency along path
-        const fSpeed  = 0.08 + fi*0.03;                       // drift speed
-        const fOpBase = isCenter
-          ? (0.12 + 0.10*Math.sin(fPhase))
-          : (0.07 + 0.06*Math.sin(fPhase));
+        const fPhase  = (fi/nStrands)*Math.PI*2 + ci*1.3;
+        const fAmp    = (0.4 + fi*0.5) * (isCenter?1.0:0.75); // tight bundle
+        const fFreq   = 1.8 + fi*0.4;
+        const fSpeed  = 0.04 + fi*0.015;
+        const fOpBase = isCenter ? 0.06 + 0.04*Math.sin(fPhase)
+                                 : 0.04 + 0.03*Math.sin(fPhase);
 
-        // Strand converges: spread wide at midpoint, pinch tight at both endpoints
-        const steps = Math.max(8, Math.floor(len/5));
+        const steps = Math.max(12, Math.floor(len/2.5)); // dense — thread-like
         for(let s=0; s<=steps; s++){
           const tt = s/steps;
-          // Convergence envelope — zero at endpoints, peak at middle
           const env = Math.sin(tt*Math.PI);
-          // Lateral displacement: envelope × wave + slow drift
           const wave = Math.sin(tt*fFreq*Math.PI + ORB.t*fSpeed + fPhase);
           const lat  = env * fAmp * wave;
           const px   = ap.x + ddx*tt + perpX*lat;
           const py   = ap.y + ddy*tt + perpY*lat;
 
-          // Opacity: brightest at tips (nodes) and at wave peaks, dim in slack sections
-          const tipBright = Math.pow(1-Math.min(tt,1-tt)*2, 2.5)*0.6; // bright near nodes
-          const waveBright= Math.abs(wave)*0.4;
+          const tipBright  = Math.pow(1-Math.min(tt,1-tt)*2, 3)*0.5;
+          const waveBright = Math.abs(wave)*0.15;
           const al = (fOpBase + tipBright + waveBright) * (1+ifThinking*0.5);
 
-          // Size tapers toward endpoints
-          const sz = (isCenter?0.9:0.65) * (0.3 + env*0.7);
+          // Very small radius — thread not dot
+          const sz = isCenter ? 0.35 : 0.28;
 
           ctx.beginPath();
           ctx.arc(px, py, sz, 0, Math.PI*2);
           ctx.fillStyle = isCenter
-            ? `rgba(90,180,204,${Math.min(al,0.7)})`
-            : `rgba(200,144,42,${Math.min(al,0.55)})`;
+            ? `rgba(90,180,204,${Math.min(al,0.65)})`
+            : `rgba(200,144,42,${Math.min(al,0.50)})`;
           ctx.fill();
         }
       }

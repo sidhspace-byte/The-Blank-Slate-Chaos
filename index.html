@@ -3073,12 +3073,13 @@ function ifInit() {
     // Fill the gap — heavy density in mid and mid-outer zones
     const t = Math.random();
     let nr;
-    if      (t<0.08) nr = Math.random()*0.14;                                    // core — 8%
-    else if (t<0.24) nr = 0.14 + Math.random()*0.25;                             // inner — 16%
-    else if (t<0.42) nr = 0.39 + Math.random()*0.30;                             // mid — 18%
-    else if (t<0.58) { const u=Math.random(); nr = 0.69+0.08*(1-Math.pow(1-u,2)); } // mid-outer — 16%
-    else if (t<0.74) { const u=Math.random(); nr = 0.77+0.08*(1-Math.pow(1-u,2)); } // mid-outer-2 — 16%
-    else             { const u=Math.random(); nr = 0.85+0.15*Math.pow(u,1.5);    }  // outer — 26%
+    if      (t<0.08) nr = Math.random()*0.14;
+    else if (t<0.24) nr = 0.14 + Math.random()*0.25;
+    else if (t<0.36) nr = 0.39 + Math.random()*0.15;                             // mid-inner — 12%
+    else if (t<0.48) nr = 0.54 + Math.random()*0.15;                             // mid-outer-inner — 12%
+    else if (t<0.60) { const u=Math.random(); nr = 0.69+0.08*(1-Math.pow(1-u,2)); }
+    else if (t<0.74) { const u=Math.random(); nr = 0.77+0.08*(1-Math.pow(1-u,2)); }
+    else             { const u=Math.random(); nr = 0.85+0.15*Math.pow(u,1.5);    }
     const ang = Math.random()*Math.PI*2;
     ifR[i]=nr; ifANG[i]=ang; ifLR[i]=nr;
     const pr=nr*maxR;
@@ -3124,6 +3125,12 @@ function ifUpdate() {
   const w=CW,h=CH,cx_=w*0.5,cy_=h*0.5;
   const maxR=Math.min(w,h)*0.46;
   const spd=ifMode.speed*(1+ifThinking*0.8);
+
+  // Outer crescent direction — sample every 8th outer particle
+  let comX=0,comY=0,comN=0;
+  for(let i=0;i<NIF;i+=8){ if(ifLR[i]>0.85){comX+=ifX[i]-cx_;comY+=ifY[i]-cy_;comN++;} }
+  const crescentAng = comN>0 ? Math.atan2(comY/comN,comX/comN) : 0;
+  const antiAng = crescentAng + Math.PI; // opposite — where mid density should bias toward
 
   for(let i=0;i<NIF;i++){
     const lr=ifLR[i];
@@ -3195,6 +3202,19 @@ function ifUpdate() {
     const mdx=ifX[i]-mouse.x*w, mdy=ifY[i]-mouse.y*h;
     const md=Math.sqrt(mdx*mdx+mdy*mdy)+1;
     if(md<100){const mf=(100-md)/100*0.5;ifVX[i]+=(mdx/md)*mf;ifVY[i]+=(mdy/md)*mf;}
+
+    // Anti-crescent bias — mid layers nudge toward opposite side of outer crescent
+    if((isMid||isMidOut||isMidOut2) && comN>10){
+      const pAng = Math.atan2(ifY[i]-cy_, ifX[i]-cx_);
+      let dAng = antiAng - pAng;
+      // wrap to -PI..PI
+      while(dAng>Math.PI) dAng-=Math.PI*2;
+      while(dAng<-Math.PI) dAng+=Math.PI*2;
+      // gentle tangential push toward anti-crescent side
+      const biasStr = 0.012 * Math.abs(Math.sin(dAng*0.5));
+      ifVX[i] += Math.cos(antiAng) * biasStr;
+      ifVY[i] += Math.sin(antiAng) * biasStr;
+    }
 
     ifPulses.forEach(p=>{
       const pdx=ifX[i]-p.x,pdy=ifY[i]-p.y;

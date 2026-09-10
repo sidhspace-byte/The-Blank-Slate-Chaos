@@ -1514,8 +1514,8 @@ body {
   </div>
 
   <!-- ── NODE EDITOR PANEL — long-press any chamber node to open ── -->
-  <div id="ned-overlay" onclick="if(event.target===this)nedClose()" style="display:none;position:fixed;inset:0;z-index:500;"></div>
-  <div id="ned-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.97);border-left:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:501;transform:translateX(100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
+  <div id="ned-overlay" onclick="if(event.target===this)nedClose()" style="display:none;position:fixed;inset:0;z-index:9000;"></div>
+  <div id="ned-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.97);border-left:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:9001;transform:translateX(100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
     <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div id="ned-title" style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Node Editor</div>
@@ -1623,8 +1623,8 @@ body {
   </div>
 
   <!-- ── PARTICLE FIELD EDITOR ── -->
-  <div id="pfe-overlay" onclick="if(event.target===this)pfeClose()" style="display:none;position:fixed;inset:0;z-index:500;"></div>
-  <div id="pfe-panel" style="display:none;position:fixed;top:0;left:0;bottom:0;width:290px;background:rgba(7,6,8,0.97);border-right:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:501;transform:translateX(-100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
+  <div id="pfe-overlay" onclick="if(event.target===this)pfeClose()" style="display:none;position:fixed;inset:0;z-index:9000;"></div>
+  <div id="pfe-panel" style="display:none;position:fixed;top:0;left:0;bottom:0;width:290px;background:rgba(7,6,8,0.97);border-right:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:9001;transform:translateX(-100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
     <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Particle Field</div>
       <button onclick="pfeClose()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;line-height:1;">×</button>
@@ -6356,6 +6356,10 @@ function orbInit() {
   }, {passive:false});
 
   // ── CLICK / TAP ──
+  let nedJustOpened = false;
+  let pointerDownTime = 0;
+  let pointerDownNode = null;
+
   ORB.cv.addEventListener('click', e => {
     if (orbDragMoved) { orbDragMoved = false; return; }
     if (nedJustOpened) { nedJustOpened=false; return; }
@@ -6363,25 +6367,34 @@ function orbInit() {
     if (n) { orbEnter(n.id); }
   });
   ORB.cv.addEventListener('touchend', e => {
-    if (nedJustOpened) { nedJustOpened=false; orbDragMoved=false; return; }
+    if (nedJustOpened) { nedJustOpened=false; orbDragMoved=false; e.preventDefault(); return; }
     if (e.changedTouches.length===1 && !p0 && !dtActive && !orbDragMoved) {
       const t = e.changedTouches[0];
       const n = orbHitTest(t.clientX, t.clientY);
       if (n) { orbEnter(n.id); }
     }
     orbDragMoved = false;
-  }, {passive:true});
+  }, {passive:false});
 
   // ── LONG-PRESS → Node Editor ──
   let nedLongTimer = null;
-  let nedJustOpened = false;
   ORB.cv.addEventListener('pointerdown', e=>{
     const n = orbHitTest(e.clientX, e.clientY);
     if(!n) return;
-    nedLongTimer = setTimeout(()=>{ nedLongTimer=null; nedJustOpened=true; nedOpen(n.id); }, 600);
+    pointerDownNode = n.id;
+    pointerDownTime = Date.now();
+    nedLongTimer = setTimeout(()=>{
+      nedLongTimer=null;
+      nedJustOpened=true;
+      nedOpen(pointerDownNode);
+    }, 550);
   });
-  ORB.cv.addEventListener('pointerup',   ()=>{ if(nedLongTimer){clearTimeout(nedLongTimer);nedLongTimer=null;} });
-  ORB.cv.addEventListener('pointermove', ()=>{ if(nedLongTimer){clearTimeout(nedLongTimer);nedLongTimer=null;} });
+  ORB.cv.addEventListener('pointerup', ()=>{
+    if(nedLongTimer){ clearTimeout(nedLongTimer); nedLongTimer=null; }
+  });
+  ORB.cv.addEventListener('pointermove', e=>{
+    if(nedLongTimer){ clearTimeout(nedLongTimer); nedLongTimer=null; }
+  });
 
   // ── HOVER ──
   ORB.cv.addEventListener('mousemove', e => {
@@ -6430,8 +6443,11 @@ const PFE = {
 function pfeOpen(){
   const p = document.getElementById('pfe-panel');
   const o = document.getElementById('pfe-overlay');
-  p.style.display='block'; o.style.display='block';
-  requestAnimationFrame(()=>p.style.transform='translateX(0)');
+  p.style.display='block';
+  o.style.display='block';
+  p.style.transform='translateX(-100%)'; // ensure start position
+  p.getBoundingClientRect(); // force reflow
+  p.style.transform='translateX(0)';
   pfePopulate();
 }
 

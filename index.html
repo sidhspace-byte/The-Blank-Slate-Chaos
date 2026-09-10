@@ -6321,11 +6321,17 @@ function orbInit() {
   ORB.cv.addEventListener('mousemove', orbPointerMove);
   ORB.cv.addEventListener('mouseup', orbPointerUp);
 
-  // Unified touch handler — drag + zoom + tap in one place
+  let touchStartTime = 0;
+  let touchStartNode = null;
+  let longPressHandled = false;
+
   ORB.cv.addEventListener('touchstart', e => {
     e.preventDefault();
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
+    touchStartTime = Date.now();
+    touchStartNode = orbHitTest(t.clientX, t.clientY);
+    longPressHandled = false;
     const now = Date.now();
     if (now - dtLastTap < DT_WINDOW && !orbDrag) {
       dtActive = true; dtStartY = t.clientY;
@@ -6342,7 +6348,6 @@ function orbInit() {
       const dy = dtStartY - e.touches[0].clientY;
       const oldZoom = ORB.zoomTarget;
       ORB.zoomTarget = Math.max(ORB.ZOOM_MIN, Math.min(ORB.ZOOM_MAX, dtZoomBase * (1 + dy * 0.008)));
-      // Keep center stable during double-tap zoom
       const scale = ORB.zoomTarget / oldZoom;
       ORB.panTarget.x = (ORB.W/2 + ORB.pan.x) * scale - ORB.W/2;
       ORB.panTarget.y = (ORB.H/2 + ORB.pan.y) * scale - ORB.H/2;
@@ -6353,46 +6358,26 @@ function orbInit() {
 
   ORB.cv.addEventListener('touchend', e => {
     if (e.touches.length === 0) { dtActive = false; orbPointerUp(e); }
-  }, {passive:false});
-
-  // ── CLICK / TAP ──
-  let touchStartTime = 0;
-  let touchStartNode = null;
-  let longPressHandled = false;
-
-  ORB.cv.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const n = orbHitTest(t.clientX, t.clientY);
-    touchStartTime = Date.now();
-    touchStartNode = n ? n.id : null;
-    longPressHandled = false;
-  }, {passive:true});
-
-  ORB.cv.addEventListener('click', e => {
-    if (orbDragMoved) { orbDragMoved = false; return; }
-    if (longPressHandled) { longPressHandled=false; return; }
-    const n = orbHitTest(e.clientX, e.clientY);
-    if (n) { orbEnter(n.id); }
-  });
-
-  ORB.cv.addEventListener('touchend', e => {
-    if (orbDragMoved) { orbDragMoved = false; return; }
-    if (e.changedTouches.length !== 1) return;
+    if (orbDragMoved || e.changedTouches.length !== 1) { orbDragMoved=false; return; }
     const held = Date.now() - touchStartTime;
     const t = e.changedTouches[0];
     const n = orbHitTest(t.clientX, t.clientY);
-    if (!n) { orbDragMoved=false; return; }
-    if (held > 420 && touchStartNode === n.id) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      longPressHandled = true;
+    if (!n) return;
+    if (held > 420 && touchStartNode && touchStartNode.id === n.id) {
+      // Long press — open node editor
       nedOpen(n.id);
-    } else if (!p0 && !dtActive) {
+    } else if (!dtActive) {
       orbEnter(n.id);
     }
     orbDragMoved = false;
   }, {passive:false});
+
+  // ── CLICK / TAP — desktop only ──
+  ORB.cv.addEventListener('click', e => {
+    if (orbDragMoved) { orbDragMoved = false; return; }
+    const n = orbHitTest(e.clientX, e.clientY);
+    if (n) { orbEnter(n.id); }
+  });
 
   // ── HOVER ──
   ORB.cv.addEventListener('mousemove', e => {

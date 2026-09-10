@@ -1451,7 +1451,7 @@ body {
 
 
   <canvas id="orb-cv" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:3;"></canvas>
-  <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:10;display:flex;gap:10px;align-items:center;">
+  <div id="entry-data-bar" style="position:fixed;bottom:48px;left:24px;z-index:9500;display:flex;gap:10px;align-items:center;">
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
     <input type="file" id="import-file-top" accept=".json" onchange="importAll(this)" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
@@ -6323,7 +6323,24 @@ function orbInit() {
 
   let touchStartTime = 0;
   let touchStartNode = null;
-  let longPressHandled = false;
+  let holdTimer = null;
+  let holdRing = null;
+
+  function showHoldRing(x, y){
+    if(holdRing) holdRing.remove();
+    holdRing = document.createElement('div');
+    holdRing.style.cssText = `position:fixed;left:${x-22}px;top:${y-22}px;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(90,180,204,0.6);z-index:9999;pointer-events:none;animation:holdPulse 0.6s ease-out forwards;`;
+    document.body.appendChild(holdRing);
+  }
+  function hideHoldRing(){ if(holdRing){holdRing.remove();holdRing=null;} }
+
+  // Inject hold ring keyframe once
+  if(!document.getElementById('hold-ring-style')){
+    const s=document.createElement('style');
+    s.id='hold-ring-style';
+    s.textContent='@keyframes holdPulse{0%{transform:scale(0.5);opacity:0.8}100%{transform:scale(1.4);opacity:0;}}';
+    document.head.appendChild(s);
+  }
 
   ORB.cv.addEventListener('touchstart', e => {
     e.preventDefault();
@@ -6331,7 +6348,13 @@ function orbInit() {
     const t = e.touches[0];
     touchStartTime = Date.now();
     touchStartNode = orbHitTest(t.clientX, t.clientY);
-    longPressHandled = false;
+    // Start hold timer for visual feedback
+    if(holdTimer) clearTimeout(holdTimer);
+    if(touchStartNode){
+      holdTimer = setTimeout(()=>{
+        showHoldRing(t.clientX, t.clientY);
+      }, 200); // show ring after 200ms to hint user to keep holding
+    }
     const now = Date.now();
     if (now - dtLastTap < DT_WINDOW && !orbDrag) {
       dtActive = true; dtStartY = t.clientY;
@@ -6344,6 +6367,7 @@ function orbInit() {
 
   ORB.cv.addEventListener('touchmove', e => {
     e.preventDefault();
+    if(holdTimer){clearTimeout(holdTimer);holdTimer=null;hideHoldRing();}
     if (dtActive && e.touches.length === 1) {
       const dy = dtStartY - e.touches[0].clientY;
       const oldZoom = ORB.zoomTarget;
@@ -6357,14 +6381,15 @@ function orbInit() {
   }, {passive:false});
 
   ORB.cv.addEventListener('touchend', e => {
+    if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+    hideHoldRing();
     if (e.touches.length === 0) { dtActive = false; orbPointerUp(e); }
     if (orbDragMoved || e.changedTouches.length !== 1) { orbDragMoved=false; return; }
     const held = Date.now() - touchStartTime;
     const t = e.changedTouches[0];
     const n = orbHitTest(t.clientX, t.clientY);
     if (!n) return;
-    if (held > 420 && touchStartNode && touchStartNode.id === n.id) {
-      // Long press — open node editor
+    if (held > 600 && touchStartNode && touchStartNode.id === n.id) {
       nedOpen(n.id);
     } else if (!dtActive) {
       orbEnter(n.id);

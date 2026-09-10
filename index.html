@@ -6329,7 +6329,7 @@ function orbDraw() {
 
       for(let fi=0; fi<nStrands; fi++){
         const seed = fi*2.718 + ci*1.618;
-        const t0 = ORB.t*0.025;
+        const t0 = ORB.t*0.025 * zc; // drift slows when zoomed out, faster zoomed in
         const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
           const bx = ap.x + ddx*tt;
           const by = ap.y + ddy*tt;
@@ -6345,12 +6345,12 @@ function orbDraw() {
           ctx.bezierCurveTo(p1.x+(p2.x-p0.x)/6,p1.y+(p2.y-p0.y)/6,p2.x-(p3.x-p1.x)/6,p2.y-(p3.y-p1.y)/6,p2.x,p2.y);
         }
         const alBase = isCenter
-          ? 0.07+0.09*Math.abs(Math.sin(seed+t0*0.8))
-          : 0.05+0.06*Math.abs(Math.sin(seed+t0*0.7));
+          ? 0.18+0.14*Math.abs(Math.sin(seed+t0*0.8))
+          : 0.13+0.10*Math.abs(Math.sin(seed+t0*0.7));
         const al = alBase * alScale;
         ctx.strokeStyle = isCenter
-          ? `rgba(90,180,204,${Math.min(al,0.55)})`
-          : `rgba(200,144,42,${Math.min(al,0.40)})`;
+          ? `rgba(90,180,204,${Math.min(al,0.65)})`
+          : `rgba(200,144,42,${Math.min(al,0.52)})`;
         ctx.lineWidth = 0.5+0.3*Math.abs(Math.sin(seed));
         ctx.stroke();
       }

@@ -1515,7 +1515,7 @@ body {
 
   <!-- ── NODE EDITOR PANEL — long-press any chamber node to open ── -->
   <div id="ned-overlay" onclick="if(event.target===this)nedClose()" style="visibility:hidden;pointer-events:none;position:fixed;inset:0;z-index:9000;background:transparent;"></div>
-  <div id="ned-panel" style="visibility:hidden;pointer-events:none;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.97);border-left:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:9001;transform:translateX(100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
+  <div id="ned-panel" style="visibility:hidden;pointer-events:none;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.97);border-left:1px solid #2a2a2a;z-index:9001;overflow-y:auto;font-family:'DM Mono',monospace;">
     <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div id="ned-title" style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Node Editor</div>
@@ -1624,7 +1624,7 @@ body {
 
   <!-- ── PARTICLE FIELD EDITOR ── -->
   <div id="pfe-overlay" onclick="if(event.target===this)pfeClose()" style="visibility:hidden;pointer-events:none;position:fixed;inset:0;z-index:9000;background:transparent;"></div>
-  <div id="pfe-panel" style="visibility:hidden;pointer-events:none;position:fixed;top:0;left:0;bottom:0;width:290px;background:rgba(7,6,8,0.97);border-right:1px solid #2a2a2a;backdrop-filter:blur(16px);z-index:9001;transform:translateX(-100%);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);overflow-y:auto;font-family:'DM Mono',monospace;">
+  <div id="pfe-panel" style="visibility:hidden;pointer-events:none;position:fixed;top:0;left:0;bottom:0;width:290px;background:rgba(7,6,8,0.97);border-right:1px solid #2a2a2a;z-index:9001;overflow-y:auto;font-family:'DM Mono',monospace;">
     <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Particle Field</div>
       <button onclick="pfeClose()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;line-height:1;">×</button>
@@ -6343,6 +6343,9 @@ function orbInit() {
   }
 
   ORB.cv.addEventListener('touchstart', e => {
+    // Don't intercept touches on UI elements above the canvas
+    const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    if (el && el !== ORB.cv && (el.tagName==='BUTTON'||el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='LABEL'||el.closest('button')||el.closest('#entry-data-bar')||el.closest('#ned-panel')||el.closest('#pfe-panel'))) return;
     e.preventDefault();
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
@@ -6455,18 +6458,14 @@ function pfeOpen(){
   const o = document.getElementById('pfe-overlay');
   o.style.visibility='visible'; o.style.pointerEvents='auto';
   p.style.visibility='visible'; p.style.pointerEvents='auto';
-  p.style.transform='translateX(-100%)';
-  p.getBoundingClientRect();
-  p.style.transform='translateX(0)';
   pfePopulate();
 }
 
 function pfeClose(){
   const p=document.getElementById('pfe-panel');
   const o=document.getElementById('pfe-overlay');
-  p.style.transform='translateX(-100%)';
-  o.style.visibility='hidden'; o.style.pointerEvents='none';
-  setTimeout(()=>{ p.style.visibility='hidden'; p.style.pointerEvents='none'; },240);
+  if(p){ p.style.visibility='hidden'; p.style.pointerEvents='none'; }
+  if(o){ o.style.visibility='hidden'; o.style.pointerEvents='none'; }
 }
 
 function pfePopulate(){
@@ -6620,16 +6619,11 @@ function nedOpen(nodeId){
   document.getElementById('ned-merge-confirm').style.display='none';
   document.getElementById('ned-status').textContent='';
 
-  // Show panel
+  // Show panel instantly
   const overlay = document.getElementById('ned-overlay');
   const p = document.getElementById('ned-panel');
-  overlay.style.visibility='visible';
-  overlay.style.pointerEvents='auto';
-  p.style.visibility='visible';
-  p.style.pointerEvents='auto';
-  p.style.transform='translateX(100%)';
-  p.getBoundingClientRect();
-  p.style.transform='translateX(0)';
+  overlay.style.visibility='visible'; overlay.style.pointerEvents='auto';
+  p.style.visibility='visible'; p.style.pointerEvents='auto';
 }
 
 function nedRefreshConn(){
@@ -6820,11 +6814,8 @@ function nedStatus(msg){
 function nedClose(){
   const p=document.getElementById('ned-panel');
   const o=document.getElementById('ned-overlay');
-  if(p){ p.style.transform='translateX(100%)'; }
+  if(p){ p.style.visibility='hidden'; p.style.pointerEvents='none'; }
   if(o){ o.style.visibility='hidden'; o.style.pointerEvents='none'; }
-  setTimeout(()=>{
-    if(p){ p.style.visibility='hidden'; p.style.pointerEvents='none'; }
-  },240);
   nedNode=null;
 }
 

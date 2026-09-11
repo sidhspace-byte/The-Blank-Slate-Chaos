@@ -1507,132 +1507,6 @@ body {
     </div>
   </div>
 
-  <!-- ── EDIT MODAL ── -->
-  <div id="edit-modal" onclick="if(event.target===this)editModalClose()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);">
-    <div id="edit-panel" style="position:absolute;top:0;right:0;bottom:0;width:300px;background:#080708;border-left:1px solid #2a2a2a;overflow-y:auto;font-family:'DM Mono',monospace;">
-
-      <!-- Tabs -->
-      <div style="display:flex;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#080708;z-index:1;">
-        <button onclick="editTab('nodes')" id="etab-nodes" style="flex:1;background:none;border:none;border-bottom:2px solid #5ab4cc;color:#5ab4cc;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Nodes</button>
-        <button onclick="editTab('field')" id="etab-field" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#555;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Field</button>
-        <button onclick="editTab('wires')" id="etab-wires" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#555;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Wires</button>
-        <button onclick="editModalClose()" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 14px;">×</button>
-      </div>
-
-      <!-- NODES TAB -->
-      <div id="epane-nodes" style="padding:14px;">
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Select node to edit</div>
-        <select id="enode-sel" onchange="eNodeLoad()" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:10px;padding:7px;margin-bottom:14px;"></select>
-
-        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Label</label>
-        <input id="enode-label" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;box-sizing:border-box;margin-bottom:10px;">
-
-        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Symbol</label>
-        <input id="enode-sym" maxlength="3" style="width:80px;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;margin-bottom:10px;">
-
-        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Color</label>
-        <input type="color" id="enode-color" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:10px;">
-
-        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Ring (0=centre)</label>
-        <input id="enode-ring" type="number" min="0" max="5" style="width:60px;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;margin-bottom:14px;">
-
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
-          <button onclick="eNodeSave()" style="background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save Changes</button>
-          <button onclick="eNodeToggleVisible()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Toggle Hide</button>
-          <button onclick="eNodeClone()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Clone Node</button>
-          <button onclick="eNodeAdd()" style="background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">+ Add New Node</button>
-          <button onclick="eNodeDelete()" style="background:#1a0a0a;border:1px solid #3a1a1a;color:#a55;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Delete Node</button>
-        </div>
-
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Connections</div>
-        <div id="enode-conns" style="font-size:9px;color:#777;margin-bottom:8px;line-height:1.8;"></div>
-        <div style="display:flex;gap:6px;">
-          <select id="enode-conn-sel" style="flex:1;background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px;"></select>
-          <button onclick="eNodeAddConn()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px 10px;cursor:pointer;">+</button>
-        </div>
-        <div id="enode-status" style="font-size:8px;color:#5ab4cc;margin-top:8px;min-height:14px;"></div>
-      </div>
-
-      <!-- FIELD TAB -->
-      <div id="epane-field" style="padding:14px;display:none;">
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Global</div>
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Particle Count <span id="ef-count-v"></span></label>
-        <input type="range" id="ef-count" min="2000" max="20000" step="1000" oninput="efSync('count',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Speed <span id="ef-speed-v"></span></label>
-        <input type="range" id="ef-speed" min="0.1" max="3" step="0.05" oninput="efSync('speed',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Brightness <span id="ef-bright-v"></span></label>
-        <input type="range" id="ef-bright" min="0.2" max="3" step="0.05" oninput="efSync('bright',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Size <span id="ef-size-v"></span></label>
-        <input type="range" id="ef-size" min="0.3" max="3" step="0.05" oninput="efSync('size',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin:14px 0 10px;">Chaos & Physics</div>
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Outer Chaos <span id="ef-ochaos-v"></span></label>
-        <input type="range" id="ef-ochaos" min="0.1" max="6" step="0.1" oninput="efSync('ochaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Mid Chaos <span id="ef-mchaos-v"></span></label>
-        <input type="range" id="ef-mchaos" min="0.1" max="4" step="0.1" oninput="efSync('mchaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Radial Leash <span id="ef-leash-v"></span></label>
-        <input type="range" id="ef-leash" min="0.1" max="1.5" step="0.05" oninput="efSync('leash',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Orbit Strength <span id="ef-orbit-v"></span></label>
-        <input type="range" id="ef-orbit" min="0" max="0.003" step="0.0001" oninput="efSync('orbit',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Anti-Crescent Bias <span id="ef-bias-v"></span></label>
-        <input type="range" id="ef-bias" min="0" max="0.05" step="0.001" oninput="efSync('bias',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
-
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Layers</div>
-        <div id="ef-layers-list"></div>
-        <button onclick="efAddLayer()" style="width:100%;background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;padding:7px;cursor:pointer;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;">+ Add Layer</button>
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Particle Tint</label>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-          <input type="color" id="ef-tint" value="#c3deff" oninput="PFE.tint=this.value" style="width:44px;height:28px;border:1px solid #2a2a2a;background:#111;cursor:pointer;">
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-            <input type="checkbox" id="ef-tint-on" onchange="PFE.tintOn=this.checked" style="accent-color:#5ab4cc;">
-            <span style="font-size:8px;color:#666;text-transform:uppercase;letter-spacing:0.1em;">Use tint</span>
-          </label>
-        </div>
-
-        <div style="display:flex;gap:8px;">
-          <button onclick="efSave()" style="flex:1;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
-          <button onclick="efReset()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Reset All</button>
-        </div>
-        <div id="ef-status" style="font-size:8px;color:#5ab4cc;margin-top:8px;min-height:14px;"></div>
-      </div>
-
-      <!-- WIRES TAB -->
-      <div id="epane-wires" style="padding:14px;display:none;">
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Wire Appearance</div>
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Strands (centre) <span id="ew-sc-v"></span></label>
-        <input type="range" id="ew-sc" min="1" max="20" step="1" oninput="ewSync('strandsCentre',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Strands (ring) <span id="ew-sr-v"></span></label>
-        <input type="range" id="ew-sr" min="1" max="14" step="1" oninput="ewSync('strandsRing',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Amplitude <span id="ew-amp-v"></span></label>
-        <input type="range" id="ew-amp" min="1" max="30" step="0.5" oninput="ewSync('amp',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Opacity <span id="ew-op-v"></span></label>
-        <input type="range" id="ew-op" min="0.05" max="1" step="0.01" oninput="ewSync('opacity',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Centre color</label>
-        <input type="color" id="ew-cc" value="#5ab4cc" oninput="ewSync('colorCentre',this)" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:10px;">
-
-        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Ring color</label>
-        <input type="color" id="ew-rc" value="#c8902a" oninput="ewSync('colorRing',this)" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:14px;">
-
-        <button onclick="ewSave()" style="width:100%;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
-      </div>
-
-    </div>
-  </div>
   <div id="ned-overlay" onclick="if(event.target===this)nedClose()" style="visibility:hidden;pointer-events:none;position:fixed;inset:0;z-index:9000;background:transparent;"></div>
   <div id="ned-panel" style="visibility:hidden;pointer-events:none;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.97);border-left:1px solid #2a2a2a;z-index:9001;overflow-y:auto;font-family:'DM Mono',monospace;">
     <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
@@ -6572,9 +6446,10 @@ function orbInit() {
 
 function editModalOpen(){
   const m = document.getElementById('edit-modal');
+  if(!m) return;
   m.style.display = 'block';
   editTab('nodes');
-  eNodeRefreshSel();
+  if(typeof ORB !== 'undefined' && ORB.nodes) eNodeRefreshSel();
   efLoad();
   ewLoad();
 }
@@ -9919,5 +9794,131 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
   <button onclick="editModalOpen()" style="background:rgba(8,7,8,0.85);border:1px solid rgba(90,140,180,0.6);color:rgba(120,180,220,0.9);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">edit</button>
   <div id="data-status-top" style="font-size:9px;color:rgba(180,140,90,0.6);letter-spacing:0.1em;"></div>
 </div>
+  <!-- ── EDIT MODAL ── -->
+  <div id="edit-modal" onclick="if(event.target===this)editModalClose()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);">
+    <div id="edit-panel" style="position:absolute;top:0;right:0;bottom:0;width:300px;background:#080708;border-left:1px solid #2a2a2a;overflow-y:auto;font-family:'DM Mono',monospace;">
+
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#080708;z-index:1;">
+        <button onclick="editTab('nodes')" id="etab-nodes" style="flex:1;background:none;border:none;border-bottom:2px solid #5ab4cc;color:#5ab4cc;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Nodes</button>
+        <button onclick="editTab('field')" id="etab-field" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#555;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Field</button>
+        <button onclick="editTab('wires')" id="etab-wires" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#555;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Wires</button>
+        <button onclick="editModalClose()" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 14px;">×</button>
+      </div>
+
+      <!-- NODES TAB -->
+      <div id="epane-nodes" style="padding:14px;">
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Select node to edit</div>
+        <select id="enode-sel" onchange="eNodeLoad()" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:10px;padding:7px;margin-bottom:14px;"></select>
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Label</label>
+        <input id="enode-label" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;box-sizing:border-box;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Symbol</label>
+        <input id="enode-sym" maxlength="3" style="width:80px;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Color</label>
+        <input type="color" id="enode-color" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Ring (0=centre)</label>
+        <input id="enode-ring" type="number" min="0" max="5" style="width:60px;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;margin-bottom:14px;">
+
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+          <button onclick="eNodeSave()" style="background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save Changes</button>
+          <button onclick="eNodeToggleVisible()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Toggle Hide</button>
+          <button onclick="eNodeClone()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Clone Node</button>
+          <button onclick="eNodeAdd()" style="background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">+ Add New Node</button>
+          <button onclick="eNodeDelete()" style="background:#1a0a0a;border:1px solid #3a1a1a;color:#a55;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Delete Node</button>
+        </div>
+
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Connections</div>
+        <div id="enode-conns" style="font-size:9px;color:#777;margin-bottom:8px;line-height:1.8;"></div>
+        <div style="display:flex;gap:6px;">
+          <select id="enode-conn-sel" style="flex:1;background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px;"></select>
+          <button onclick="eNodeAddConn()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px 10px;cursor:pointer;">+</button>
+        </div>
+        <div id="enode-status" style="font-size:8px;color:#5ab4cc;margin-top:8px;min-height:14px;"></div>
+      </div>
+
+      <!-- FIELD TAB -->
+      <div id="epane-field" style="padding:14px;display:none;">
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Global</div>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Particle Count <span id="ef-count-v"></span></label>
+        <input type="range" id="ef-count" min="2000" max="20000" step="1000" oninput="efSync('count',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Speed <span id="ef-speed-v"></span></label>
+        <input type="range" id="ef-speed" min="0.1" max="3" step="0.05" oninput="efSync('speed',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Brightness <span id="ef-bright-v"></span></label>
+        <input type="range" id="ef-bright" min="0.2" max="3" step="0.05" oninput="efSync('bright',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Size <span id="ef-size-v"></span></label>
+        <input type="range" id="ef-size" min="0.3" max="3" step="0.05" oninput="efSync('size',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin:14px 0 10px;">Chaos & Physics</div>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Outer Chaos <span id="ef-ochaos-v"></span></label>
+        <input type="range" id="ef-ochaos" min="0.1" max="6" step="0.1" oninput="efSync('ochaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Mid Chaos <span id="ef-mchaos-v"></span></label>
+        <input type="range" id="ef-mchaos" min="0.1" max="4" step="0.1" oninput="efSync('mchaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Radial Leash <span id="ef-leash-v"></span></label>
+        <input type="range" id="ef-leash" min="0.1" max="1.5" step="0.05" oninput="efSync('leash',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Orbit Strength <span id="ef-orbit-v"></span></label>
+        <input type="range" id="ef-orbit" min="0" max="0.003" step="0.0001" oninput="efSync('orbit',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Anti-Crescent Bias <span id="ef-bias-v"></span></label>
+        <input type="range" id="ef-bias" min="0" max="0.05" step="0.001" oninput="efSync('bias',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
+
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Layers</div>
+        <div id="ef-layers-list"></div>
+        <button onclick="efAddLayer()" style="width:100%;background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;padding:7px;cursor:pointer;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;">+ Add Layer</button>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Particle Tint</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <input type="color" id="ef-tint" value="#c3deff" oninput="PFE.tint=this.value" style="width:44px;height:28px;border:1px solid #2a2a2a;background:#111;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="ef-tint-on" onchange="PFE.tintOn=this.checked" style="accent-color:#5ab4cc;">
+            <span style="font-size:8px;color:#666;text-transform:uppercase;letter-spacing:0.1em;">Use tint</span>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button onclick="efSave()" style="flex:1;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
+          <button onclick="efReset()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Reset All</button>
+        </div>
+        <div id="ef-status" style="font-size:8px;color:#5ab4cc;margin-top:8px;min-height:14px;"></div>
+      </div>
+
+      <!-- WIRES TAB -->
+      <div id="epane-wires" style="padding:14px;display:none;">
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Wire Appearance</div>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Strands (centre) <span id="ew-sc-v"></span></label>
+        <input type="range" id="ew-sc" min="1" max="20" step="1" oninput="ewSync('strandsCentre',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Strands (ring) <span id="ew-sr-v"></span></label>
+        <input type="range" id="ew-sr" min="1" max="14" step="1" oninput="ewSync('strandsRing',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Amplitude <span id="ew-amp-v"></span></label>
+        <input type="range" id="ew-amp" min="1" max="30" step="0.5" oninput="ewSync('amp',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Opacity <span id="ew-op-v"></span></label>
+        <input type="range" id="ew-op" min="0.05" max="1" step="0.01" oninput="ewSync('opacity',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Centre color</label>
+        <input type="color" id="ew-cc" value="#5ab4cc" oninput="ewSync('colorCentre',this)" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Ring color</label>
+        <input type="color" id="ew-rc" value="#c8902a" oninput="ewSync('colorRing',this)" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:14px;">
+
+        <button onclick="ewSave()" style="width:100%;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
+      </div>
+
+    </div>
+  </div>
 </body>
 </html>

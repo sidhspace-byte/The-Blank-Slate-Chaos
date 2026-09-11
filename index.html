@@ -6456,9 +6456,10 @@ const PFE = {
 function pfeOpen(){
   const p = document.getElementById('pfe-panel');
   const o = document.getElementById('pfe-overlay');
-  o.style.visibility='visible'; o.style.pointerEvents='auto';
-  p.style.visibility='visible'; p.style.pointerEvents='auto';
-  pfePopulate();
+  if(!p||!o) return;
+  o.style.cssText='visibility:visible;pointer-events:auto;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);';
+  p.style.cssText='visibility:visible;pointer-events:auto;position:fixed;top:0;left:0;bottom:0;width:290px;background:rgba(7,6,8,0.98);border-right:1px solid #2a2a2a;z-index:9001;overflow-y:auto;font-family:DM Mono,monospace;';
+  try { pfePopulate(); } catch(e) { console.error('pfePopulate error',e); }
 }
 
 function pfeClose(){
@@ -6574,56 +6575,39 @@ const NED_COLORS = ['#5ab4cc','#4a82cc','#8a5acc','#e02a18','#c8902a','#e83a20',
 let nedNode = null; // currently editing node id
 
 function nedOpen(nodeId){
-  // Debug flash — remove after confirming it works
-  const dbg=document.createElement('div');
-  dbg.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(90,180,204,0.9);color:#000;padding:8px 16px;z-index:99999;font-size:12px;font-family:monospace;border-radius:4px;';
-  dbg.textContent='NED: '+nodeId;
-  document.body.appendChild(dbg);
-  setTimeout(()=>dbg.remove(),2000);
-
   const n = ORB.nodes.find(x=>x.id===nodeId);
   if(!n) return;
   nedNode = nodeId;
 
-  // Populate fields
-  document.getElementById('ned-title').textContent = n.label || n.id;
-  document.getElementById('ned-sub').textContent = 'ring '+n.ring;
-  document.getElementById('ned-label').value = n.label || '';
-  document.getElementById('ned-sym').value = n.sym || '';
-  document.getElementById('ned-desc').value = n.desc || '';
-  document.getElementById('ned-ring').value = n.ring;
-  document.getElementById('ned-color-custom').value = n.color || '#ffffff';
-  document.getElementById('ned-vis-btn').textContent = n.hidden ? 'Show Node' : 'Hide Node';
-
-  // Color swatches
-  const cc = document.getElementById('ned-colors');
-  cc.innerHTML = '';
-  NED_COLORS.forEach(col=>{
-    const b = document.createElement('div');
-    b.style.cssText = `width:20px;height:20px;border-radius:50%;background:${col};cursor:pointer;border:2px solid ${col===n.color?'#fff':'transparent'};box-sizing:border-box;`;
-    b.onclick = ()=>{ nedSetColor(col); cc.querySelectorAll('div').forEach(x=>x.style.borderColor='transparent'); b.style.borderColor='#fff'; };
-    cc.appendChild(b);
-  });
-
-  // Connections list
-  nedRefreshConn();
-
-  // Merge / add-conn dropdowns
-  const others = ORB.nodes.filter(x=>x.id!==nodeId);
-  ['ned-conn-add-sel','ned-merge-sel'].forEach(sid=>{
-    const sel = document.getElementById(sid);
-    sel.innerHTML = others.map(x=>`<option value="${x.id}">${x.label||x.id}</option>`).join('');
-  });
-
-  document.getElementById('ned-merge-sel').style.display='none';
-  document.getElementById('ned-merge-confirm').style.display='none';
-  document.getElementById('ned-status').textContent='';
-
-  // Show panel instantly
+  // Show panel FIRST before anything else
   const overlay = document.getElementById('ned-overlay');
   const p = document.getElementById('ned-panel');
-  overlay.style.visibility='visible'; overlay.style.pointerEvents='auto';
-  p.style.visibility='visible'; p.style.pointerEvents='auto';
+  if(!overlay||!p) return;
+  overlay.style.cssText='visibility:visible;pointer-events:auto;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);';
+  p.style.cssText='visibility:visible;pointer-events:auto;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.98);border-left:1px solid #2a2a2a;z-index:9001;overflow-y:auto;font-family:DM Mono,monospace;';
+
+  // Populate fields safely
+  try {
+    const set = (id,v) => { const el=document.getElementById(id); if(el) { if('value' in el) el.value=v; else el.textContent=v; } };
+    set('ned-title', n.label||n.id);
+    set('ned-sub', 'ring '+n.ring);
+    set('ned-label', n.label||'');
+    set('ned-sym', n.sym||'');
+    set('ned-desc', n.desc||'');
+    set('ned-ring', n.ring);
+    set('ned-color-custom', n.color||'#ffffff');
+    const vb=document.getElementById('ned-vis-btn'); if(vb) vb.textContent=n.hidden?'Show Node':'Hide Node';
+    const cc=document.getElementById('ned-colors');
+    if(cc){ cc.innerHTML=''; NED_COLORS.forEach(col=>{ const b=document.createElement('div'); b.style.cssText=`width:20px;height:20px;border-radius:50%;background:${col};cursor:pointer;border:2px solid ${col===n.color?'#fff':'transparent'};box-sizing:border-box;`; b.onclick=()=>nedSetColor(col); cc.appendChild(b); }); }
+    nedRefreshConn();
+    const others=ORB.nodes.filter(x=>x.id!==nodeId);
+    ['ned-conn-add-sel','ned-merge-sel'].forEach(sid=>{ const sel=document.getElementById(sid); if(sel) sel.innerHTML=others.map(x=>`<option value="${x.id}">${x.label||x.id}</option>`).join(''); });
+    const ms=document.getElementById('ned-merge-sel'); if(ms) ms.style.display='none';
+    const mc=document.getElementById('ned-merge-confirm'); if(mc) mc.style.display='none';
+    const ns=document.getElementById('ned-status'); if(ns) ns.textContent='';
+  } catch(e) {
+    const ns=document.getElementById('ned-status'); if(ns) ns.textContent='Error: '+e.message;
+  }
 }
 
 function nedRefreshConn(){

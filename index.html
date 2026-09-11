@@ -3180,6 +3180,35 @@ body {
 // ====================================
 // STATE
 // ====================================
+
+// ── PFE / WS — declared early so ifUpdate/ifDraw can reference them ──
+const PFE = {
+  count:   12000,
+  speed:   1.0,
+  bright:  1.0,
+  size:    1.0,
+  ochaos:  1.2,
+  mchaos:  0.9,
+  leash:   0.70,
+  orbit:   0.0003,
+  bias:    0.012,
+  conn:    60,
+  tint:    '#c3deff',
+  tintOn:  false,
+  layers: [
+    { id:'core',     minR:0.00, maxR:0.14, density:0.08, chaos:0.05, bright:1.0, on:true },
+    { id:'inner',    minR:0.14, maxR:0.39, density:0.16, chaos:0.35, bright:1.0, on:true },
+    { id:'mid',      minR:0.39, maxR:0.54, density:0.12, chaos:0.9,  bright:1.0, on:true },
+    { id:'mid2',     minR:0.54, maxR:0.69, density:0.12, chaos:1.2,  bright:1.0, on:true },
+    { id:'midout',   minR:0.69, maxR:0.77, density:0.16, chaos:1.8,  bright:1.0, on:true },
+    { id:'midout2',  minR:0.77, maxR:0.85, density:0.16, chaos:2.4,  bright:1.0, on:true },
+    { id:'outer',    minR:0.85, maxR:1.00, density:0.20, chaos:3.8,  bright:1.0, on:true },
+  ]
+};
+(function(){ const s=localStorage.getItem('dr_pfe'); if(s) try{ Object.assign(PFE,JSON.parse(s)); }catch(e){} })();
+
+const WS = { strandsCentre:12, strandsRing:7, amp:9, opacity:0.35, colorCentre:'#5ab4cc', colorRing:'#c8902a' };
+(function(){ const s=localStorage.getItem('dr_ws'); if(s) try{ Object.assign(WS,JSON.parse(s)); }catch(e){} })();
 const D = {
   chamber:  'entry',
   stake:    'med',
@@ -6547,10 +6576,6 @@ function orbInit() {
 
 // ── EDIT MODAL ──────────────────────────────────────────────────────────────
 
-// Wire settings object
-const WS = { strandsCentre:12, strandsRing:7, amp:9, opacity:0.35, colorCentre:'#5ab4cc', colorRing:'#c8902a' };
-(function(){ const s=localStorage.getItem('dr_ws'); if(s) try{ Object.assign(WS,JSON.parse(s)); }catch(e){} })();
-
 function editModalOpen(){
   const m = document.getElementById('edit-modal');
   m.style.display = 'block';
@@ -6775,35 +6800,7 @@ function ewSave(){ localStorage.setItem('dr_ws',JSON.stringify(WS)); }
 
 
 // Live editable field params — all physics reads from here
-const PFE = {
-  count:   12000,
-  speed:   1.0,
-  bright:  1.0,
-  size:    1.0,
-  ochaos:  1.2,
-  mchaos:  0.9,
-  leash:   0.70,
-  orbit:   0.0003,
-  bias:    0.012,
-  conn:    60,
-  tint:    '#c3deff',
-  tintOn:  false,
-  layers: [
-    { id:'core',     minR:0.00, maxR:0.14, density:0.08, chaos:0.05, bright:1.0, on:true },
-    { id:'inner',    minR:0.14, maxR:0.39, density:0.16, chaos:0.35, bright:1.0, on:true },
-    { id:'mid',      minR:0.39, maxR:0.54, density:0.12, chaos:0.9,  bright:1.0, on:true },
-    { id:'mid2',     minR:0.54, maxR:0.69, density:0.12, chaos:1.2,  bright:1.0, on:true },
-    { id:'midout',   minR:0.69, maxR:0.77, density:0.16, chaos:1.8,  bright:1.0, on:true },
-    { id:'midout2',  minR:0.77, maxR:0.85, density:0.16, chaos:2.4,  bright:1.0, on:true },
-    { id:'outer',    minR:0.85, maxR:1.00, density:0.20, chaos:3.8,  bright:1.0, on:true },
-  ]
-};
 
-// Load saved PFE
-(function pfeRestore(){
-  const s = localStorage.getItem('dr_pfe');
-  if(s){ try{ Object.assign(PFE, JSON.parse(s)); }catch(e){} }
-})();
 
 function pfeOpen(){
   const p = document.getElementById('pfe-panel');

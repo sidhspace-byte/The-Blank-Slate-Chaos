@@ -6572,6 +6572,13 @@ const NED_COLORS = ['#5ab4cc','#4a82cc','#8a5acc','#e02a18','#c8902a','#e83a20',
 let nedNode = null; // currently editing node id
 
 function nedOpen(nodeId){
+  // Debug flash — remove after confirming it works
+  const dbg=document.createElement('div');
+  dbg.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(90,180,204,0.9);color:#000;padding:8px 16px;z-index:99999;font-size:12px;font-family:monospace;border-radius:4px;';
+  dbg.textContent='NED: '+nodeId;
+  document.body.appendChild(dbg);
+  setTimeout(()=>dbg.remove(),2000);
+
   const n = ORB.nodes.find(x=>x.id===nodeId);
   if(!n) return;
   nedNode = nodeId;
@@ -6614,7 +6621,9 @@ function nedOpen(nodeId){
   document.getElementById('ned-overlay').style.display='block';
   const p=document.getElementById('ned-panel');
   p.style.display='block';
-  requestAnimationFrame(()=>p.style.transform='translateX(0)');
+  p.style.transform='translateX(100%)';
+  p.getBoundingClientRect(); // force reflow
+  p.style.transform='translateX(0)';
 }
 
 function nedRefreshConn(){

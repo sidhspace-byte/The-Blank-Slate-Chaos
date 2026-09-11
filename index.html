@@ -1480,6 +1480,9 @@ body {
     <!-- Current chamber name -->
     <div id="nav-current" style="flex:1;display:flex;align-items:center;padding:0 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--ink-3);"></div>
 
+    <!-- Edit button -->
+    <button onclick="editModalOpen()" style="background:none;border:none;border-left:1px solid var(--border);padding:0 14px;cursor:pointer;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(90,180,204,0.7);height:100%;flex-shrink:0;">edit</button>
+
     <!-- Chamber menu trigger — wave symbol -->
     <button id="nav-menu-btn" onclick="toggleChamberMenu()" style="background:none;border:none;border-left:1px solid var(--border);padding:0 18px;cursor:pointer;display:flex;align-items:center;height:100%;flex-shrink:0;" title="Chambers">
       <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
@@ -1513,7 +1516,110 @@ body {
     </div>
   </div>
 
-  <!-- ── NODE EDITOR PANEL — long-press any chamber node to open ── -->
+  <!-- ── EDIT MODAL ── -->
+  <div id="edit-modal" onclick="if(event.target===this)editModalClose()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);">
+    <div id="edit-panel" style="position:absolute;top:0;right:0;bottom:0;width:300px;background:#080708;border-left:1px solid #2a2a2a;overflow-y:auto;font-family:'DM Mono',monospace;">
+
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#080708;z-index:1;">
+        <button onclick="editTab('nodes')" id="etab-nodes" style="flex:1;background:none;border:none;border-bottom:2px solid #5ab4cc;color:#5ab4cc;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Nodes</button>
+        <button onclick="editTab('field')" id="etab-field" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#555;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Field</button>
+        <button onclick="editTab('wires')" id="etab-wires" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#555;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:12px 4px;cursor:pointer;text-transform:uppercase;">Wires</button>
+        <button onclick="editModalClose()" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 14px;">×</button>
+      </div>
+
+      <!-- NODES TAB -->
+      <div id="epane-nodes" style="padding:14px;">
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Select node to edit</div>
+        <select id="enode-sel" onchange="eNodeLoad()" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:10px;padding:7px;margin-bottom:14px;"></select>
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Label</label>
+        <input id="enode-label" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;box-sizing:border-box;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Symbol</label>
+        <input id="enode-sym" maxlength="3" style="width:80px;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Color</label>
+        <input type="color" id="enode-color" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;">Ring (0=centre)</label>
+        <input id="enode-ring" type="number" min="0" max="5" style="width:60px;background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'DM Mono',monospace;font-size:11px;padding:7px;margin-bottom:14px;">
+
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+          <button onclick="eNodeSave()" style="background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save Changes</button>
+          <button onclick="eNodeToggleVisible()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Toggle Hide</button>
+          <button onclick="eNodeClone()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Clone Node</button>
+          <button onclick="eNodeAdd()" style="background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">+ Add New Node</button>
+          <button onclick="eNodeDelete()" style="background:#1a0a0a;border:1px solid #3a1a1a;color:#a55;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Delete Node</button>
+        </div>
+
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Connections</div>
+        <div id="enode-conns" style="font-size:9px;color:#777;margin-bottom:8px;line-height:1.8;"></div>
+        <div style="display:flex;gap:6px;">
+          <select id="enode-conn-sel" style="flex:1;background:#111;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px;"></select>
+          <button onclick="eNodeAddConn()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;padding:5px 10px;cursor:pointer;">+</button>
+        </div>
+        <div id="enode-status" style="font-size:8px;color:#5ab4cc;margin-top:8px;min-height:14px;"></div>
+      </div>
+
+      <!-- FIELD TAB -->
+      <div id="epane-field" style="padding:14px;display:none;">
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Particle Field</div>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Speed <span id="ef-speed-v"></span></label>
+        <input type="range" id="ef-speed" min="0.1" max="3" step="0.05" oninput="efSync('speed',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Brightness <span id="ef-bright-v"></span></label>
+        <input type="range" id="ef-bright" min="0.2" max="3" step="0.05" oninput="efSync('bright',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Size <span id="ef-size-v"></span></label>
+        <input type="range" id="ef-size" min="0.3" max="3" step="0.05" oninput="efSync('size',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Outer Chaos <span id="ef-ochaos-v"></span></label>
+        <input type="range" id="ef-ochaos" min="0.1" max="5" step="0.1" oninput="efSync('ochaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Mid Chaos <span id="ef-mchaos-v"></span></label>
+        <input type="range" id="ef-mchaos" min="0.1" max="4" step="0.1" oninput="efSync('mchaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Radial Leash <span id="ef-leash-v"></span></label>
+        <input type="range" id="ef-leash" min="0.1" max="1.5" step="0.05" oninput="efSync('leash',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Anti-Crescent Bias <span id="ef-bias-v"></span></label>
+        <input type="range" id="ef-bias" min="0" max="0.05" step="0.001" oninput="efSync('bias',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
+
+        <div style="display:flex;gap:8px;">
+          <button onclick="efSave()" style="flex:1;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
+          <button onclick="efReset()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Reset</button>
+        </div>
+      </div>
+
+      <!-- WIRES TAB -->
+      <div id="epane-wires" style="padding:14px;display:none;">
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Wire Appearance</div>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Strands (centre) <span id="ew-sc-v"></span></label>
+        <input type="range" id="ew-sc" min="1" max="20" step="1" oninput="ewSync('strandsCentre',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Strands (ring) <span id="ew-sr-v"></span></label>
+        <input type="range" id="ew-sr" min="1" max="14" step="1" oninput="ewSync('strandsRing',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Amplitude <span id="ew-amp-v"></span></label>
+        <input type="range" id="ew-amp" min="1" max="30" step="0.5" oninput="ewSync('amp',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Opacity <span id="ew-op-v"></span></label>
+        <input type="range" id="ew-op" min="0.05" max="1" step="0.01" oninput="ewSync('opacity',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Centre color</label>
+        <input type="color" id="ew-cc" value="#5ab4cc" oninput="ewSync('colorCentre',this)" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:10px;">
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Ring color</label>
+        <input type="color" id="ew-rc" value="#c8902a" oninput="ewSync('colorRing',this)" style="width:44px;height:32px;border:1px solid #2a2a2a;background:#111;cursor:pointer;margin-bottom:14px;">
+
+        <button onclick="ewSave()" style="width:100%;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
+      </div>
+
+    </div>
+  </div>
   <div id="ned-overlay" onclick="if(event.target===this)nedClose()" style="visibility:hidden;pointer-events:none;position:fixed;inset:0;z-index:9000;background:transparent;"></div>
   <div id="ned-panel" style="visibility:hidden;pointer-events:none;position:fixed;top:0;right:0;bottom:0;width:280px;background:rgba(7,6,8,0.97);border-left:1px solid #2a2a2a;z-index:9001;overflow-y:auto;font-family:'DM Mono',monospace;">
     <div style="padding:16px 18px 12px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
@@ -6420,7 +6526,183 @@ function orbInit() {
   orbDraw();
 }
 
-// ── PARTICLE FIELD EDITOR (PFE) ────────────────────────────────────────────
+// ── EDIT MODAL ──────────────────────────────────────────────────────────────
+
+// Wire settings object
+const WS = { strandsCentre:12, strandsRing:7, amp:9, opacity:0.35, colorCentre:'#5ab4cc', colorRing:'#c8902a' };
+(function(){ const s=localStorage.getItem('dr_ws'); if(s) try{ Object.assign(WS,JSON.parse(s)); }catch(e){} })();
+
+function editModalOpen(){
+  const m = document.getElementById('edit-modal');
+  m.style.display = 'block';
+  editTab('nodes');
+  eNodeRefreshSel();
+  efLoad();
+  ewLoad();
+}
+
+function editModalClose(){
+  document.getElementById('edit-modal').style.display = 'none';
+}
+
+function editTab(t){
+  ['nodes','field','wires'].forEach(id=>{
+    document.getElementById('epane-'+id).style.display = id===t ? 'block' : 'none';
+    const btn = document.getElementById('etab-'+id);
+    btn.style.color = id===t ? '#5ab4cc' : '#555';
+    btn.style.borderBottomColor = id===t ? '#5ab4cc' : 'transparent';
+  });
+}
+
+// ── NODE EDITING ──
+function eNodeRefreshSel(){
+  const sel = document.getElementById('enode-sel');
+  if(!sel||!ORB||!ORB.nodes) return;
+  sel.innerHTML = ORB.nodes.map(n=>`<option value="${n.id}">${n.label||n.id} (ring ${n.ring})</option>`).join('');
+  eNodeLoad();
+}
+
+function eNodeLoad(){
+  const sel = document.getElementById('enode-sel');
+  if(!sel) return;
+  const id = sel.value;
+  const n = ORB.nodes.find(x=>x.id===id);
+  if(!n) return;
+  document.getElementById('enode-label').value = n.label||'';
+  document.getElementById('enode-sym').value   = n.sym||'';
+  document.getElementById('enode-color').value  = n.color||'#ffffff';
+  document.getElementById('enode-ring').value   = n.ring;
+  // connections
+  const conns = (orbConnections||[]).filter(([a,b])=>a===id||b===id);
+  document.getElementById('enode-conns').innerHTML = conns.length
+    ? conns.map(([a,b])=>{
+        const oid=a===id?b:a, on=ORB.nodes.find(x=>x.id===oid);
+        return `<div style="display:flex;justify-content:space-between;"><span>${on?on.label:oid}</span><button onclick="eNodeRemConn('${oid}')" style="background:none;border:none;color:#a55;cursor:pointer;font-size:11px;">✕</button></div>`;
+      }).join('')
+    : '<span style="color:#444;">none</span>';
+  // conn add dropdown
+  const others = ORB.nodes.filter(x=>x.id!==id);
+  document.getElementById('enode-conn-sel').innerHTML = others.map(x=>`<option value="${x.id}">${x.label||x.id}</option>`).join('');
+}
+
+function eNodeSave(){
+  const id = document.getElementById('enode-sel').value;
+  const n = ORB.nodes.find(x=>x.id===id);
+  if(!n) return;
+  n.label = document.getElementById('enode-label').value.trim()||n.label;
+  n.sym   = document.getElementById('enode-sym').value.trim()||n.sym;
+  n.color = document.getElementById('enode-color').value;
+  n.ring  = Math.max(0,Math.min(5,parseInt(document.getElementById('enode-ring').value)||n.ring));
+  localStorage.setItem('dr_ned_nodes', JSON.stringify(ORB.nodes));
+  eNodeStatus('Saved ✓');
+  eNodeRefreshSel();
+}
+
+function eNodeToggleVisible(){
+  const id = document.getElementById('enode-sel').value;
+  const n = ORB.nodes.find(x=>x.id===id);
+  if(n){ n.hidden=!n.hidden; localStorage.setItem('dr_ned_nodes',JSON.stringify(ORB.nodes)); eNodeStatus(n.hidden?'Hidden':'Visible'); }
+}
+
+function eNodeClone(){
+  const id = document.getElementById('enode-sel').value;
+  const n = ORB.nodes.find(x=>x.id===id);
+  if(!n) return;
+  const newId='node_'+Date.now();
+  ORB.nodes.push({...n, id:newId, label:(n.label||id)+' 2'});
+  (orbConnections||[]).filter(([a,b])=>a===id||b===id).forEach(([a,b])=>{ orbConnections.push([newId,a===id?b:a]); });
+  localStorage.setItem('dr_ned_nodes',JSON.stringify(ORB.nodes));
+  localStorage.setItem('dr_orb_conn',JSON.stringify(orbConnections));
+  eNodeRefreshSel();
+  eNodeStatus('Cloned ✓');
+}
+
+function eNodeAdd(){
+  const newId='node_'+Date.now();
+  ORB.nodes.push({id:newId,ring:2,label:'New',sym:'N',color:'#aaaaaa',desc:'New chamber.'});
+  orbConnections = orbConnections||[];
+  orbConnections.push([newId,'wiring']);
+  localStorage.setItem('dr_ned_nodes',JSON.stringify(ORB.nodes));
+  localStorage.setItem('dr_orb_conn',JSON.stringify(orbConnections));
+  eNodeRefreshSel();
+  document.getElementById('enode-sel').value = newId;
+  eNodeLoad();
+  eNodeStatus('Added ✓');
+}
+
+function eNodeDelete(){
+  const id = document.getElementById('enode-sel').value;
+  const n = ORB.nodes.find(x=>x.id===id);
+  if(!n||n.ring===0){ eNodeStatus('Cannot delete centre'); return; }
+  if(!confirm('Delete "'+n.label+'"?')) return;
+  ORB.nodes = ORB.nodes.filter(x=>x.id!==id);
+  orbConnections = (orbConnections||[]).filter(([a,b])=>a!==id&&b!==id);
+  localStorage.setItem('dr_ned_nodes',JSON.stringify(ORB.nodes));
+  localStorage.setItem('dr_orb_conn',JSON.stringify(orbConnections));
+  eNodeRefreshSel();
+  eNodeStatus('Deleted');
+}
+
+function eNodeAddConn(){
+  const id = document.getElementById('enode-sel').value;
+  const oid = document.getElementById('enode-conn-sel').value;
+  if(!id||!oid) return;
+  orbConnections = orbConnections||[];
+  const exists = orbConnections.some(([a,b])=>(a===id&&b===oid)||(a===oid&&b===id));
+  if(!exists) orbConnections.push([id,oid]);
+  localStorage.setItem('dr_orb_conn',JSON.stringify(orbConnections));
+  eNodeLoad();
+  eNodeStatus('Connected ✓');
+}
+
+function eNodeRemConn(oid){
+  const id = document.getElementById('enode-sel').value;
+  orbConnections = (orbConnections||[]).filter(([a,b])=>!((a===id&&b===oid)||(a===oid&&b===id)));
+  localStorage.setItem('dr_orb_conn',JSON.stringify(orbConnections));
+  eNodeLoad();
+}
+
+function eNodeStatus(msg){ const s=document.getElementById('enode-status'); if(s){ s.textContent=msg; setTimeout(()=>s.textContent='',1800); } }
+
+// ── FIELD EDITING ──
+function efLoad(){
+  const map = {speed:'ef-speed',bright:'ef-bright',size:'ef-size',ochaos:'ef-ochaos',mchaos:'ef-mchaos',leash:'ef-leash',bias:'ef-bias'};
+  Object.entries(map).forEach(([k,id])=>{
+    const el=document.getElementById(id); if(el) el.value=PFE[k];
+    const vl=document.getElementById(id+'-v'); if(vl) vl.textContent=Number(PFE[k]).toFixed(2);
+  });
+}
+
+function efSync(k,el){
+  PFE[k]=parseFloat(el.value);
+  const vl=document.getElementById('ef-'+k.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())+'-v');
+  if(vl) vl.textContent=PFE[k].toFixed(2);
+}
+
+function efSave(){ localStorage.setItem('dr_pfe',JSON.stringify(PFE)); ifInited=false; eNodeStatus('Field saved'); }
+function efReset(){ localStorage.removeItem('dr_pfe'); location.reload(); }
+
+// ── WIRE EDITING ──
+function ewLoad(){
+  const map = {strandsCentre:'ew-sc',strandsRing:'ew-sr',amp:'ew-amp',opacity:'ew-op'};
+  Object.entries(map).forEach(([k,id])=>{
+    const el=document.getElementById(id); if(el) el.value=WS[k];
+    const vl=document.getElementById(id+'-v'); if(vl) vl.textContent=Number(WS[k]).toFixed(2);
+  });
+  const cc=document.getElementById('ew-cc'); if(cc) cc.value=WS.colorCentre;
+  const rc=document.getElementById('ew-rc'); if(rc) rc.value=WS.colorRing;
+}
+
+function ewSync(k,el){
+  WS[k] = el.type==='color' ? el.value : parseFloat(el.value);
+  const vl=document.getElementById('ew-'+k.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())+'-v');
+  if(vl) vl.textContent=typeof WS[k]==='number'?WS[k].toFixed(2):'';
+}
+
+function ewSave(){ localStorage.setItem('dr_ws',JSON.stringify(WS)); }
+
+// ── END EDIT MODAL ───────────────────────────────────────────────────────────
+
 
 // Live editable field params — all physics reads from here
 const PFE = {
@@ -6951,7 +7233,7 @@ function orbDraw() {
       if(len<2) return;
       const perpX=-ddy/len, perpY=ddx/len;
       const zc = Math.max(0.25, Math.min(z, 2.0));
-      const nStrands = Math.max(2, Math.round((isCenter?12:7)*Math.min(zc/0.6,1.0)));
+      const nStrands = Math.max(2, Math.round((isCenter?WS.strandsCentre:WS.strandsRing)*Math.min(zc/0.6,1.0)));
 
       for(let fi=0; fi<nStrands; fi++){
         const seed = fi*2.718 + ci*1.618;
@@ -6960,8 +7242,8 @@ function orbDraw() {
         const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
           const bx = ap.x + ddx*tt;
           const by = ap.y + ddy*tt;
-          const amp  = (isCenter?9:6) * Math.sin(seed + wi*1.9) * zc;
-          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?3.5:2.5) * zc;
+          const amp  = (isCenter?WS.amp:WS.amp*0.65) * Math.sin(seed + wi*1.9) * zc;
+          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * (isCenter?WS.amp*0.4:WS.amp*0.28) * zc;
           return { x: bx + perpX*(amp+slow), y: by + perpY*(amp+slow) };
         });
         const pts = [ap, ...wp, bp];
@@ -6973,12 +7255,12 @@ function orbDraw() {
         }
         // Brightness flat — not penalised by zoom
         const al = isCenter
-          ? 0.35 + 0.25*Math.abs(Math.sin(seed + t0*0.8))
-          : 0.22 + 0.18*Math.abs(Math.sin(seed + t0*0.7));
+          ? WS.opacity + (WS.opacity*0.7)*Math.abs(Math.sin(seed + t0*0.8))
+          : WS.opacity*0.65 + (WS.opacity*0.5)*Math.abs(Math.sin(seed + t0*0.7));
         ctx.strokeStyle = isCenter
-          ? `rgba(90,180,204,${Math.min(al,0.75)})`
-          : `rgba(200,144,42,${Math.min(al,0.60)})`;
-        ctx.lineWidth = 0.6 + 0.4*Math.abs(Math.sin(seed));
+          ? `${WS.colorCentre}${Math.round(Math.min(al,0.75)*255).toString(16).padStart(2,'0')}`
+          : `${WS.colorRing}${Math.round(Math.min(al,0.6)*255).toString(16).padStart(2,'0')}`;
+        ctx.lineWidth = 0.5+0.3*Math.abs(Math.sin(seed));
         ctx.stroke();
       }
     });

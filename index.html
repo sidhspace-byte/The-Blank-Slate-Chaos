@@ -6390,6 +6390,7 @@ function orbInit() {
     const n = orbHitTest(t.clientX, t.clientY);
     if (!n) return;
     if (held > 600 && touchStartNode && touchStartNode.id === n.id) {
+      e.preventDefault(); // block synthesized click → orbEnter
       nedOpen(n.id);
     } else if (!dtActive) {
       orbEnter(n.id);
@@ -6400,6 +6401,7 @@ function orbInit() {
   // ── CLICK / TAP — desktop only ──
   ORB.cv.addEventListener('click', e => {
     if (orbDragMoved) { orbDragMoved = false; return; }
+    if (nedNode) return; // NED is open — don't navigate
     const n = orbHitTest(e.clientX, e.clientY);
     if (n) { orbEnter(n.id); }
   });
@@ -6449,12 +6451,18 @@ const PFE = {
 })();
 
 function pfeOpen(){
+  const dbg=document.createElement('div');
+  dbg.style.cssText='position:fixed;top:50px;left:50%;transform:translateX(-50%);background:rgba(200,144,42,0.9);color:#000;padding:8px 16px;z-index:99999;font-size:12px;font-family:monospace;border-radius:4px;';
+  dbg.textContent='PFE OPEN';
+  document.body.appendChild(dbg);
+  setTimeout(()=>dbg.remove(),2000);
+
   const p = document.getElementById('pfe-panel');
   const o = document.getElementById('pfe-overlay');
   p.style.display='block';
   o.style.display='block';
-  p.style.transform='translateX(-100%)'; // ensure start position
-  p.getBoundingClientRect(); // force reflow
+  p.style.transform='translateX(-100%)';
+  p.getBoundingClientRect();
   p.style.transform='translateX(0)';
   pfePopulate();
 }

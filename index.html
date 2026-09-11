@@ -1561,7 +1561,10 @@ body {
 
       <!-- FIELD TAB -->
       <div id="epane-field" style="padding:14px;display:none;">
-        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Particle Field</div>
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Global</div>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Particle Count <span id="ef-count-v"></span></label>
+        <input type="range" id="ef-count" min="2000" max="20000" step="1000" oninput="efSync('count',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
 
         <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Speed <span id="ef-speed-v"></span></label>
         <input type="range" id="ef-speed" min="0.1" max="3" step="0.05" oninput="efSync('speed',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
@@ -1572,8 +1575,10 @@ body {
         <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Size <span id="ef-size-v"></span></label>
         <input type="range" id="ef-size" min="0.3" max="3" step="0.05" oninput="efSync('size',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
 
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin:14px 0 10px;">Chaos & Physics</div>
+
         <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Outer Chaos <span id="ef-ochaos-v"></span></label>
-        <input type="range" id="ef-ochaos" min="0.1" max="5" step="0.1" oninput="efSync('ochaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+        <input type="range" id="ef-ochaos" min="0.1" max="6" step="0.1" oninput="efSync('ochaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
 
         <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Mid Chaos <span id="ef-mchaos-v"></span></label>
         <input type="range" id="ef-mchaos" min="0.1" max="4" step="0.1" oninput="efSync('mchaos',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
@@ -1581,13 +1586,30 @@ body {
         <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Radial Leash <span id="ef-leash-v"></span></label>
         <input type="range" id="ef-leash" min="0.1" max="1.5" step="0.05" oninput="efSync('leash',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
 
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Orbit Strength <span id="ef-orbit-v"></span></label>
+        <input type="range" id="ef-orbit" min="0" max="0.003" step="0.0001" oninput="efSync('orbit',this)" style="width:100%;margin-bottom:10px;accent-color:#5ab4cc;">
+
         <label style="font-size:8px;color:#666;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.12em;">Anti-Crescent Bias <span id="ef-bias-v"></span></label>
         <input type="range" id="ef-bias" min="0" max="0.05" step="0.001" oninput="efSync('bias',this)" style="width:100%;margin-bottom:14px;accent-color:#5ab4cc;">
 
+        <div style="font-size:8px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Layers</div>
+        <div id="ef-layers-list"></div>
+        <button onclick="efAddLayer()" style="width:100%;background:#1a1a2a;border:1px solid #2a2a4a;color:#88a;font-family:'DM Mono',monospace;font-size:9px;padding:7px;cursor:pointer;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;">+ Add Layer</button>
+
+        <label style="font-size:8px;color:#666;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.12em;">Particle Tint</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <input type="color" id="ef-tint" value="#c3deff" oninput="PFE.tint=this.value" style="width:44px;height:28px;border:1px solid #2a2a2a;background:#111;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="ef-tint-on" onchange="PFE.tintOn=this.checked" style="accent-color:#5ab4cc;">
+            <span style="font-size:8px;color:#666;text-transform:uppercase;letter-spacing:0.1em;">Use tint</span>
+          </label>
+        </div>
+
         <div style="display:flex;gap:8px;">
           <button onclick="efSave()" style="flex:1;background:#1a2a1a;border:1px solid #2a4a2a;color:#8c8;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Save</button>
-          <button onclick="efReset()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Reset</button>
+          <button onclick="efReset()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:'DM Mono',monospace;font-size:9px;padding:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.15em;">Reset All</button>
         </div>
+        <div id="ef-status" style="font-size:8px;color:#5ab4cc;margin-top:8px;min-height:14px;"></div>
       </div>
 
       <!-- WIRES TAB -->
@@ -6663,20 +6685,71 @@ function eNodeStatus(msg){ const s=document.getElementById('enode-status'); if(s
 
 // ── FIELD EDITING ──
 function efLoad(){
-  const map = {speed:'ef-speed',bright:'ef-bright',size:'ef-size',ochaos:'ef-ochaos',mchaos:'ef-mchaos',leash:'ef-leash',bias:'ef-bias'};
-  Object.entries(map).forEach(([k,id])=>{
+  const fields = {count:'ef-count',speed:'ef-speed',bright:'ef-bright',size:'ef-size',
+                  ochaos:'ef-ochaos',mchaos:'ef-mchaos',leash:'ef-leash',orbit:'ef-orbit',bias:'ef-bias'};
+  Object.entries(fields).forEach(([k,id])=>{
     const el=document.getElementById(id); if(el) el.value=PFE[k];
-    const vl=document.getElementById(id+'-v'); if(vl) vl.textContent=Number(PFE[k]).toFixed(2);
+    const vl=document.getElementById(id+'-v'); if(vl) vl.textContent=Number(PFE[k])<0.001?Number(PFE[k]).toFixed(4):Number(PFE[k]).toFixed(2);
   });
+  const tc=document.getElementById('ef-tint'); if(tc) tc.value=PFE.tint||'#c3deff';
+  const to=document.getElementById('ef-tint-on'); if(to) to.checked=PFE.tintOn||false;
+  efRenderLayers();
 }
 
 function efSync(k,el){
-  PFE[k]=parseFloat(el.value);
-  const vl=document.getElementById('ef-'+k.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())+'-v');
-  if(vl) vl.textContent=PFE[k].toFixed(2);
+  const v = parseFloat(el.value);
+  PFE[k]=v;
+  const vl=document.getElementById('ef-'+k+'-v');
+  if(vl) vl.textContent=v<0.001?v.toFixed(4):v.toFixed(2);
+  if(k==='count'){ NIF=Math.round(v); ifInited=false; }
 }
 
-function efSave(){ localStorage.setItem('dr_pfe',JSON.stringify(PFE)); ifInited=false; eNodeStatus('Field saved'); }
+function efRenderLayers(){
+  const div=document.getElementById('ef-layers-list');
+  if(!div) return;
+  div.innerHTML=PFE.layers.map((l,i)=>`
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:2px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <input value="${l.id}" onchange="PFE.layers[${i}].id=this.value" style="background:none;border:none;color:#aaa;font-family:'DM Mono',monospace;font-size:9px;width:80px;text-transform:uppercase;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:8px;color:#555;">
+            <input type="checkbox" ${l.on!==false?'checked':''} onchange="PFE.layers[${i}].on=this.checked" style="accent-color:#5ab4cc;">on
+          </label>
+          <button onclick="efDeleteLayer(${i})" style="background:none;border:none;color:#644;font-size:12px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:8px;color:#666;">
+        <div>minR <b style="color:#888">${l.minR.toFixed(2)}</b><br>
+          <input type="range" min="0" max="1" step="0.01" value="${l.minR}" oninput="PFE.layers[${i}].minR=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
+        <div>maxR <b style="color:#888">${l.maxR.toFixed(2)}</b><br>
+          <input type="range" min="0" max="1.2" step="0.01" value="${l.maxR}" oninput="PFE.layers[${i}].maxR=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
+        <div>density <b style="color:#888">${l.density.toFixed(2)}</b><br>
+          <input type="range" min="0.01" max="0.5" step="0.01" value="${l.density}" oninput="PFE.layers[${i}].density=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
+        <div>chaos <b style="color:#888">${l.chaos.toFixed(2)}</b><br>
+          <input type="range" min="0.01" max="6" step="0.1" value="${l.chaos}" oninput="PFE.layers[${i}].chaos=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
+        <div>brightness <b style="color:#888">${l.bright.toFixed(2)}</b><br>
+          <input type="range" min="0.1" max="3" step="0.05" value="${l.bright}" oninput="PFE.layers[${i}].bright=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
+      </div>
+    </div>`).join('');
+}
+
+function efAddLayer(){
+  PFE.layers.push({id:'layer'+PFE.layers.length,minR:0.5,maxR:0.7,density:0.10,chaos:1.0,bright:1.0,on:true});
+  efRenderLayers();
+}
+
+function efDeleteLayer(i){
+  if(PFE.layers.length<=1) return;
+  PFE.layers.splice(i,1);
+  efRenderLayers();
+}
+
+function efSave(){
+  localStorage.setItem('dr_pfe',JSON.stringify(PFE));
+  ifInited=false;
+  const s=document.getElementById('ef-status'); if(s){s.textContent='Saved ✓ — field reinitialising';setTimeout(()=>s.textContent='',2000);}
+}
+
 function efReset(){ localStorage.removeItem('dr_pfe'); location.reload(); }
 
 // ── WIRE EDITING ──

@@ -1455,7 +1455,7 @@ body {
     <button onclick="exportAll()" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">export</button>
     <label for="import-file-top" style="background:none;border:1px solid rgba(138,100,60,0.4);color:rgba(180,140,90,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">import</label>
     <input type="file" id="import-file-top" accept=".json" onchange="importAll(this)" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
-    <button onclick="pfeOpen()" style="background:none;border:1px solid rgba(90,140,180,0.4);color:rgba(120,180,220,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">field</button>
+    <button id="pfe-btn" onclick="pfeOpen()" style="background:none;border:1px solid rgba(90,140,180,0.4);color:rgba(120,180,220,0.7);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;">field</button>
     <div id="data-status-top" style="font-size:9px;color:rgba(180,140,90,0.6);letter-spacing:0.1em;"></div>
   </div>
   <div id="orb-hint" style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(90,84,80,0.7);pointer-events:none;">scroll to zoom · click to enter</div>
@@ -6879,6 +6879,7 @@ function orbPointerUp(e) {
 }
 
 function orbEnter(id) {
+  if (nedNode) return; // NED is open — don't navigate
   if (ORB.cv) {
     ORB.cv.style.pointerEvents = 'none';
     ORB.cv.style.opacity = '0';
@@ -7117,6 +7118,17 @@ function orbTryInit() {
   }, d));
 }
 setTimeout(orbTryInit, 80);
+
+// Direct touch listeners on buttons the canvas might swallow
+document.addEventListener('DOMContentLoaded', function(){
+  const pfeBtn = document.getElementById('pfe-btn');
+  if(pfeBtn){
+    pfeBtn.addEventListener('touchend', function(e){
+      e.stopPropagation();
+      pfeOpen();
+    }, {passive:false});
+  }
+});
 
 
 // ====================================

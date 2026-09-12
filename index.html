@@ -1430,6 +1430,41 @@ body {
 }
 .ai-status.ok { color: var(--reload); }
 .ai-status.err { color: var(--red); }
+.ai-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.scope-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--ink-4);
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.scope-btn:hover { border-color: var(--warm-dim); color: var(--ink-3); }
+.scope-btn.scope-local { border-color: var(--warm); color: var(--warm); }
+.scan-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--ink-4);
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.scan-btn:hover { border-color: var(--cool); color: var(--cool); }
 #ch-lens .ch-name { color: var(--red); }
 .nav-tab[data-c="lens"]::after { background: var(--red); }
 </style>
@@ -1793,16 +1828,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('load')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-load" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-load" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('load',this.value)" onblur="saveWorkerUrlForChamber('load',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-load" onchange="saveAIModel(this.value)">
+          <select id="ai-model-load" onchange="saveAIModelForChamber('load',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-load" onclick="toggleChamberScope('load')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('load')">Scan models</button>
         </div>
       </div>
     </div>
@@ -1978,16 +2017,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('map')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-map" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-map" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('map',this.value)" onblur="saveWorkerUrlForChamber('map',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-map" onchange="saveAIModel(this.value)">
+          <select id="ai-model-map" onchange="saveAIModelForChamber('map',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-map" onclick="toggleChamberScope('map')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('map')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2053,16 +2096,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('aim')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-aim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-aim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('aim',this.value)" onblur="saveWorkerUrlForChamber('aim',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-aim" onchange="saveAIModel(this.value)">
+          <select id="ai-model-aim" onchange="saveAIModelForChamber('aim',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-aim" onclick="toggleChamberScope('aim')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('aim')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2119,16 +2166,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('fire')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-fire" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-fire" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('fire',this.value)" onblur="saveWorkerUrlForChamber('fire',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-fire" onchange="saveAIModel(this.value)">
+          <select id="ai-model-fire" onchange="saveAIModelForChamber('fire',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-fire" onclick="toggleChamberScope('fire')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('fire')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2174,16 +2225,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('reload')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-reload" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-reload" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('reload',this.value)" onblur="saveWorkerUrlForChamber('reload',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-reload" onchange="saveAIModel(this.value)">
+          <select id="ai-model-reload" onchange="saveAIModelForChamber('reload',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-reload" onclick="toggleChamberScope('reload')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('reload')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2341,16 +2396,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('train')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-train" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-train" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('train',this.value)" onblur="saveWorkerUrlForChamber('train',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-train" onchange="saveAIModel(this.value)">
+          <select id="ai-model-train" onchange="saveAIModelForChamber('train',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-train" onclick="toggleChamberScope('train')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('train')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2480,16 +2539,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('sim')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-sim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-sim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('sim',this.value)" onblur="saveWorkerUrlForChamber('sim',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-sim" onchange="saveAIModel(this.value)">
+          <select id="ai-model-sim" onchange="saveAIModelForChamber('sim',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-sim" onclick="toggleChamberScope('sim')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('sim')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2573,16 +2636,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('formulas')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-formulas" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-formulas" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('formulas',this.value)" onblur="saveWorkerUrlForChamber('formulas',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-formulas" onchange="saveAIModel(this.value)">
+          <select id="ai-model-formulas" onchange="saveAIModelForChamber('formulas',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-formulas" onclick="toggleChamberScope('formulas')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('formulas')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2780,16 +2847,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('wiring')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-wiring" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-wiring" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('wiring',this.value)" onblur="saveWorkerUrlForChamber('wiring',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-wiring" onchange="saveAIModel(this.value)">
+          <select id="ai-model-wiring" onchange="saveAIModelForChamber('wiring',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-wiring" onclick="toggleChamberScope('wiring')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('wiring')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2841,16 +2912,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('projects')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-projects" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-projects" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('projects',this.value)" onblur="saveWorkerUrlForChamber('projects',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-projects" onchange="saveAIModel(this.value)">
+          <select id="ai-model-projects" onchange="saveAIModelForChamber('projects',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-projects" onclick="toggleChamberScope('projects')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('projects')">Scan models</button>
         </div>
       </div>
     </div>
@@ -2922,16 +2997,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('forge')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-forge" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-forge" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('forge',this.value)" onblur="saveWorkerUrlForChamber('forge',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-forge" onchange="saveAIModel(this.value)">
+          <select id="ai-model-forge" onchange="saveAIModelForChamber('forge',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-forge" onclick="toggleChamberScope('forge')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('forge')">Scan models</button>
         </div>
       </div>
     </div>
@@ -3026,16 +3105,20 @@ body {
         <button class="ai-clear-btn" onclick="clearAIChat('lens')">clear conversation</button>
         <div class="ai-config-row" style="margin-top:12px;">
           <span class="ai-config-label">Worker URL</span>
-          <input type="text" id="ai-url-lens" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrl(this.value);syncAllUrls(this.value)" onblur="saveWorkerUrl(this.value);syncAllUrls(this.value)">
+          <input type="text" id="ai-url-lens" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('lens',this.value)" onblur="saveWorkerUrlForChamber('lens',this.value)">
         </div>
         <div class="ai-model-row">
           <span class="ai-config-label">Model</span>
-          <select id="ai-model-lens" onchange="saveAIModel(this.value)">
+          <select id="ai-model-lens" onchange="saveAIModelForChamber('lens',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
           </select>
+        </div>
+        <div class="ai-scope-row">
+          <button class="scope-btn" id="scope-btn-lens" onclick="toggleChamberScope('lens')">All chambers</button>
+          <button class="scan-btn" onclick="scanModels('lens')">Scan models</button>
         </div>
       </div>
     </div>
@@ -9572,9 +9655,55 @@ DR_KEYS.push('dr_custom_formulas');
 
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────
 
-const AI_WORKER_KEY = 'dr_ai_worker_url';
-const AI_MODEL_KEY = 'dr_ai_model';
-const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b'; // fallback
+const AI_WORKER_KEY = 'dr_ai_worker_url';       // global worker URL
+const AI_MODEL_KEY  = 'dr_ai_model';              // global model
+const AI_DEFAULT_MODEL = 'openai/gpt-oss-120b';   // fallback if nothing scanned yet
+
+// ── SCOPED WORKER URL ──────────────────────────────────────────────
+// Each chamber can have its own URL (dr_worker_<ch>) or fall back to global.
+// Scope is stored in dr_scope_<ch>: 'global' (default) or 'local'
+
+function getChamberScope(ch) {
+  return localStorage.getItem('dr_scope_' + ch) || 'global';
+}
+
+function setChamberScope(ch, scope) {
+  localStorage.setItem('dr_scope_' + ch, scope);
+}
+
+function getWorkerUrlForChamber(ch) {
+  if (getChamberScope(ch) === 'local') {
+    return localStorage.getItem('dr_worker_' + ch) || getWorkerUrl();
+  }
+  return getWorkerUrl();
+}
+
+function saveWorkerUrlForChamber(ch, url) {
+  if (getChamberScope(ch) === 'local') {
+    localStorage.setItem('dr_worker_' + ch, url.trim());
+  } else {
+    saveWorkerUrl(url);
+    syncAllUrls(url);
+  }
+}
+
+// ── SCOPED MODEL ──────────────────────────────────────────────────
+// Each chamber can have its own model (dr_model_<ch>) or fall back to global.
+
+function getAIModelForChamber(ch) {
+  if (getChamberScope(ch) === 'local') {
+    return localStorage.getItem('dr_model_' + ch) || getAIModel();
+  }
+  return getAIModel();
+}
+
+function saveAIModelForChamber(ch, val) {
+  if (getChamberScope(ch) === 'local') {
+    localStorage.setItem('dr_model_' + ch, val);
+  } else {
+    saveAIModel(val);
+  }
+}
 
 function getAIModel() {
   return localStorage.getItem(AI_MODEL_KEY) || AI_DEFAULT_MODEL;
@@ -9582,8 +9711,136 @@ function getAIModel() {
 
 function saveAIModel(val) {
   localStorage.setItem(AI_MODEL_KEY, val);
-  // Sync all selects
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = val; });
+  // Sync all global-scoped selects
+  document.querySelectorAll('[id^="ai-model-"]').forEach(s => {
+    const ch = s.id.replace('ai-model-', '');
+    if (getChamberScope(ch) === 'global') s.value = val;
+  });
+}
+
+// ── SCOPE TOGGLE ──────────────────────────────────────────────────
+function toggleChamberScope(ch) {
+  const current = getChamberScope(ch);
+  const next = current === 'global' ? 'local' : 'global';
+  setChamberScope(ch, next);
+
+  const btn = document.getElementById('scope-btn-' + ch);
+  const urlInp = document.getElementById('ai-url-' + ch);
+  const modelSel = document.getElementById('ai-model-' + ch);
+
+  if (next === 'local') {
+    btn.textContent = 'This chamber only';
+    btn.classList.add('scope-local');
+    // Show chamber's own saved URL/model if any
+    urlInp.value = localStorage.getItem('dr_worker_' + ch) || getWorkerUrl();
+    modelSel.value = localStorage.getItem('dr_model_' + ch) || getAIModel();
+  } else {
+    btn.textContent = 'All chambers';
+    btn.classList.remove('scope-local');
+    urlInp.value = getWorkerUrl();
+    modelSel.value = getAIModel();
+  }
+  updateChamberStatus(ch);
+}
+
+// ── MODEL SCAN ────────────────────────────────────────────────────
+// Fires GET /models to the worker, populates the dropdown, reports diagnostics.
+
+async function scanModels(ch) {
+  const statusEl = document.getElementById('ai-status-' + ch);
+  const modelSel = document.getElementById('ai-model-' + ch);
+  const url = getWorkerUrlForChamber(ch);
+
+  if (!url) {
+    statusEl.className = 'ai-status err';
+    statusEl.textContent = 'No Worker URL set — paste one first';
+    return;
+  }
+
+  statusEl.className = 'ai-status';
+  statusEl.textContent = 'scanning…';
+
+  try {
+    const res = await fetch(url + '/models', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // ── HARD FAIL: HTTP error ──────────────────────────────────────
+    if (!res.ok) {
+      let detail = '';
+      if (res.status === 401 || res.status === 403) {
+        detail = 'API key rejected (401/403). Key wrong, expired, or no permission to list models. Key may still work for chat — enter model name manually.';
+      } else if (res.status === 404) {
+        detail = '/models route not found on Worker (404). Worker needs the /models endpoint added — see worker code.';
+      } else if (res.status === 429) {
+        detail = 'Rate limited (429). Too many requests. Wait a moment and try again.';
+      } else {
+        detail = `Worker returned HTTP ${res.status}. Check Worker logs in Cloudflare dashboard.`;
+      }
+      statusEl.className = 'ai-status err';
+      statusEl.textContent = detail;
+      return;
+    }
+
+    const data = await res.json();
+
+    // ── SOFT FAIL: unexpected format ──────────────────────────────
+    if (!data || !Array.isArray(data.data)) {
+      statusEl.className = 'ai-status err';
+      statusEl.textContent = `Unexpected response format — got: ${JSON.stringify(data).slice(0, 120)}. Worker may be returning chat format instead of models list.`;
+      return;
+    }
+
+    // ── SUCCESS ───────────────────────────────────────────────────
+    const models = data.data.map(m => m.id || m.name).filter(Boolean).sort();
+    if (models.length === 0) {
+      statusEl.className = 'ai-status err';
+      statusEl.textContent = 'Models endpoint returned empty list. Key active but provider has no models available under it.';
+      return;
+    }
+
+    // Store scanned models globally so all chambers can use them
+    localStorage.setItem('dr_scanned_models', JSON.stringify(models));
+
+    // Repopulate all model selects
+    rebuildAllModelSelects(models);
+
+    // Set status
+    statusEl.className = 'ai-status ok';
+    statusEl.textContent = `${models.length} model${models.length !== 1 ? 's' : ''} found`;
+
+  } catch (err) {
+    // ── HARD FAIL: network / CORS ────────────────────────────────
+    let detail = '';
+    if (err.name === 'TypeError' && err.message.includes('fetch')) {
+      detail = 'Network error — Worker URL unreachable. Check URL, or CORS not set on Worker.';
+    } else {
+      detail = `Scan failed: ${err.message}`;
+    }
+    statusEl.className = 'ai-status err';
+    statusEl.textContent = detail;
+  }
+}
+
+function rebuildAllModelSelects(models) {
+  const currentModel = getAIModel();
+  document.querySelectorAll('[id^="ai-model-"]').forEach(sel => {
+    const ch = sel.id.replace('ai-model-', '');
+    const chamberModel = getChamberScope(ch) === 'local'
+      ? (localStorage.getItem('dr_model_' + ch) || currentModel)
+      : currentModel;
+    sel.innerHTML = models.map(m =>
+      `<option value="${m}" ${m === chamberModel ? 'selected' : ''}>${m}</option>`
+    ).join('');
+  });
+}
+
+function restoreScannedModels() {
+  const stored = localStorage.getItem('dr_scanned_models');
+  if (stored) {
+    try { rebuildAllModelSelects(JSON.parse(stored)); } catch(e) {}
+  }
 }
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on
 
@@ -9614,6 +9871,14 @@ function saveWorkerUrl(url) {
   localStorage.setItem(AI_WORKER_KEY, url.trim());
 }
 
+function updateChamberStatus(ch) {
+  const statusEl = document.getElementById('ai-status-' + ch);
+  if (!statusEl) return;
+  const url = getWorkerUrlForChamber(ch);
+  statusEl.className = url ? 'ai-status ok' : 'ai-status err';
+  statusEl.textContent = url ? 'connected' : 'Paste Worker URL below';
+}
+
 function getAIStates() {
   try { return JSON.parse(localStorage.getItem(AI_STATES_KEY) || '{}'); } catch { return {}; }
 }
@@ -9640,28 +9905,35 @@ function toggleAIPanel(ch) {
 }
 
 function ensureWorkerConfig(ch) {
-  const statusEl = document.getElementById('ai-status-' + ch);
-  const url = getWorkerUrl();
+  const url = getWorkerUrlForChamber(ch);
   const inp = document.getElementById('ai-url-' + ch);
   if (inp) inp.value = url;
-  if (!url) {
-    statusEl.className = 'ai-status err';
-    statusEl.textContent = 'Paste Worker URL below';
-  } else {
-    statusEl.className = 'ai-status ok';
-    statusEl.textContent = 'connected';
+  // Restore scope button state
+  const btn = document.getElementById('scope-btn-' + ch);
+  if (btn) {
+    const scope = getChamberScope(ch);
+    btn.textContent = scope === 'local' ? 'This chamber only' : 'All chambers';
+    scope === 'local' ? btn.classList.add('scope-local') : btn.classList.remove('scope-local');
   }
+  updateChamberStatus(ch);
 }
 
 function syncAllUrls(url) {
-  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => { inp.value = url; });
-  document.querySelectorAll('[id^="ai-status-"]').forEach(el => {
-    el.className = url ? 'ai-status ok' : 'ai-status err';
-    el.textContent = url ? 'connected' : 'Paste Worker URL below';
+  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => {
+    const ch = inp.id.replace('ai-url-', '');
+    if (getChamberScope(ch) === 'global') {
+      inp.value = url;
+      updateChamberStatus(ch);
+    }
   });
 }
 
-function updateAllStatuses() { syncAllUrls(getWorkerUrl()); }
+function updateAllStatuses() {
+  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => {
+    const ch = inp.id.replace('ai-url-', '');
+    updateChamberStatus(ch);
+  });
+}
 
 function aiKeyDown(e, ch) {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -9693,7 +9965,7 @@ async function sendAIChat(ch) {
   const text = inputEl.value.trim();
   if (!text) return;
 
-  const workerUrl = getWorkerUrl();
+  const workerUrl = getWorkerUrlForChamber(ch);
   if (!workerUrl) {
     statusEl.className = 'ai-status err';
     statusEl.textContent = 'Set Worker URL first';
@@ -9727,7 +9999,7 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: getAIModel(),
+        model: getAIModelForChamber(ch),
         messages: [
           { role: 'system', content: sys },
           ...aiHistory[ch]
@@ -9770,14 +10042,29 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 // Restore AI toggle states on load
 (function restoreAIPanels() {
   const states = getAIStates();
-  // Default sim and train to on if not explicitly set
   if (states['sim'] === undefined) states['sim'] = true;
   if (states['train'] === undefined) states['train'] = true;
 
-  const url = getWorkerUrl();
-  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => { inp.value = url; });
-  const savedModel = getAIModel();
-  document.querySelectorAll('[id^="ai-model-"]').forEach(s => { s.value = savedModel; });
+  // Restore scanned models first (replaces hardcoded options if available)
+  restoreScannedModels();
+
+  // Restore each chamber's URL input, scope button, and model select
+  document.querySelectorAll('[id^="ai-url-"]').forEach(inp => {
+    const ch = inp.id.replace('ai-url-', '');
+    inp.value = getWorkerUrlForChamber(ch);
+    // Restore scope button
+    const btn = document.getElementById('scope-btn-' + ch);
+    if (btn) {
+      const scope = getChamberScope(ch);
+      btn.textContent = scope === 'local' ? 'This chamber only' : 'All chambers';
+      scope === 'local' ? btn.classList.add('scope-local') : btn.classList.remove('scope-local');
+    }
+    // Restore model select
+    const modelSel = document.getElementById('ai-model-' + ch);
+    if (modelSel) modelSel.value = getAIModelForChamber(ch);
+    updateChamberStatus(ch);
+  });
+
   Object.entries(states).forEach(([ch, on]) => {
     if (!on) return;
     const toggle = document.getElementById('ai-toggle-' + ch);

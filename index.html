@@ -3264,7 +3264,7 @@ let ifThinkTimer = 0, ifThinkInterval = 200 + Math.random()*240;
 // 2 = inner sphere  (0.15 < r < 0.4)
 // 3 = core          (r < 0.15)
 
-const NIF = window.innerWidth < 900 ? 5000 : 12000;
+let NIF = window.innerWidth < 900 ? 5000 : 12000;
 const ifX   = new Float32Array(NIF);
 const ifY   = new Float32Array(NIF);
 const ifVX  = new Float32Array(NIF);
@@ -6450,8 +6450,8 @@ function editModalOpen(){
   m.style.display = 'block';
   editTab('nodes');
   if(typeof ORB !== 'undefined' && ORB.nodes) eNodeRefreshSel();
-  efLoad();
-  ewLoad();
+  // Run after paint so elements are visible
+  setTimeout(()=>{ efLoad(); ewLoad(); }, 50);
 }
 
 function editModalClose(){
@@ -6593,8 +6593,12 @@ function efLoad(){
 function efSync(k,el){
   const v = parseFloat(el.value);
   PFE[k]=v;
+  // Update display — try both possible span locations
   const vl=document.getElementById('ef-'+k+'-v');
   if(vl) vl.textContent=v<0.001?v.toFixed(4):v.toFixed(2);
+  // Also update the sibling span if inside label
+  const lbl=el.previousElementSibling;
+  if(lbl){ const sp=lbl.querySelector('span'); if(sp) sp.textContent=v<0.001?v.toFixed(4):v.toFixed(2); }
   if(k==='count'){ NIF=Math.round(v); ifInited=false; }
 }
 

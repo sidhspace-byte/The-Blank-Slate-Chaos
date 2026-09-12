@@ -9785,20 +9785,22 @@ async function scanModels(ch) {
 
     const data = await res.json();
 
-    // ── SOFT FAIL: unexpected format ──────────────────────────────
-    if (!data || !Array.isArray(data.data)) {
+    // ── WORKER / PROVIDER ERROR — relay the message directly ──────
+    if (data.error) {
       statusEl.className = 'ai-status err';
-      statusEl.textContent = `Unexpected response format — got: ${JSON.stringify(data).slice(0, 120)}. Worker may be returning chat format instead of models list.`;
+      statusEl.textContent = data.error.message || JSON.stringify(data.error).slice(0, 200);
+      return;
+    }
+
+    // ── SOFT FAIL: unexpected format ──────────────────────────────
+    if (!data || !Array.isArray(data.models)) {
+      statusEl.className = 'ai-status err';
+      statusEl.textContent = `Unexpected response format — got: ${JSON.stringify(data).slice(0, 120)}`;
       return;
     }
 
     // ── SUCCESS ───────────────────────────────────────────────────
-    const models = data.data.map(m => m.id || m.name).filter(Boolean).sort();
-    if (models.length === 0) {
-      statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Models endpoint returned empty list. Key active but provider has no models available under it.';
-      return;
-    }
+    const models = data.models;
 
     // Store scanned models globally so all chambers can use them
     localStorage.setItem('dr_scanned_models', JSON.stringify(models));

@@ -3289,17 +3289,20 @@ function ifN(x, y) {
 function ifInit() {
   const w=CW, h=CH, cx_=w*0.5, cy_=h*0.5;
   const maxR = Math.min(w,h)*0.46;
+
+  // Build cumulative distribution from PFE.layers
+  const activeLayers = PFE.layers.filter(l=>l.on!==false);
+  const totalDensity = activeLayers.reduce((s,l)=>s+l.density,0);
+  let cumulative = 0;
+  const layerCDF = activeLayers.map(l=>{ cumulative+=l.density/totalDensity; return {l,cdf:cumulative}; });
+
   for (let i=0; i<NIF; i++) {
-    // Fill the gap — heavy density in mid and mid-outer zones
+    // Pick layer by density weight
     const t = Math.random();
-    let nr;
-    if      (t<0.08) nr = Math.random()*0.14;
-    else if (t<0.24) nr = 0.14 + Math.random()*0.25;
-    else if (t<0.36) nr = 0.39 + Math.random()*0.15;                             // mid-inner — 12%
-    else if (t<0.48) nr = 0.54 + Math.random()*0.15;                             // mid-outer-inner — 12%
-    else if (t<0.60) { const u=Math.random(); nr = 0.69+0.08*(1-Math.pow(1-u,2)); }
-    else if (t<0.74) { const u=Math.random(); nr = 0.77+0.08*(1-Math.pow(1-u,2)); }
-    else             { const u=Math.random(); nr = 0.85+0.15*Math.pow(u,1.5);    }
+    let chosen = layerCDF[layerCDF.length-1].l;
+    for(const entry of layerCDF){ if(t<=entry.cdf){ chosen=entry.l; break; } }
+    const nr = chosen.minR + Math.random()*(chosen.maxR-chosen.minR);
+
     const ang = Math.random()*Math.PI*2;
     ifR[i]=nr; ifANG[i]=ang; ifLR[i]=nr;
     const pr=nr*maxR;
@@ -6616,17 +6619,17 @@ function efRenderLayers(){
           <button onclick="efDeleteLayer(${i})" style="background:none;border:none;color:#644;font-size:12px;cursor:pointer;">✕</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:8px;color:#666;">
-        <div>minR <b style="color:#888">${l.minR.toFixed(2)}</b><br>
-          <input type="range" min="0" max="1" step="0.01" value="${l.minR}" oninput="PFE.layers[${i}].minR=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
-        <div>maxR <b style="color:#888">${l.maxR.toFixed(2)}</b><br>
-          <input type="range" min="0" max="1.2" step="0.01" value="${l.maxR}" oninput="PFE.layers[${i}].maxR=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
-        <div>density <b style="color:#888">${l.density.toFixed(2)}</b><br>
-          <input type="range" min="0.01" max="0.5" step="0.01" value="${l.density}" oninput="PFE.layers[${i}].density=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
-        <div>chaos <b style="color:#888">${l.chaos.toFixed(2)}</b><br>
-          <input type="range" min="0.01" max="6" step="0.1" value="${l.chaos}" oninput="PFE.layers[${i}].chaos=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
-        <div>brightness <b style="color:#888">${l.bright.toFixed(2)}</b><br>
-          <input type="range" min="0.1" max="3" step="0.05" value="${l.bright}" oninput="PFE.layers[${i}].bright=+this.value;this.previousSibling.previousSibling.textContent=(+this.value).toFixed(2)" style="width:100%;accent-color:#5ab4cc;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:8px;color:#666;">
+        <div>minR <span id="efl${i}minR" style="color:#888;font-weight:bold;">${l.minR.toFixed(2)}</span>
+          <input type="range" min="0" max="1" step="0.01" value="${l.minR}" oninput="PFE.layers[${i}].minR=+this.value;document.getElementById('efl${i}minR').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
+        <div>maxR <span id="efl${i}maxR" style="color:#888;font-weight:bold;">${l.maxR.toFixed(2)}</span>
+          <input type="range" min="0" max="1.2" step="0.01" value="${l.maxR}" oninput="PFE.layers[${i}].maxR=+this.value;document.getElementById('efl${i}maxR').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
+        <div>density <span id="efl${i}den" style="color:#888;font-weight:bold;">${l.density.toFixed(2)}</span>
+          <input type="range" min="0.01" max="0.5" step="0.01" value="${l.density}" oninput="PFE.layers[${i}].density=+this.value;document.getElementById('efl${i}den').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
+        <div>chaos <span id="efl${i}chaos" style="color:#888;font-weight:bold;">${l.chaos.toFixed(2)}</span>
+          <input type="range" min="0.01" max="6" step="0.1" value="${l.chaos}" oninput="PFE.layers[${i}].chaos=+this.value;document.getElementById('efl${i}chaos').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
+        <div>brightness <span id="efl${i}br" style="color:#888;font-weight:bold;">${l.bright.toFixed(2)}</span>
+          <input type="range" min="0.1" max="3" step="0.05" value="${l.bright}" oninput="PFE.layers[${i}].bright=+this.value;document.getElementById('efl${i}br').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
       </div>
     </div>`).join('');
 }
@@ -6663,8 +6666,9 @@ function ewLoad(){
 
 function ewSync(k,el){
   WS[k] = el.type==='color' ? el.value : parseFloat(el.value);
-  const vl=document.getElementById('ew-'+k.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())+'-v');
-  if(vl) vl.textContent=typeof WS[k]==='number'?WS[k].toFixed(2):'';
+  const idMap = {strandsCentre:'ew-sc-v', strandsRing:'ew-sr-v', amp:'ew-amp-v', opacity:'ew-op-v'};
+  const vl = document.getElementById(idMap[k]);
+  if(vl) vl.textContent = typeof WS[k]==='number' ? WS[k].toFixed(2) : '';
 }
 
 function ewSave(){ localStorage.setItem('dr_ws',JSON.stringify(WS)); }

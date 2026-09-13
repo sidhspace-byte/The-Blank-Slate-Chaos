@@ -4553,6 +4553,8 @@ This is a systems diagnostic, not therapy. Read it like an architect reading a s
     bodyEl?.id  || 'map-resp-body',
     null, 'wiring');
 }
+
+function runFire(){
   const text=document.getElementById('fire-in').value.trim()||D.fireCarry; if(!text) return;
   incUse('fire');
   const btn=document.getElementById('fire-btn'); btn.disabled=true;

@@ -1465,6 +1465,12 @@ body {
   white-space: nowrap;
 }
 .scan-btn:hover { border-color: var(--cool); color: var(--cool); }
+.ai-incompat-select {
+  opacity: 0.45;
+  cursor: default;
+  font-style: italic;
+}
+.ai-incompat-select:focus { border-color: var(--border2) !important; }
 .ai-incompat-block { margin-top: 6px; }
 .incompat-toggle {
   font-family: 'DM Mono', monospace;
@@ -1869,12 +1875,18 @@ body {
           <input type="text" id="ai-url-load" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('load',this.value)" onblur="saveWorkerUrlForChamber('load',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-load" onchange="saveAIModelForChamber('load',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-load" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-load" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2058,12 +2070,18 @@ body {
           <input type="text" id="ai-url-map" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('map',this.value)" onblur="saveWorkerUrlForChamber('map',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-map" onchange="saveAIModelForChamber('map',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-map" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-map" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2137,12 +2155,18 @@ body {
           <input type="text" id="ai-url-aim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('aim',this.value)" onblur="saveWorkerUrlForChamber('aim',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-aim" onchange="saveAIModelForChamber('aim',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-aim" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-aim" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2207,12 +2231,18 @@ body {
           <input type="text" id="ai-url-fire" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('fire',this.value)" onblur="saveWorkerUrlForChamber('fire',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-fire" onchange="saveAIModelForChamber('fire',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-fire" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-fire" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2266,12 +2296,18 @@ body {
           <input type="text" id="ai-url-reload" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('reload',this.value)" onblur="saveWorkerUrlForChamber('reload',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-reload" onchange="saveAIModelForChamber('reload',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-reload" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-reload" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2437,12 +2473,18 @@ body {
           <input type="text" id="ai-url-train" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('train',this.value)" onblur="saveWorkerUrlForChamber('train',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-train" onchange="saveAIModelForChamber('train',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-train" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-train" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2580,12 +2622,18 @@ body {
           <input type="text" id="ai-url-sim" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('sim',this.value)" onblur="saveWorkerUrlForChamber('sim',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-sim" onchange="saveAIModelForChamber('sim',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-sim" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-sim" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2677,12 +2725,18 @@ body {
           <input type="text" id="ai-url-formulas" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('formulas',this.value)" onblur="saveWorkerUrlForChamber('formulas',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-formulas" onchange="saveAIModelForChamber('formulas',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-formulas" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-formulas" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2888,12 +2942,18 @@ body {
           <input type="text" id="ai-url-wiring" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('wiring',this.value)" onblur="saveWorkerUrlForChamber('wiring',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-wiring" onchange="saveAIModelForChamber('wiring',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-wiring" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-wiring" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -2953,12 +3013,18 @@ body {
           <input type="text" id="ai-url-projects" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('projects',this.value)" onblur="saveWorkerUrlForChamber('projects',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-projects" onchange="saveAIModelForChamber('projects',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-projects" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-projects" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -3038,12 +3104,18 @@ body {
           <input type="text" id="ai-url-forge" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('forge',this.value)" onblur="saveWorkerUrlForChamber('forge',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-forge" onchange="saveAIModelForChamber('forge',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-forge" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-forge" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -3146,12 +3218,18 @@ body {
           <input type="text" id="ai-url-lens" placeholder="https://your-worker.workers.dev" onchange="saveWorkerUrlForChamber('lens',this.value)" onblur="saveWorkerUrlForChamber('lens',this.value)">
         </div>
         <div class="ai-model-row">
-          <span class="ai-config-label">Model</span>
+          <span class="ai-config-label">Chat models</span>
           <select id="ai-model-lens" onchange="saveAIModelForChamber('lens',this.value)">
             <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
             <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
             <option value="qwen/qwen3.6-27b">Qwen3.6 27B</option>
             <option value="qwen/qwen3.8-27b">Qwen3.8 27B</option>
+          </select>
+        </div>
+        <div class="ai-model-row ai-incompat-row" id="ai-incompat-row-lens" style="display:none">
+          <span class="ai-config-label" style="color:var(--ink-5)">Incompatible</span>
+          <select id="ai-incompat-lens" class="ai-incompat-select" title="These models can't be used for chat">
+            <option value="">— scan to populate —</option>
           </select>
         </div>
         <div class="ai-scope-row">
@@ -9882,42 +9960,20 @@ function rebuildAllModelSelects(models) {
 }
 
 function renderIncompatibleList(ch, incompatible) {
-  // Remove existing if any
-  const existing = document.getElementById('ai-incompat-' + ch);
-  if (existing) existing.remove();
-  if (!incompatible || incompatible.length === 0) return;
-
-  const container = document.getElementById('scope-btn-' + ch)?.closest('.ai-scope-row');
-  if (!container) return;
-
-  const div = document.createElement('div');
-  div.id = 'ai-incompat-' + ch;
-  div.className = 'ai-incompat-block';
-
-  const toggle = document.createElement('button');
-  toggle.className = 'incompat-toggle';
-  toggle.textContent = `${incompatible.length} incompatible ▾`;
-  toggle.onclick = () => {
-    list.style.display = list.style.display === 'none' ? 'block' : 'none';
-    toggle.textContent = list.style.display === 'none'
-      ? `${incompatible.length} incompatible ▾`
-      : `${incompatible.length} incompatible ▴`;
-  };
-
-  const list = document.createElement('div');
-  list.className = 'incompat-list';
-  list.style.display = 'none';
-  list.innerHTML = incompatible.map(m =>
-    `<div class="incompat-item">
-      <span class="incompat-id">${m.id}</span>
-      <span class="incompat-type">${m.type}</span>
-      <span class="incompat-reason">${m.reason}</span>
-    </div>`
+  const row = document.getElementById('ai-incompat-row-' + ch);
+  const sel = document.getElementById('ai-incompat-' + ch);
+  // Remove old toggle block if it exists from previous version
+  const oldBlock = document.getElementById('ai-incompat-' + ch + '-block');
+  if (oldBlock) oldBlock.remove();
+  if (!row || !sel) return;
+  if (!incompatible || incompatible.length === 0) {
+    row.style.display = 'none';
+    return;
+  }
+  sel.innerHTML = incompatible.map(m =>
+    `<option value="${m.id}" title="${m.reason}">${m.id} — ${m.type}</option>`
   ).join('');
-
-  div.appendChild(toggle);
-  div.appendChild(list);
-  container.parentNode.insertBefore(div, container.nextSibling);
+  row.style.display = '';
 }
 
 function restoreScannedModels() {

@@ -1941,7 +1941,7 @@ body {
 
       <div class="actions" style="margin-top:24px;">
         <button class="btn" id="map-btn" onclick="runMap()">Map this</button>
-        <button class="btn-ghost" onclick="readMap()" style="opacity:0.7;">AI read</button>
+        <button class="btn" onclick="readMap()" style="border-color:var(--cool);color:var(--cool);margin-left:8px;">AI read</button>
         <button class="btn-ghost" onclick="carryTo('map','aim')">→ Take to Aim</button>
       </div>
       <div class="thinking" id="map-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span id="map-think-txt">finding the variables</span></div>
@@ -2420,7 +2420,7 @@ body {
       <!-- Actions -->
       <div class="actions" style="margin-top:28px;">
         <button class="btn" id="train-btn" onclick="saveTrain()" style="border-color:var(--train);color:var(--train);">Save this rep</button>
-        <button class="btn-ghost" onclick="generateTrainSession()" style="color:var(--train);opacity:0.7;">Generate session</button>
+        <button class="btn" onclick="generateTrainSession()" style="border-color:var(--train);color:var(--train);margin-left:8px;">Generate session</button>
         <button class="btn-ghost" id="next-ex-btn" onclick="nextEx()">Next exercise →</button>
       </div>
 
@@ -2697,7 +2697,7 @@ body {
       <textarea class="field" id="form-situation" rows="3" placeholder="What's the situation you're facing right now?"></textarea>
       <div class="actions" style="margin-top:16px;">
         <button class="btn" onclick="applyFormula()" style="border-color:var(--form);color:var(--form);">Match formula to situation</button>
-        <button class="btn-ghost" onclick="generateFormulas()" style="color:var(--form);opacity:0.7;">Generate formulas</button>
+        <button class="btn" onclick="generateFormulas()" style="border-color:var(--form);color:var(--form);margin-left:8px;">Generate formulas</button>
       </div>
 
       <div class="thinking" id="form-think">
@@ -2762,7 +2762,7 @@ body {
       </div>
       <div class="ch-prompt">Your system. Know it before you try to run it.</div>
       <div style="margin-bottom:16px;">
-        <button class="btn-ghost" onclick="readWiring()" style="opacity:0.7;">AI read — internal system</button>
+        <button class="btn" onclick="readWiring()" style="border-color:var(--cool);color:var(--cool);">AI read — internal system</button>
       </div>
       <div class="thinking" id="wiring-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span>reading your wiring…</span></div>
       <div class="resp" id="wiring-resp" style="margin-bottom:24px;"><div class="resp-inner"><div class="resp-body" id="wiring-resp-body"></div></div></div>

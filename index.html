@@ -9761,7 +9761,7 @@ async function scanModels(ch) {
   statusEl.textContent = 'scanning…';
 
   try {
-    const res = await fetch(url + '/models', {
+    const res = await fetch(url.replace(/\/$/, '') + '/models', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });

@@ -1941,6 +1941,7 @@ body {
 
       <div class="actions" style="margin-top:24px;">
         <button class="btn" id="map-btn" onclick="runMap()">Map this</button>
+        <button class="btn-ghost" onclick="readMap()" style="opacity:0.7;">AI read</button>
         <button class="btn-ghost" onclick="carryTo('map','aim')">→ Take to Aim</button>
       </div>
       <div class="thinking" id="map-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span id="map-think-txt">finding the variables</span></div>
@@ -2419,6 +2420,7 @@ body {
       <!-- Actions -->
       <div class="actions" style="margin-top:28px;">
         <button class="btn" id="train-btn" onclick="saveTrain()" style="border-color:var(--train);color:var(--train);">Save this rep</button>
+        <button class="btn-ghost" onclick="generateTrainSession()" style="color:var(--train);opacity:0.7;">Generate session</button>
         <button class="btn-ghost" id="next-ex-btn" onclick="nextEx()">Next exercise →</button>
       </div>
 
@@ -2695,6 +2697,7 @@ body {
       <textarea class="field" id="form-situation" rows="3" placeholder="What's the situation you're facing right now?"></textarea>
       <div class="actions" style="margin-top:16px;">
         <button class="btn" onclick="applyFormula()" style="border-color:var(--form);color:var(--form);">Match formula to situation</button>
+        <button class="btn-ghost" onclick="generateFormulas()" style="color:var(--form);opacity:0.7;">Generate formulas</button>
       </div>
 
       <div class="thinking" id="form-think">
@@ -2758,6 +2761,11 @@ body {
         <div class="ch-line"></div>
       </div>
       <div class="ch-prompt">Your system. Know it before you try to run it.</div>
+      <div style="margin-bottom:16px;">
+        <button class="btn-ghost" onclick="readWiring()" style="opacity:0.7;">AI read — internal system</button>
+      </div>
+      <div class="thinking" id="wiring-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span>reading your wiring…</span></div>
+      <div class="resp" id="wiring-resp" style="margin-bottom:24px;"><div class="resp-inner"><div class="resp-body" id="wiring-resp-body"></div></div></div>
 
       <!-- Constellation -->
       <div class="wiring-canvas-wrap">
@@ -4135,14 +4143,16 @@ function fmtLocal(text) {
 
 function wrapResp(html) { return `<p>${html}</p>`; }
 
-async function callAI(sys, msg, thinkId, respId, bodyId, done){
+async function callAI(sys, msg, thinkId, respId, bodyId, done, ch){
   const think=document.getElementById(thinkId);
   const resp=document.getElementById(respId);
   const body=document.getElementById(bodyId);
   if(think) think.classList.add('on');
   if(resp) resp.classList.remove('on');
 
-  const workerUrl = getWorkerUrl();
+  // Derive chamber from thinkId if not passed
+  const chamber = ch || thinkId.split('-')[0];
+  const workerUrl = getWorkerUrlForChamber(chamber) || getWorkerUrl();
 
   // If no Worker URL set, fall back to local
   if (!workerUrl) {
@@ -4168,7 +4178,7 @@ async function callAI(sys, msg, thinkId, respId, bodyId, done){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: getAIModel(),
+        model: getAIModelForChamber(chamber),
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: msg }
@@ -4454,10 +4464,84 @@ Then:
 
 Be like a maths teacher who respects his intelligence. Use his own variable labels. End with the simplified equation: what he is actually solving for. Plain prose, clear structure.`;
   const msg=`Situation: ${d.sit||'(not specified)'}\nVariables:\n${vl||'none yet'}\nDependencies:\n${dl}\nUnknown: ${d.unknown||'(not specified)'}`;
-  callAI(sys, msg, 'map-think','map-resp','map-resp-body',()=>{ clearInterval(mapInt); btn.disabled=false; });
+  callAI(sys, msg, 'map-think','map-resp','map-resp-body',()=>{ clearInterval(mapInt); btn.disabled=false; }, 'map');
 }
 
-function runFire(){
+function readMap() {
+  const d = getMapData();
+  const vl = d.vars.filter(v=>v.name).map(v=>`${v.sym}: "${v.name}" — ${v.known===true?'known':v.known===false?'unknown':'unclear'}`).join('\n');
+  const nodeCount = document.querySelectorAll('#map-nodal-cv ~ *').length || 0;
+
+  const sys = `You are doing an AI read of the MAP chamber for ${WHO}.
+
+MAP is his external world — situations, variables, dependencies, what he's tracking and navigating.
+
+Read what's currently in the chamber and give a synthesis:
+1. What is the overall shape of what he's mapping — what kind of problem or situation is this?
+2. What's well-mapped vs still unclear or missing
+3. The one thing that would change the most if clarified
+4. What the map reveals about where his attention has been going
+
+This is a read, not a solve. You're reflecting back the structure of his external world as you see it from the data.`;
+
+  const msg = `Current map state:
+Situation: ${d.sit || '(none entered)'}
+Variables:\n${vl || 'none'}
+Dependencies: ${d.deps.length ? d.deps.join(', ') : 'none'}
+Unknown: ${d.unknown || '(not specified)'}`;
+
+  callAI(sys, msg, 'map-think','map-resp','map-resp-body', null, 'map');
+}
+
+async function readWiring() {
+  // Get nodal graph state from wiring canvas
+  const nodes = window.nodalNodes || [];
+  const conns = window.nodalConns || [];
+  const workerUrl = getWorkerUrlForChamber('wiring') || getWorkerUrl();
+
+  const nodesText = nodes.length
+    ? nodes.map(n=>`[${n.layer||'wiring'}] ${n.text}`).join('\n')
+    : '(no nodes mapped yet)';
+  const connsText = conns.length
+    ? conns.map(c=>{
+        const a = nodes.find(n=>n.id===c.a)?.text||c.a;
+        const b = nodes.find(n=>n.id===c.b)?.text||c.b;
+        return `${a} ↔ ${b}`;
+      }).join('\n')
+    : '(no connections)';
+
+  // Use the existing wiring resp area if it exists, else use a temp div
+  const thinkEl = document.getElementById('wiring-think') || document.getElementById('map-think');
+  const respEl  = document.getElementById('wiring-resp')  || document.getElementById('map-resp');
+  const bodyEl  = document.getElementById('wiring-resp-body') || document.getElementById('map-resp-body');
+
+  if (!workerUrl) {
+    if (bodyEl) bodyEl.textContent = 'Connect worker to get an AI read of your wiring.';
+    if (respEl) respEl.classList.add('on');
+    return;
+  }
+
+  const sys = `You are doing an AI read of the WIRING chamber for ${WHO}.
+
+WIRING is his internal world — how he is actually wired. Nodes are elements of his internal system: patterns, triggers, tools, connections between them.
+
+Read what's mapped and give a diagnostic:
+1. What the current map reveals about how his internal system is structured
+2. What's well-connected vs isolated (nodes with no connections)
+3. Patterns or loops you can see in the connections
+4. What's missing — what should be in this map that isn't yet
+5. One thing about how he works that this map makes visible
+
+This is a systems diagnostic, not therapy. Read it like an architect reading a structure drawing.`;
+
+  const msg = `Wiring nodes:\n${nodesText}\n\nConnections:\n${connsText}`;
+
+  callAI(sys, msg,
+    thinkEl?.id || 'map-think',
+    respEl?.id  || 'map-resp',
+    bodyEl?.id  || 'map-resp-body',
+    null, 'wiring');
+}
   const text=document.getElementById('fire-in').value.trim()||D.fireCarry; if(!text) return;
   incUse('fire');
   const btn=document.getElementById('fire-btn'); btn.disabled=true;
@@ -5424,6 +5508,7 @@ function renderFormulas() {
         </div>
 
         <button class="btn-ghost" onclick="practiseFormula('${currentFormCat}', ${i})" style="color:var(--form);text-decoration-color:var(--form);">Add to today's training -></button>
+        <button class="btn-ghost" onclick="stressTestFormula('${f.name}','${f.equation.replace(/'/g,"\\'")}')" style="color:var(--ink-4);text-decoration-color:var(--ink-4);margin-left:12px;">Stress test</button>
       </div>
     </div>
   `).join('');
@@ -5468,29 +5553,187 @@ async function applyFormula() {
   if(think) think.classList.add('on');
   if(resp) resp.classList.remove('on');
 
-  await localThink(700);
+  const workerUrl = getWorkerUrlForChamber('formulas') || getWorkerUrl();
 
-  // Match formula to situation by keyword scoring
-  const sitLower = sit.toLowerCase();
-  const allFormulas = Object.values(FORMULAS).flat();
-  const scored = allFormulas.map(f => {
-    const keywords = (f.when + ' ' + f.name).toLowerCase().split(/[\s\-\,]+/);
-    const score = keywords.filter(k => k.length > 3 && sitLower.includes(k)).length;
-    return { f, score };
-  }).sort((a,b) => b.score - a.score);
+  // Build inventory context
+  const customFormulas = JSON.parse(localStorage.getItem('dr_custom_formulas')||'[]');
+  const builtInNames = Object.values(FORMULAS).flat().map(f=>f.name).join(', ');
+  const customNames = customFormulas.map(f=>f.name+': '+f.equation).join('\n');
 
-  const pick = scored[0].score > 0 ? scored[0].f : allFormulas[Math.floor(Math.random()*allFormulas.length)];
+  if (workerUrl) {
+    try {
+      const sys = `You are the FORMULAS chamber inside THE SYSTEM for ${WHO}.
 
-  let out = `**Formula: ${pick.name}**\n*${pick.source}*\n\n`;
-  out += `**Equation:** ${pick.equation}\n\n`;
-  out += `**Applied to your situation:**\n${pick.your_version || pick.when}\n\n`;
-  if (pick.steps && pick.steps.length) {
-    out += `**Steps:**\n${pick.steps.map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\n`;
+The user has a situation. Match it to the most relevant formula from the inventory, or derive a new one if nothing fits.
+
+Built-in formula library includes: ${builtInNames}
+
+User's own formulas:
+${customNames || 'None yet.'}
+
+Return:
+**Formula:** [name]
+**Equation:** [the formula itself — clean, symbolic if possible]
+**Why this one:** [one sentence — why this formula fits this situation specifically]
+**Applied:** [how it maps to their exact situation — concrete, not generic]
+**First move:** [the single next action, completable in the next hour]
+
+If no existing formula fits well, derive a new one and label it [NEW].`;
+
+      const res = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: getAIModelForChamber('formulas'),
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: sit }
+          ],
+          max_tokens: 500
+        })
+      });
+      const data = await res.json();
+      const groq = data.body || data;
+      const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || '';
+      if(reply) {
+        { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(reply)); }
+        if(resp) resp.classList.add('on');
+      } else throw new Error('empty');
+    } catch(e) {
+      // Fallback to local keyword match
+      const allFormulas = Object.values(FORMULAS).flat();
+      const sitLower = sit.toLowerCase();
+      const scored = allFormulas.map(f => {
+        const keywords = (f.when + ' ' + f.name).toLowerCase().split(/[\s\-\,]+/);
+        const score = keywords.filter(k => k.length > 3 && sitLower.includes(k)).length;
+        return { f, score };
+      }).sort((a,b) => b.score - a.score);
+      const pick = scored[0].score > 0 ? scored[0].f : allFormulas[Math.floor(Math.random()*allFormulas.length)];
+      let out = `**Formula: ${pick.name}**\n*${pick.source}*\n\n**Equation:** ${pick.equation}\n\n**Applied:** ${pick.your_version || pick.when}\n\n*AI unavailable — local match.*`;
+      { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(out)); }
+      if(resp) resp.classList.add('on');
+    }
+  } else {
+    // No worker — local keyword match
+    await localThink(700);
+    const allFormulas = Object.values(FORMULAS).flat();
+    const sitLower = sit.toLowerCase();
+    const scored = allFormulas.map(f => {
+      const keywords = (f.when + ' ' + f.name).toLowerCase().split(/[\s\-\,]+/);
+      const score = keywords.filter(k => k.length > 3 && sitLower.includes(k)).length;
+      return { f, score };
+    }).sort((a,b) => b.score - a.score);
+    const pick = scored[0].score > 0 ? scored[0].f : allFormulas[Math.floor(Math.random()*allFormulas.length)];
+    let out = `**Formula: ${pick.name}**\n*${pick.source}*\n\n**Equation:** ${pick.equation}\n\n**Applied:** ${pick.your_version || pick.when}\n\n*No worker connected — local match.*`;
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(out)); }
+    if(resp) resp.classList.add('on');
   }
-  out += `**First move in the next 60 seconds:** ${pick.steps?.[0] || 'Apply step one.'}`;
 
-  { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(out)); }
-  if(resp) resp.classList.add('on');
+  if(think) think.classList.remove('on');
+}
+
+async function stressTestFormula(formulaName, formulaEquation) {
+  const think = document.getElementById('form-think');
+  const resp  = document.getElementById('form-resp');
+  if(think) think.classList.add('on');
+  if(resp) resp.classList.remove('on');
+
+  const workerUrl = getWorkerUrlForChamber('formulas') || getWorkerUrl();
+  if (!workerUrl) {
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.textContent='Connect worker to run a stress test.'; }
+    if(resp) resp.classList.add('on');
+    if(think) think.classList.remove('on');
+    return;
+  }
+
+  const sys = `You are stress-testing a formula for ${WHO}.
+
+A stress test finds where a formula fails — not to reject it, but to know its edges before relying on it. Like load-testing a structure.
+
+For this formula, find:
+1. **The hidden assumption** — what must be true for this formula to hold? Name the assumption it's hiding.
+2. **Where it breaks** — two or three specific conditions where this formula produces the wrong result or bad advice.
+3. **Where it holds strongest** — the exact domain where this formula is most reliable.
+4. **The corrected version** — rewrite the formula to be more precise, with the edge conditions built in.
+
+Be rigorous. The formula should come out sharper, not destroyed.`;
+
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: getAIModelForChamber('formulas'),
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: `Formula: ${formulaName}\nEquation: ${formulaEquation}` }
+        ],
+        max_tokens: 600
+      })
+    });
+    const data = await res.json();
+    const groq = data.body || data;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'Stress test unavailable.';
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(`**Stress test: ${formulaName}**\n\n${reply}`)); }
+    if(resp) resp.classList.add('on');
+  } catch(e) {
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.textContent='Stress test failed — check worker connection.'; }
+    if(resp) resp.classList.add('on');
+  }
+  if(think) think.classList.remove('on');
+}
+
+async function generateFormulas() {
+  const think = document.getElementById('form-think');
+  const resp  = document.getElementById('form-resp');
+  if(think) think.classList.add('on');
+  if(resp) resp.classList.remove('on');
+
+  const workerUrl = getWorkerUrlForChamber('formulas') || getWorkerUrl();
+  if (!workerUrl) {
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.textContent='Connect worker to generate formulas.'; }
+    if(resp) resp.classList.add('on');
+    if(think) think.classList.remove('on');
+    return;
+  }
+
+  const domain = document.getElementById('form-situation')?.value?.trim() || 'general thinking and decision-making';
+  const customFormulas = JSON.parse(localStorage.getItem('dr_custom_formulas')||'[]');
+
+  const sys = `You are generating formulas for ${WHO} — architect, photographer, need-driven learner, non-linear thinker.
+
+Generate 3 original formulas relevant to the domain or situation given. These are not motivational quotes — they are precise, testable mental models expressed as equations or structured rules.
+
+Format each as:
+**[Name]**
+Equation: [the formula — symbolic or structured]
+When to use: [one line]
+Stress test: [one condition where it fails]
+
+Make them specific enough to be falsifiable. No generic productivity advice.`;
+
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: getAIModelForChamber('formulas'),
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: `Domain: ${domain}` }
+        ],
+        max_tokens: 600
+      })
+    });
+    const data = await res.json();
+    const groq = data.body || data;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || '';
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(`**Generated formulas — pick what's worth keeping:**\n\n${reply}`)); }
+    if(resp) resp.classList.add('on');
+  } catch(e) {
+    { const _t=document.getElementById('form-resp-body'); if(_t) _t.textContent='Generation failed — check worker connection.'; }
+    if(resp) resp.classList.add('on');
+  }
   if(think) think.classList.remove('on');
 }
 
@@ -6138,7 +6381,7 @@ async function startSim(){
   { const _t=document.getElementById('sim-scenario'); if(_t) _t.textContent=scenario; }
   { const _t=document.getElementById('sim-scenario-label'); if(_t) _t.textContent=simType2+' — '+simDiff; }
 
-  const workerUrlSim = getWorkerUrl();
+  const workerUrlSim = getWorkerUrlForChamber('sim') || getWorkerUrl();
   if (workerUrlSim) {
     try {
       const openSys = `You are roleplaying as the other person in a ${simType2} simulation at ${simDiff} difficulty. Open the scene with ONE short sentence setting the scene, then deliver your opening line — stay in character, no meta-commentary. Context: ${context||'none provided'}.`;
@@ -6146,7 +6389,7 @@ async function startSim(){
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: getAIModel(),
+          model: getAIModelForChamber('sim'),
           messages: [{ role: 'system', content: openSys }, { role: 'user', content: 'Begin.' }],
           max_tokens: 150
         })
@@ -6190,7 +6433,7 @@ async function sendSimResponse(){
   { const _t=document.getElementById('sim-think-txt'); if(_t) _t.textContent='In character...'; }
   think.classList.add('on');
 
-  const workerUrl = getWorkerUrl();
+  const workerUrl = getWorkerUrlForChamber('sim') || getWorkerUrl();
   if (workerUrl) {
     try {
       const simType2 = SIM_TYPES[simType] || 'Situation';
@@ -6199,7 +6442,7 @@ async function sendSimResponse(){
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: getAIModel(),
+          model: getAIModelForChamber('sim'),
           messages: [{ role: 'system', content: simSys }, ...simHistory],
           max_tokens: 200
         })
@@ -6248,57 +6491,68 @@ async function endSim(){
 
   const transcript=simHistory.map(m=>(m.role==='user'?'YOU: ':'THEM: ')+m.content).join('\n\n');
 
-  await localThink(1000);
+  const workerUrlEnd = getWorkerUrlForChamber('sim') || getWorkerUrl();
+  if (workerUrlEnd) {
+    try {
+      const simTypeName = SIM_TYPES[simType] || 'Situation';
+      const debriefSys = `You are a performance coach inside THE SYSTEM for ${WHO}.
 
-  // Local debrief — analyse transcript
-  const userTurns = simHistory.filter(m=>m.role==='user').map(m=>m.content);
-  const totalWords = userTurns.join(' ').split(/\s+/).length;
-  const avgWords = userTurns.length ? Math.round(totalWords/userTurns.length) : 0;
-  const shortTurns = userTurns.filter(t=>t.split(/\s+/).length < 10).length;
-  const longTurns = userTurns.filter(t=>t.split(/\s+/).length > 50).length;
-  const assertive = userTurns.filter(t=>/\b(I think|my position|I need|I want|that's not|I disagree|actually)\b/i.test(t)).length;
+SIM chamber debrief. The user just ran a ${simTypeName} simulation at ${simDiff} difficulty — ${simTurnCount} turns.
 
-  let debrief = '';
+Read the full transcript. Give them a real debrief in three sections:
 
-  // One point — what did the sim need
-  const simTypeName = SIM_TYPES[simType] || 'Situation';
-  debrief += `**What the situation actually needed:** In a ${simTypeName} scenario, the core requirement is almost always the same — clarity on one position, held without apology. Not agreement. Not explanation. One clear point, stated and not retreated from. `;
-  debrief += assertive > 1 ? `You found that point at least ${assertive} time${assertive>1?'s':''} in the exchange.` : `The transcript shows it was harder to find than it needed to be.`;
+**What the situation actually needed** — name what this type of scenario requires to be handled well. One clear standard.
 
-  // Where it landed
-  debrief += `\n\n**Where you held ground:** `;
-  if (assertive > 0) {
-    debrief += `The moments where you stated a clear position without padding were the strongest points in the transcript. Average response was ${avgWords} words — ${avgWords < 30 ? 'generally tight, which is good' : 'on the longer side, which usually means filling space instead of holding it'}.`;
+**Where you held ground** — the specific moments in the transcript where they did that. Quote their actual words briefly. Name what made those moments work.
+
+**Where it slipped** — the specific moments where pressure got in. Name the pattern — over-explaining, retreating, vagueness, something else. Quote briefly.
+
+**One thing to take into the next sim** — not general advice. One precise thing, based on what this transcript shows about their current edge.
+
+Direct. Precise. No encouragement for its own sake. Talk like a coach who has read every word.`;
+
+      const res = await fetch(workerUrlEnd, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: getAIModelForChamber('sim'),
+          messages: [
+            { role: 'system', content: debriefSys },
+            { role: 'user', content: transcript }
+          ],
+          max_tokens: 700
+        })
+      });
+      const d = await res.json();
+      const groq = d.body || d;
+      const debriefText = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || localSimDebrief();
+      { const _t=document.getElementById('sim-feedback-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(debriefText)); }
+      { const _t=document.getElementById('sim-feedback'); if(_t) _t.style.display='block'; }
+      const simLog=JSON.parse(localStorage.getItem('dr_simlog')||'[]');
+      const simEntry={date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),type:SIM_TYPES[simType],diff:simDiff,turns:simTurnCount,feedback:debriefText.slice(0,120),fullFeedback:debriefText,transcript};
+      simLog.unshift(simEntry); if(simLog.length>30) simLog.pop();
+      localStorage.setItem('dr_simlog',JSON.stringify(simLog));
+      renderSimLog(); feedSimToIntelligence(simEntry, transcript, debriefText);
+    } catch(e) {
+      const debriefText = localSimDebrief();
+      { const _t=document.getElementById('sim-feedback-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(debriefText)); }
+      { const _t=document.getElementById('sim-feedback'); if(_t) _t.style.display='block'; }
+    }
   } else {
-    debrief += `${simTurnCount} turns completed. The exchange ran ${simDiff} difficulty. Getting through it is the baseline — the debrief is about what to tighten next time.`;
+    const debriefText = localSimDebrief();
+    { const _t=document.getElementById('sim-feedback-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(debriefText)); }
+    { const _t=document.getElementById('sim-feedback'); if(_t) _t.style.display='block'; }
   }
-
-  // Where it slipped
-  debrief += `\n\n**Where you lost the room:** `;
-  if (shortTurns > 1) {
-    debrief += `${shortTurns} very short responses — under 10 words. Short responses in pressure situations can read as either precision or avoidance. In this context, they likely read as the latter. Length isn't the goal, but complete sentences are.`;
-  } else if (longTurns > 0) {
-    debrief += `${longTurns} response${longTurns>1?'s':''} went over 50 words. Over-explaining is the primary signal that the pressure got in. When the other person's energy is filling the room, extra words don't help — they confirm there's something to defend.`;
-  } else {
-    debrief += `No obvious collapse points in the transcript structure. The work now is on precision — saying the right thing in fewer words.`;
-  }
-
-  // Next time
-  debrief += `\n\n**Next time:** Run the same simulation at the next difficulty level. Same type, harder pressure. The pattern that emerged here will be clearer under more resistance.`;
-
-  const debriefText = debrief;
-  { const _t=document.getElementById('sim-feedback-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(debriefText)); }
-  { const _t=document.getElementById('sim-feedback'); if(_t) _t.style.display='block'; }
-
-  const simLog=JSON.parse(localStorage.getItem('dr_simlog')||'[]');
-  const simEntry={date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),type:SIM_TYPES[simType],diff:simDiff,turns:simTurnCount,feedback:debriefText.slice(0,120),fullFeedback:debriefText,transcript:transcript};
-  simLog.unshift(simEntry);
-  if(simLog.length>30) simLog.pop();
-  localStorage.setItem('dr_simlog',JSON.stringify(simLog));
-  renderSimLog();
-  feedSimToIntelligence(simEntry, transcript, debriefText);
 
   think.classList.remove('on');
+}
+
+function localSimDebrief() {
+  const userTurns = simHistory.filter(m=>m.role==='user').map(m=>m.content);
+  const avgWords = userTurns.length ? Math.round(userTurns.join(' ').split(/\s+/).length/userTurns.length) : 0;
+  const assertive = userTurns.filter(t=>/\b(I think|my position|I need|I want|that's not|I disagree|actually)\b/i.test(t)).length;
+  const simTypeName = SIM_TYPES[simType] || 'Situation';
+  return `**What the situation needed:** Clarity on one position, held without apology.\n\n**Where you held ground:** ${assertive > 0 ? `Found a clear position ${assertive} time(s). Average response ${avgWords} words — ${avgWords<30?'tight':'on the longer side'}.` : `${simTurnCount} turns completed at ${simDiff} difficulty.`}\n\n**Next time:** Same simulation, next difficulty level. The pattern will be clearer under more resistance.\n\n*AI debrief unavailable — worker not connected. This is a local read.*`;
 }
 
 function resetSim(){
@@ -7913,7 +8167,7 @@ async function saveTrain() {
   if (btn) { const o=btn.textContent; btn.textContent='Saved ✓'; setTimeout(()=>btn.textContent=o, 1400); }
 
   // AI coaching feedback
-  const workerUrlTrain = getWorkerUrl();
+  const workerUrlTrain = getWorkerUrlForChamber('train') || getWorkerUrl();
   if (workerUrlTrain) {
     const feedbackEl = document.getElementById('train-ai-feedback');
     const feedbackBody = document.getElementById('train-ai-feedback-body');
@@ -7921,14 +8175,30 @@ async function saveTrain() {
     if (feedbackBody) feedbackBody.textContent = 'reading your rep…';
 
     const repSummary = Object.entries(data).map(([k,v]) => v ? k+': '+v : '').filter(Boolean).join('\n');
-    const trainSys = `You are a precision thinking coach inside THE SYSTEM. The user just completed a "${skill}" training rep. Give them direct, specific coaching feedback in 2-3 short paragraphs — what they did well, what to sharpen, and one concrete thing to notice next time. No fluff. Talk to them like a coach who has studied how their mind works.`;
+    const recentLog = JSON.parse(localStorage.getItem('dr_train')||'[]').slice(0,5)
+      .map(e => `[${e.skill}] ${Object.values(e.data).filter(Boolean).join(' · ').slice(0,60)}`).join('\n');
+
+    const trainSys = `You are a precision skill coach inside THE SYSTEM for ${WHO}.
+
+TRAIN chamber — this is a gym for cognitive and communication skills. The user just completed a "${skill}" rep.
+
+Your job: give them a real coaching read. Not encouragement, not a summary of what they wrote — an actual coach's eye on the work.
+
+1. What this rep shows about where they actually are with this skill right now
+2. The specific thing to tighten — one thing, named precisely
+3. What to notice in the next rep — what signal tells them they're improving
+
+Recent reps for context:
+${recentLog || 'First rep on record.'}
+
+Speak like a coach who knows their patterns. Short. Direct. No fluff.`;
 
     try {
       const res = await fetch(workerUrlTrain, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: getAIModel(),
+          model: getAIModelForChamber('train'),
           messages: [
             { role: 'system', content: trainSys },
             { role: 'user', content: repSummary }
@@ -7939,10 +8209,70 @@ async function saveTrain() {
       const d = await res.json();
       const groq = d.body || d;
       const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || '';
-      if (feedbackBody) feedbackBody.textContent = reply || 'Rep logged.';
+      if (feedbackBody) feedbackBody.innerHTML = wrapResp(fmtLocal(reply || 'Rep logged.'));
     } catch(e) {
       if (feedbackBody) feedbackBody.textContent = 'Rep saved — AI feedback unavailable.';
     }
+  }
+}
+
+async function generateTrainSession() {
+  const feedbackEl = document.getElementById('train-ai-feedback');
+  const feedbackBody = document.getElementById('train-ai-feedback-body');
+  if (feedbackEl) feedbackEl.style.display = 'block';
+  if (feedbackBody) feedbackBody.textContent = 'designing your session…';
+
+  const workerUrl = getWorkerUrlForChamber('train') || getWorkerUrl();
+  if (!workerUrl) {
+    if (feedbackBody) feedbackBody.textContent = 'Connect worker to generate a session.';
+    return;
+  }
+
+  // Get current skill tab
+  const on = document.querySelector('#ex-tabs .ex-tab.on');
+  const exN = on ? parseInt(on.dataset.ex) : 0;
+  const skill = TRAIN_SKILLS[exN] || 'Unknown';
+
+  // Get recent log for context
+  const recentLog = JSON.parse(localStorage.getItem('dr_train')||'[]').slice(0,5)
+    .map(e=>`[${e.skill}] ${Object.values(e.data).filter(Boolean).join(' · ').slice(0,60)}`).join('\n');
+
+  const sys = `You are a skill coach designing a training session for ${WHO}.
+
+TRAIN chamber is a gym for cognitive and communication skills. Each session is a rep — specific, repeatable, progressively harder.
+
+Current skill: ${skill}
+
+Design today's session:
+1. **The drill** — one specific exercise for this skill. Concrete, doable right now, takes 5-15 minutes.
+2. **What to hold in mind** — the one thing to stay conscious of while doing it.
+3. **The signal** — what does doing it well look, feel, or sound like? How will they know?
+4. **Load** — is this a warm-up (easy), working set (medium), or PR attempt (hard)? Why that level today.
+
+Recent training log:
+${recentLog || 'No previous reps.'}
+
+Be specific to who this person is. An architect's eye, a photographer's precision, non-linear pattern recognition — these are assets to design around.`;
+
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: getAIModelForChamber('train'),
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: `Design a ${skill} session for today.` }
+        ],
+        max_tokens: 500
+      })
+    });
+    const d = await res.json();
+    const groq = d.body || d;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || '';
+    if (feedbackBody) feedbackBody.innerHTML = wrapResp(fmtLocal(reply || 'Session generation unavailable.'));
+  } catch(e) {
+    if (feedbackBody) feedbackBody.textContent = 'Session generation failed — check worker connection.';
   }
 }
 

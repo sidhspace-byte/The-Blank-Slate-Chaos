@@ -3252,6 +3252,17 @@ body {
 </div><!-- end app -->
 
 <script>
+window.onerror = function(msg, src, line, col, err) {
+  var d = document.getElementById('_err_overlay');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = '_err_overlay';
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#1a0000;color:#ff6b6b;font-family:monospace;font-size:11px;padding:12px;max-height:50vh;overflow-y:auto;word-break:break-all;';
+    document.body.appendChild(d);
+  }
+  d.innerHTML += '<div style="margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #ff3333;">' + msg + '<br><span style="opacity:0.6">' + (src||'') + ' L' + line + ':' + col + '</span></div>';
+  return false;
+};
 // ====================================
 // STATE
 // ====================================

@@ -2266,6 +2266,7 @@ body {
       <div class="ch-prompt">Look back at everything. The pattern is already there. You just can't see it from inside.</div>
       <div class="traj" id="traj"></div>
       <div class="traj-note">your path through the system</div>
+      <button class="btn" onclick="runReload()" style="border-color:var(--reload);color:var(--reload);margin-bottom:12px;">AI read</button>
       <textarea class="field" id="reload-in" rows="4" placeholder="What happened? Just say it plainly.&#10;What did you do? What landed?"></textarea>
       <div class="actions">
         <button class="btn" onclick="runReload()">Find the pattern</button>
@@ -2999,6 +3000,8 @@ body {
       </div>
 
       <button class="btn" onclick="document.getElementById('proj-new-form').style.display='block'" style="border-color:#e8a020;color:#e8a020;margin-bottom:20px;">+ New project</button>
+      <button class="btn" onclick="readProjects()" style="border-color:#e8a020;color:#e8a020;opacity:0.7;margin-bottom:20px;">AI read</button>
+      <div id="projects-read-out" style="display:none;margin-top:8px;margin-bottom:20px;font-size:13px;line-height:1.7;color:var(--ink-2);border-top:1px solid var(--border);padding-top:16px;"></div>
 
       <!-- Project list -->
       <div id="proj-list"></div>
@@ -3087,6 +3090,8 @@ body {
           </div>
         </div>
         <button class="btn" onclick="fgAdd()" style="border-color:var(--forge);color:var(--forge);margin-top:8px;">Forge tool</button>
+        <button class="btn" onclick="readForge()" style="border-color:var(--forge);color:var(--forge);margin-top:8px;opacity:0.7;">AI read</button>
+        <div id="forge-read-out" style="display:none;margin-top:16px;font-size:13px;line-height:1.7;color:var(--ink-2);border-top:1px solid var(--border);padding-top:16px;"></div>
       </div>
 
       <!-- Existing tools -->
@@ -4593,7 +4598,116 @@ Cover: what is he actually building across all of this. What strength is hiding 
 
 Be honest. Be kind. Be sharp. This is the mirror that shows him who he actually is, not who he fears he is.`;
   const entry=text?`Recent: ${text}\n\n`:'';
-  callAI(sys, entry+(hist?`History:\n${hist}`:''), 'reload-think','reload-resp','reload-resp-body');
+  callAI(sys, entry+(hist?`History:\n${hist}`:''), 'reload-think','reload-resp','reload-resp-body', null, 'reload');
+}
+
+function readForge() {
+  const tools = JSON.parse(localStorage.getItem('dr_forge') || '[]');
+  if (!tools.length) {
+    document.getElementById('forge-read-out').textContent = 'No tools forged yet.';
+    document.getElementById('forge-read-out').style.display = 'block';
+    return;
+  }
+
+  const toolsSummary = tools.map(t =>
+    `[${t.status||'active'}] ${t.name}${t.desc ? ' — ' + t.desc : ''}${t.tags?.length ? ' ('+t.tags.join(', ')+')' : ''}`
+  ).join('\n');
+
+  const workerUrl = getWorkerUrlForChamber('forge') || getWorkerUrl();
+  if (!workerUrl) {
+    document.getElementById('forge-read-out').textContent = 'Connect worker to get an AI read.';
+    document.getElementById('forge-read-out').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('forge-read-out').textContent = 'reading your forge…';
+  document.getElementById('forge-read-out').style.display = 'block';
+
+  const sys = `You are doing an AI read of the FORGE chamber for ${WHO}.
+
+FORGE is where he builds and tracks his tools — instruments, techniques, systems he has made or is testing.
+
+Read the tool inventory and give a diagnostic:
+1. **What the forge reveals** — what kind of builder is this, based on what he's made and what he's testing
+2. **Active vs stalled** — which tools are live, which have gone quiet, what that pattern says
+3. **The gap** — what kind of tool is missing from this forge that would serve how he works
+4. **One thing** — the single tool here that, if sharpened further, would compound the most
+
+Read it like a craftsman looking at another craftsman's workshop. Direct. No flattery.`;
+
+  fetch(workerUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: getAIModelForChamber('forge'),
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: `Forge inventory:\n${toolsSummary}` }
+      ],
+      max_tokens: 500
+    })
+  }).then(r => r.json()).then(d => {
+    const groq = d.body || d;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'Read unavailable.';
+    document.getElementById('forge-read-out').innerHTML = wrapResp(fmtLocal(reply));
+  }).catch(() => {
+    document.getElementById('forge-read-out').textContent = 'Read failed — check worker connection.';
+  });
+}
+
+function readProjects() {
+  const projects = JSON.parse(localStorage.getItem('dr_projects') || '[]');
+  if (!projects.length) {
+    document.getElementById('projects-read-out').textContent = 'No projects yet.';
+    document.getElementById('projects-read-out').style.display = 'block';
+    return;
+  }
+
+  const summary = projects.map(p => {
+    const tasks = (p.tasks||[]).map(t => `  ${t.done?'✓':'○'} ${t.text}`).join('\n');
+    return `[${p.status||'active'}] ${p.name}${p.desc?' — '+p.desc:''}\n${tasks}`;
+  }).join('\n\n');
+
+  const workerUrl = getWorkerUrlForChamber('projects') || getWorkerUrl();
+  if (!workerUrl) {
+    document.getElementById('projects-read-out').textContent = 'Connect worker to get an AI read.';
+    document.getElementById('projects-read-out').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('projects-read-out').textContent = 'reading your projects…';
+  document.getElementById('projects-read-out').style.display = 'block';
+
+  const sys = `You are doing an AI read of the PROJECTS chamber for ${WHO}.
+
+PROJECTS is where he tracks live work — what he's building, what's in progress, what's stalled.
+
+Read the project list and give a diagnostic:
+1. **Overall load** — how much is actually live right now, what the distribution looks like
+2. **Momentum vs drag** — which projects have clear next steps vs which are stuck without a defined move
+3. **The real priority** — based on what's here, what actually needs attention most right now, and why
+4. **What's missing** — a next action, a decision, a person — whatever is the most common gap across these projects
+
+Don't summarise the list back. Read it. Give him something he can act on.`;
+
+  fetch(workerUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: getAIModelForChamber('projects'),
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: `Projects:\n${summary}` }
+      ],
+      max_tokens: 500
+    })
+  }).then(r => r.json()).then(d => {
+    const groq = d.body || d;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'Read unavailable.';
+    document.getElementById('projects-read-out').innerHTML = wrapResp(fmtLocal(reply));
+  }).catch(() => {
+    document.getElementById('projects-read-out').textContent = 'Read failed — check worker connection.';
+  });
 }
 
 

@@ -1465,6 +1465,44 @@ body {
   white-space: nowrap;
 }
 .scan-btn:hover { border-color: var(--cool); color: var(--cool); }
+.ai-incompat-block { margin-top: 6px; }
+.incompat-toggle {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  color: var(--ink-5);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+.incompat-toggle:hover { color: var(--ink-3); }
+.incompat-list { margin-top: 6px; }
+.incompat-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border1);
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+}
+.incompat-id { color: var(--ink-3); }
+.incompat-type {
+  color: var(--ink-5);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.incompat-reason {
+  color: var(--ink-5);
+  font-size: 7px;
+  grid-column: 1 / -1;
+  padding-left: 4px;
+}
 #ch-lens .ch-name { color: var(--red); }
 .nav-tab[data-c="lens"]::after { background: var(--red); }
 </style>
@@ -9785,7 +9823,7 @@ async function scanModels(ch) {
 
     const data = await res.json();
 
-    // ── WORKER / PROVIDER ERROR — relay the message directly ──────
+    // ── WORKER / PROVIDER ERROR — relay directly ──────────────────
     if (data.error) {
       statusEl.className = 'ai-status err';
       statusEl.textContent = data.error.message || JSON.stringify(data.error).slice(0, 200);
@@ -9800,17 +9838,22 @@ async function scanModels(ch) {
     }
 
     // ── SUCCESS ───────────────────────────────────────────────────
-    const models = data.models;
+    const models       = data.models;
+    const incompatible = data.incompatible || [];
 
-    // Store scanned models globally so all chambers can use them
+    // Store scanned models + incompatibles globally
     localStorage.setItem('dr_scanned_models', JSON.stringify(models));
+    localStorage.setItem('dr_scanned_incompatible', JSON.stringify(incompatible));
 
     // Repopulate all model selects
     rebuildAllModelSelects(models);
 
+    // Render incompatible list next to this chamber's dropdown
+    renderIncompatibleList(ch, incompatible);
+
     // Set status
     statusEl.className = 'ai-status ok';
-    statusEl.textContent = `${models.length} model${models.length !== 1 ? 's' : ''} found`;
+    statusEl.textContent = `${models.length} chat model${models.length !== 1 ? 's' : ''}${incompatible.length ? ` · ${incompatible.length} incompatible` : ''}`;
 
   } catch (err) {
     // ── HARD FAIL: network / CORS ────────────────────────────────
@@ -9838,10 +9881,60 @@ function rebuildAllModelSelects(models) {
   });
 }
 
+function renderIncompatibleList(ch, incompatible) {
+  // Remove existing if any
+  const existing = document.getElementById('ai-incompat-' + ch);
+  if (existing) existing.remove();
+  if (!incompatible || incompatible.length === 0) return;
+
+  const container = document.getElementById('scope-btn-' + ch)?.closest('.ai-scope-row');
+  if (!container) return;
+
+  const div = document.createElement('div');
+  div.id = 'ai-incompat-' + ch;
+  div.className = 'ai-incompat-block';
+
+  const toggle = document.createElement('button');
+  toggle.className = 'incompat-toggle';
+  toggle.textContent = `${incompatible.length} incompatible ▾`;
+  toggle.onclick = () => {
+    list.style.display = list.style.display === 'none' ? 'block' : 'none';
+    toggle.textContent = list.style.display === 'none'
+      ? `${incompatible.length} incompatible ▾`
+      : `${incompatible.length} incompatible ▴`;
+  };
+
+  const list = document.createElement('div');
+  list.className = 'incompat-list';
+  list.style.display = 'none';
+  list.innerHTML = incompatible.map(m =>
+    `<div class="incompat-item">
+      <span class="incompat-id">${m.id}</span>
+      <span class="incompat-type">${m.type}</span>
+      <span class="incompat-reason">${m.reason}</span>
+    </div>`
+  ).join('');
+
+  div.appendChild(toggle);
+  div.appendChild(list);
+  container.parentNode.insertBefore(div, container.nextSibling);
+}
+
 function restoreScannedModels() {
   const stored = localStorage.getItem('dr_scanned_models');
   if (stored) {
     try { rebuildAllModelSelects(JSON.parse(stored)); } catch(e) {}
+  }
+  // Restore incompatible list in all chambers
+  const storedIncompat = localStorage.getItem('dr_scanned_incompatible');
+  if (storedIncompat) {
+    try {
+      const incompatible = JSON.parse(storedIncompat);
+      document.querySelectorAll('[id^="ai-model-"]').forEach(sel => {
+        const ch = sel.id.replace('ai-model-', '');
+        renderIncompatibleList(ch, incompatible);
+      });
+    } catch(e) {}
   }
 }
 const AI_STATES_KEY = 'dr_ai_states'; // which chambers have AI on

@@ -2127,6 +2127,7 @@ body {
       </div>
       <div class="actions">
         <button class="btn" id="aim-btn" onclick="runAim()">Think this through</button>
+        <button class="btn" onclick="viewThroughLens('aim')" style="border-color:var(--lens,#c8a87a);color:var(--lens,#c8a87a);margin-left:8px;">View through lens</button>
         <button class="btn-ghost" onclick="go('fire')">→ Fire</button>
       </div>
       <div class="thinking" id="aim-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span id="aim-think-txt">mapping the situation</span></div>
@@ -2137,6 +2138,11 @@ body {
           <button class="btn-ghost" onclick="carryTo('aim','fire')">→ Fire</button>
           <button class="btn-ghost" onclick="runAim()">↻ Again</button>
         </div>
+      </div>
+      <div class="thinking" id="aim-lens-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span>selecting lens…</span></div>
+      <div class="resp" id="aim-lens-resp" style="border-color:rgba(200,168,122,0.4);">
+        <div class="resp-label" style="color:var(--lens,#c8a87a);">lens read</div>
+        <div class="resp-body" id="aim-lens-body"></div>
       </div>
 <div class="ai-panel" id="ai-panel-aim">
       <div class="ai-toggle-bar">
@@ -2203,6 +2209,7 @@ body {
       <textarea class="field" id="fire-in" rows="4" placeholder="What specifically needs to happen?&#10;What's the one thing you've been avoiding?"></textarea>
       <div class="actions">
         <button class="btn" id="fire-btn" onclick="runFire()">Fire</button>
+        <button class="btn" onclick="viewThroughLens('fire')" style="border-color:var(--lens,#c8a87a);color:var(--lens,#c8a87a);margin-left:8px;">View through lens</button>
         <button class="btn-ghost" onclick="go('reload')">→ Reload after</button>
       </div>
       <div class="thinking" id="fire-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span>loading the shot</span></div>
@@ -2213,6 +2220,11 @@ body {
           <button class="btn-ghost" onclick="saveReload()">Save to Reload</button>
           <button class="btn-ghost" onclick="runFire()">↻ Different angle</button>
         </div>
+      </div>
+      <div class="thinking" id="fire-lens-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span>selecting lens…</span></div>
+      <div class="resp" id="fire-lens-resp" style="border-color:rgba(200,168,122,0.4);">
+        <div class="resp-label" style="color:var(--lens,#c8a87a);">lens read</div>
+        <div class="resp-body" id="fire-lens-body"></div>
       </div>
 <div class="ai-panel" id="ai-panel-fire">
       <div class="ai-toggle-bar">
@@ -8067,7 +8079,11 @@ function renderLensLibrary() {
           <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:14px;color:var(--ink);line-height:1.7;">${lens.sidharth}</div>
         </div>
       </div>
-      <button class="btn-ghost" onclick="selectCurrentLens('${currentLensCat}')" style="margin-top:20px;border-color:var(--red-dim);color:var(--red);">This is what I am holding right now</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;">
+        <button class="btn-ghost" onclick="selectCurrentLens('${currentLensCat}')" style="border-color:var(--red-dim);color:var(--red);">This is what I am holding right now</button>
+        <button class="btn-ghost" onclick="carryLensTo('${currentLensCat}','aim')" style="color:var(--aim);">→ Carry to Aim</button>
+        <button class="btn-ghost" onclick="carryLensTo('${currentLensCat}','fire')" style="color:var(--fire);">→ Carry to Fire</button>
+      </div>
     </div>`;
 }
 
@@ -8092,7 +8108,23 @@ function selectCurrentLens(key) {
   renderLensPattern();
 }
 
-function lensCarryFromMap() {
+function carryLensTo(lensKey, ch) {
+  const lens = LENS_LIBRARY[lensKey];
+  if (!lens) return;
+  // Store the carried lens so viewThroughLens can use it as context
+  localStorage.setItem('dr_carried_lens', JSON.stringify({ key: lensKey, name: lens.name, sidharth: lens.sidharth }));
+  // Pre-fill a note in the chamber input if empty
+  const inp = document.getElementById(ch + '-in');
+  if (inp && !inp.value.trim()) {
+    inp.placeholder = `Lens loaded: ${lens.name} — describe your situation and hit "View through lens"`;
+  }
+  // Show a brief confirmation in the lens resp area of that chamber
+  const bodyEl = document.getElementById(ch + '-lens-body');
+  const respEl = document.getElementById(ch + '-lens-resp');
+  if (bodyEl) bodyEl.innerHTML = wrapResp(fmtLocal(`**Lens carried: ${lens.name}**\n\n${lens.sidharth}\n\nDescribe your situation in ${ch.toUpperCase()} and hit "View through lens" — this lens will anchor the read.`));
+  if (respEl) respEl.classList.add('on');
+  go(ch);
+}
   const mapSit = document.getElementById('map-sit');
   const mapResp = document.getElementById('map-resp-body');
   const carry = (mapResp && mapResp.textContent.trim()) || (mapSit && mapSit.value.trim());
@@ -8160,7 +8192,96 @@ async function runLensRead() {
   if(think) think.classList.remove('on');
 }
 
-function renderLensPattern() {
+async function viewThroughLens(ch) {
+  const sitEl = document.getElementById(ch + '-in');
+  const sit = sitEl?.value?.trim() || D?.[ch + 'Carry'] || '';
+
+  const thinkEl = document.getElementById(ch + '-lens-think');
+  const respEl  = document.getElementById(ch + '-lens-resp');
+  const bodyEl  = document.getElementById(ch + '-lens-body');
+
+  if (!sit) {
+    if (bodyEl) bodyEl.textContent = 'Describe your situation first — then view through lens.';
+    if (respEl) respEl.classList.add('on');
+    return;
+  }
+
+  if (thinkEl) thinkEl.classList.add('on');
+  if (respEl) respEl.classList.remove('on');
+
+  const workerUrl = getWorkerUrlForChamber(ch) || getWorkerUrl();
+  if (!workerUrl) {
+    if (thinkEl) thinkEl.classList.remove('on');
+    if (bodyEl) bodyEl.textContent = 'Connect worker to use lens integration.';
+    if (respEl) respEl.classList.add('on');
+    return;
+  }
+
+  // Build lens library summary with sidharth-specific notes
+  const lensContext = Object.entries(LENS_LIBRARY).map(([key, l]) =>
+    `${key.toUpperCase()} (${l.name})\nStrength: ${l.strength}\nWeakness: ${l.weakness}\nLife signal: ${l.life_signal}\nFor Sidharth: ${l.sidharth}`
+  ).join('\n\n');
+
+  const chamberCtx = ch === 'aim'
+    ? 'AIM is the thinking chamber — mapping the situation before acting. The lens question here is: am I seeing this situation clearly, or is my current lens distorting it?'
+    : 'FIRE is the action chamber — the decision has to happen. The lens question here is: which lens do I need to hold to execute this well, and how close do I get?';
+
+  // Check if a specific lens was carried from Lens chamber
+  const carriedLens = (() => { try { return JSON.parse(localStorage.getItem('dr_carried_lens') || 'null'); } catch(e) { return null; } })();
+  const carriedNote = carriedLens ? `\n\nNote: He has specifically carried the ${carriedLens.name} lens into this chamber. Factor this into your read — he is already aware of this lens and has chosen to work with it here.` : '';
+
+  const sys = `You are the LENS chamber integrated into ${ch.toUpperCase()} for ${WHO} — architect, photographer, non-linear thinker.
+
+${chamberCtx}
+
+The lens metaphor is his own — he uses photographic lenses as a precise map of how he sees situations. Each lens has specific optical properties that map to cognitive and emotional patterns.
+
+LENS LIBRARY:
+${lensContext}${carriedNote}
+
+Read his situation and give him a lens read in four parts:
+
+**Current lens** — which lens he is holding right now, based on what he has written. Name it precisely. What optical property of his writing gives it away.
+
+**The lens this needs** — which lens the situation actually requires. Why. Be specific about what the correct lens changes about how he sees this.
+
+**Depth** — how far in does he go? Surface (understand the lens, apply it briefly) or full dive (restructure his entire read of the situation through this lens). Give him one clear instruction.
+
+**The shift** — one concrete thing that changes when he switches from his current lens to the needed one. Not abstract. Specific to what he wrote.
+
+Talk to him directly. He already knows the lenses — you don't need to explain them. Just read the situation and tell him what he needs to hear.`;
+
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: getAIModelForChamber(ch),
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: sit }
+        ],
+        max_tokens: 600
+      })
+    });
+    const data = await res.json();
+    const groq = data.body || data;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'Lens read unavailable.';
+    if (bodyEl) bodyEl.innerHTML = wrapResp(fmtLocal(reply));
+    if (respEl) respEl.classList.add('on');
+
+    // Log to lens history
+    lensHistory.unshift({ date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}), situation: sit.slice(0,80), ch, read: reply.slice(0,200) });
+    if (lensHistory.length > 20) lensHistory.pop();
+    localStorage.setItem('dr_lens_history', JSON.stringify(lensHistory));
+    renderLensPattern();
+
+  } catch(e) {
+    if (bodyEl) bodyEl.textContent = 'Lens read failed — check worker connection.';
+    if (respEl) respEl.classList.add('on');
+  }
+  if (thinkEl) thinkEl.classList.remove('on');
+}
   const el = document.getElementById('lens-pattern-display');
   if (!el) return;
   const reads = lensHistory.filter(h=>h.lens!=='read').slice(0,20);

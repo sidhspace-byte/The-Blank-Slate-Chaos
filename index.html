@@ -3181,10 +3181,33 @@ body {
 
       <!-- SITUATION READ -->
       <div style="margin-bottom:36px;padding:20px 24px;border:1px solid var(--border);background:rgba(224,42,24,0.02);">
-        <div style="font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Situation Read</div>
-        <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:13px;color:var(--ink-3);margin-bottom:16px;line-height:1.6;">Describe what you are facing. Which lens you are using now, which it actually needs, and the gap.</div>
+        <div style="font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:12px;">Situation Read</div>
+
+        <!-- Mode toggle -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button id="lens-mode-1" class="ex-tab on" onclick="setLensReadMode(1)" style="font-size:8px;padding:4px 10px;">Diagnose my lens</button>
+          <button id="lens-mode-2" class="ex-tab" onclick="setLensReadMode(2)" style="font-size:8px;padding:4px 10px;">Try a lens</button>
+        </div>
+
         <div id="lens-map-carry" style="display:none;margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--red-dim);font-size:12px;color:var(--ink-3);font-style:italic;"></div>
         <textarea class="field" id="lens-sit-in" rows="3" placeholder="What is the situation? Plain facts."></textarea>
+
+        <!-- Mode 1 — I think I'm holding -->
+        <div id="lens-mode-1-row" style="margin-top:12px;">
+          <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:8px;">Which lens do you think you're holding?</div>
+          <select id="lens-stated-sel" class="field" style="font-size:12px;padding:8px 10px;margin-bottom:0;">
+            <option value="">— pick one —</option>
+          </select>
+        </div>
+
+        <!-- Mode 2 — I want to try -->
+        <div id="lens-mode-2-row" style="display:none;margin-top:12px;">
+          <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:8px;">Which lens do you want to run this through?</div>
+          <select id="lens-chosen-sel" class="field" style="font-size:12px;padding:8px 10px;margin-bottom:0;">
+            <option value="">— pick one —</option>
+          </select>
+        </div>
+
         <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
           <button class="btn" onclick="runLensRead()" style="border-color:var(--red);color:var(--red);">Read the lens</button>
           <button class="btn-ghost" onclick="lensCarryFromMap()" style="border-color:var(--red-dim);color:var(--red-dim);">Pull from Map</button>
@@ -3196,6 +3219,12 @@ body {
             <button class="btn-ghost" onclick="go('map')" style="color:var(--map);">Take to Map</button>
             <button class="btn-ghost" onclick="runLensRead()">Again</button>
           </div>
+        </div>
+
+        <!-- Point 3 node — situational lens factors (to be built) -->
+        <div id="lens-factors-node" style="margin-top:20px;padding:12px 14px;border:1px dashed rgba(224,42,24,0.2);display:flex;align-items:center;gap:10px;opacity:0.5;">
+          <span style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);">Situational lens factors</span>
+          <span style="font-size:10px;color:var(--ink-5);">— node pending, connects here</span>
         </div>
       </div>
 
@@ -8125,6 +8154,8 @@ function carryLensTo(lensKey, ch) {
   if (respEl) respEl.classList.add('on');
   go(ch);
 }
+
+function lensCarryFromMap() {
   const mapSit = document.getElementById('map-sit');
   const mapResp = document.getElementById('map-resp-body');
   const carry = (mapResp && mapResp.textContent.trim()) || (mapSit && mapSit.value.trim());
@@ -8133,6 +8164,20 @@ function carryLensTo(lensKey, ch) {
     const c = document.getElementById('lens-map-carry');
     if (c) { c.textContent = 'Carried from Map'; c.style.display = 'block'; }
   }
+}
+
+// ── LENS READ MODES ──────────────────────────────────────────────
+// Mode 1: "I think I'm holding X" — AI confirms or corrects
+// Mode 2: "I want to try X" — AI runs your lens + shows its pick, you see the divergence
+
+let lensReadMode = 1; // 1 = diagnose, 2 = compare
+
+function setLensReadMode(m) {
+  lensReadMode = m;
+  document.getElementById('lens-mode-1').classList.toggle('on', m === 1);
+  document.getElementById('lens-mode-2').classList.toggle('on', m === 2);
+  document.getElementById('lens-mode-1-row').style.display = m === 1 ? 'block' : 'none';
+  document.getElementById('lens-mode-2-row').style.display = m === 2 ? 'block' : 'none';
 }
 
 async function runLensRead() {
@@ -8144,51 +8189,94 @@ async function runLensRead() {
   if(think) think.classList.add('on');
   if(resp) resp.classList.remove('on');
 
-  await localThink(800);
+  const workerUrl = getWorkerUrlForChamber('lens') || getWorkerUrl();
 
-  // Detect which lens is active based on situation text
-  const sitLow = sit.toLowerCase();
-  const isMacro = /\b(everything|all|always|never|big picture|whole|entire|overwhelm|can't see)\b/.test(sitLow);
-  const isMicro = /\b(detail|specific|small|particular|this one|exactly|precise|single)\b/.test(sitLow);
-  const isPortrait = /\b(they|he|she|person|people|team|client|boss|colleague|who)\b/.test(sitLow);
-  const isLandscape = /\b(situation|context|environment|system|what's happening|dynamic|structure)\b/.test(sitLow);
+  // Build lens library summary
+  const lensContext = Object.entries(LENS_LIBRARY).map(([key, l]) =>
+    `${key.toUpperCase()} (${l.name}): ${l.optical} | Strength: ${l.strength} | Weakness: ${l.weakness} | Signal: ${l.life_signal}`
+  ).join('\n');
 
-  const currentLens = isMicro ? 'micro' : isPortrait ? 'portrait' : isLandscape ? 'landscape' : 'macro';
-  const requiredLens = isMacro ? 'micro' : isPortrait ? 'landscape' : isLandscape ? 'portrait' : 'macro';
+  // User's stated lens (mode 1) or chosen lens (mode 2)
+  const statedLens = document.getElementById('lens-stated-sel')?.value || '';
+  const chosenLens = document.getElementById('lens-chosen-sel')?.value || '';
 
-  const lensDescs = {
-    macro: 'wide angle — seeing everything at once, no focal point',
-    micro: 'macro lens — close focus on one specific thing',
-    portrait: 'portrait — reading the person, not just the situation',
-    landscape: 'landscape — reading the system and context, not just the person'
-  };
+  let sys = '';
 
-  const gaps = {
-    'macro→micro': 'Switching from macro to micro stops the overwhelm — you pick one thing and move on it instead of circling the whole field.',
-    'micro→macro': 'Zooming out shows how this specific thing fits into the larger structure — you stop over-investing in one detail.',
-    'portrait→landscape': 'Shifting from portrait to landscape stops you reading the person and starts reading the situation they\'re operating in — that\'s usually where the actual answer is.',
-    'landscape→portrait': 'Bringing it back to portrait means reading the specific human involved — their needs, their position, what they\'re protecting. The system matters less than the person right now.',
-    default: 'The switch changes what you\'re optimising for — and therefore what move becomes available.'
-  };
+  if (lensReadMode === 1) {
+    // Mode 1 — Diagnosis
+    sys = `You are the LENS chamber for ${WHO} — architect, photographer, non-linear thinker.
 
-  const gapKey = `${currentLens}→${requiredLens}`;
-  const gap = gaps[gapKey] || gaps.default;
+He has described a situation and told you which lens he thinks he's holding. Your job: tell him if he's right or wrong, and why. Be direct.
 
-  const moves = {
-    micro: 'Pick the single most load-bearing element in this situation. Name it. Work only that.',
-    macro: 'Step back to the widest view you can hold. What is the overall shape of this? What is actually happening at the structural level?',
-    portrait: 'Forget the situation for a moment. Read the person. What do they actually want underneath what they\'re saying?',
-    landscape: 'Stop reading the individual and read the context. What system are they operating in? What does that system require of them?'
-  };
+LENS LIBRARY:
+${lensContext}
 
-  const out = `**Current lens:** ${lensDescs[currentLens] || currentLens}. That\'s what the framing of this situation suggests.\n\n**Required lens:** ${lensDescs[requiredLens] || requiredLens}. Given what\'s actually in front of you, this is the more useful focal length.\n\n**The gap:** ${gap}\n\n**One move:** ${moves[requiredLens]}`;
+Output format:
+**Your call: [Right / Partially right / Off]** — one sentence on why.
+**What gives it away** — the specific thing in how he described the situation that reveals which lens he's actually using. Quote his words briefly.
+**The correction** (only if off or partially) — which lens he's actually holding and why. What he's missing by misreading his own lens.
+**What the situation needs** — the lens this situation actually requires. Same as his held lens or different. Why.
+**Depth** — surface read or full dive. One sentence instruction.
 
-  if(body) body.innerHTML = wrapResp(fmtLocal(out));
-  if(resp) resp.classList.add('on');
-  lensHistory.unshift({ lens:'read', situation:sit.slice(0,100), date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}), ts:Date.now() });
-  if (lensHistory.length>100) lensHistory.pop();
-  localStorage.setItem('dr_lens_history', JSON.stringify(lensHistory));
-  renderLensPattern();
+Don't soften the correction if he's wrong. That's the whole point of this mode.`;
+
+  } else {
+    // Mode 2 — Comparison
+    sys = `You are the LENS chamber for ${WHO} — architect, photographer, non-linear thinker.
+
+He has chosen a specific lens to run his situation through. Your job: apply his chosen lens to his situation, then apply the lens you would have picked, then show him where they diverge and what each produces differently.
+
+LENS LIBRARY:
+${lensContext}
+
+Output format:
+**Through your chosen lens (${LENS_LIBRARY[chosenLens]?.name || chosenLens}):**
+What this situation looks like from that focal length. What it reveals. What it hides.
+
+**Through the lens I'd pick:**
+Name it. Why. What it reveals that the chosen lens doesn't.
+
+**The divergence:**
+The specific point where these two lenses produce different reads. Not just different angles — what concrete different action or understanding each produces.
+
+**Which to hold:**
+A clear call. His choice, AI's choice, or a sequence — one first then the other. Why.`;
+  }
+
+  const userMsg = lensReadMode === 1
+    ? `Situation: ${sit}\n\nLens I think I'm holding: ${LENS_LIBRARY[statedLens]?.name || statedLens || 'not specified'}`
+    : `Situation: ${sit}\n\nLens I want to run this through: ${LENS_LIBRARY[chosenLens]?.name || chosenLens || 'not specified'}`;
+
+  if (!workerUrl) {
+    if(body) body.textContent = 'Connect worker to run a lens read.';
+    if(resp) resp.classList.add('on');
+    if(think) think.classList.remove('on');
+    return;
+  }
+
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: getAIModelForChamber('lens'),
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: userMsg }],
+        max_tokens: 600
+      })
+    });
+    const data = await res.json();
+    const groq = data.body || data;
+    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'Lens read unavailable.';
+    if(body) body.innerHTML = wrapResp(fmtLocal(reply));
+    if(resp) resp.classList.add('on');
+    lensHistory.unshift({ mode: lensReadMode, lens: statedLens || chosenLens, situation: sit.slice(0,100), date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}), ts: Date.now() });
+    if (lensHistory.length > 100) lensHistory.pop();
+    localStorage.setItem('dr_lens_history', JSON.stringify(lensHistory));
+    renderLensPattern();
+  } catch(e) {
+    if(body) body.textContent = 'Lens read failed — check worker connection.';
+    if(resp) resp.classList.add('on');
+  }
   if(think) think.classList.remove('on');
 }
 
@@ -8304,13 +8392,22 @@ Talk to him directly. He already knows the lenses — you don't need to explain 
 const _goLens = go;
 go = function(c) {
   _goLens(c);
-  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); }, 80);
+  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); populateLensSelects(); }, 80);
 };
 const _enterLens = enter;
 enter = function(c) {
   _enterLens(c);
-  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); }, 80);
+  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); populateLensSelects(); }, 80);
 };
+
+function populateLensSelects() {
+  const opts = '<option value="">— pick one —</option>' +
+    Object.entries(LENS_LIBRARY).map(([k,l]) => `<option value="${k}">${l.name}</option>`).join('');
+  ['lens-stated-sel','lens-chosen-sel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
 
 
 

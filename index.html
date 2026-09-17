@@ -10386,7 +10386,7 @@ let   _kvSyncing   = false;
 
 function getKVWorkerUrl() {
   // Use the global worker URL — same key as AI_WORKER_KEY ('dr_ai_worker_url')
-  return localStorage.getItem('dr_ai_worker_url') || '';
+  return (localStorage.getItem('dr_ai_worker_url') || '').replace(/\/$/, '');
 }
 
 // Collect all DR_KEYS from localStorage into one object

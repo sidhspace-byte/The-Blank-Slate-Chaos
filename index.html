@@ -10385,8 +10385,8 @@ let   _kvSyncTimer = null;
 let   _kvSyncing   = false;
 
 function getKVWorkerUrl() {
-  // Use the global worker URL — same one used for AI
-  return localStorage.getItem(AI_WORKER_KEY) || '';
+  // Use the global worker URL — same key as AI_WORKER_KEY ('dr_ai_worker_url')
+  return localStorage.getItem('dr_ai_worker_url') || '';
 }
 
 // Collect all DR_KEYS from localStorage into one object

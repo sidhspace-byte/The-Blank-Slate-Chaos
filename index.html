@@ -10375,6 +10375,128 @@ initFormulas = function() {
 // Add to export keys
 DR_KEYS.push('dr_custom_formulas');
 
+// ── KV SYNC SYSTEM ──────────────────────────────────────────────
+// Syncs content data (DR_KEYS) to Cloudflare KV via the worker.
+// localStorage stays as the live working layer.
+// KV is the sync target — survives device switches and browser resets.
+
+const KV_SYNC_DEBOUNCE_MS = 2000; // wait 2s after last write before pushing
+let   _kvSyncTimer = null;
+let   _kvSyncing   = false;
+
+function getKVWorkerUrl() {
+  // Use the global worker URL — same one used for AI
+  return localStorage.getItem(AI_WORKER_KEY) || '';
+}
+
+// Collect all DR_KEYS from localStorage into one object
+function buildStateSnapshot() {
+  const snap = { _version: 10, _synced: new Date().toISOString() };
+  DR_KEYS.forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v !== null) {
+      try { snap[k] = JSON.parse(v); } catch { snap[k] = v; }
+    }
+  });
+  return snap;
+}
+
+// Push state to KV — debounced so rapid writes don't spam the worker
+function kvScheduleSync() {
+  const url = getKVWorkerUrl();
+  if (!url) return; // no worker configured, skip silently
+  clearTimeout(_kvSyncTimer);
+  _kvSyncTimer = setTimeout(() => kvPushState(), KV_SYNC_DEBOUNCE_MS);
+}
+
+async function kvPushState() {
+  const url = getKVWorkerUrl();
+  if (!url || _kvSyncing) return;
+  _kvSyncing = true;
+  kvSetSyncStatus('saving…');
+  try {
+    const snap = buildStateSnapshot();
+    const res  = await fetch(url + '/state', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(snap),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      kvSetSyncStatus('synced ✓', 3000);
+    } else {
+      kvSetSyncStatus('sync failed', 5000);
+      console.warn('[KV] push failed:', data);
+    }
+  } catch (err) {
+    kvSetSyncStatus('sync failed', 5000);
+    console.warn('[KV] push error:', err.message);
+  } finally {
+    _kvSyncing = false;
+  }
+}
+
+// Pull state from KV on open — hydrate localStorage then reload data
+async function kvPullState() {
+  const url = getKVWorkerUrl();
+  if (!url) return;
+  kvSetSyncStatus('loading…');
+  try {
+    const res  = await fetch(url + '/state');
+    const data = await res.json();
+    if (!data.state) {
+      kvSetSyncStatus('no cloud state yet', 3000);
+      return;
+    }
+    const snap = data.state;
+    let loaded = 0;
+    DR_KEYS.forEach(k => {
+      if (snap[k] !== undefined) {
+        localStorage.setItem(k, JSON.stringify(snap[k]));
+        loaded++;
+      }
+    });
+    kvSetSyncStatus(`loaded ${loaded} keys ✓`, 3000);
+    // Reload the page so all chambers re-init from fresh localStorage
+    setTimeout(() => location.reload(), 800);
+  } catch (err) {
+    kvSetSyncStatus('load failed', 5000);
+    console.warn('[KV] pull error:', err.message);
+  }
+}
+
+function kvSetSyncStatus(msg, clearAfterMs = 0) {
+  const el = document.getElementById('kv-sync-status');
+  if (el) {
+    el.textContent = msg;
+    if (clearAfterMs) setTimeout(() => { el.textContent = ''; }, clearAfterMs);
+  }
+}
+
+// Patch localStorage setter so any DR_KEY write triggers a sync
+(function patchLocalStorage() {
+  const _set = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(k, v) {
+    _set(k, v);
+    if (DR_KEYS.includes(k)) kvScheduleSync();
+  };
+})();
+
+// On load — pull from KV if worker is set and this isn't a post-sync reload
+(function kvAutoLoad() {
+  const url = getKVWorkerUrl();
+  if (!url) return;
+  // Avoid reload loop — if we just reloaded from a pull, skip
+  if (sessionStorage.getItem('dr_kv_pulled')) {
+    sessionStorage.removeItem('dr_kv_pulled');
+    kvSetSyncStatus('');
+    return;
+  }
+  sessionStorage.setItem('dr_kv_pulled', '1');
+  // Small delay so the page renders first
+  setTimeout(() => kvPullState(), 600);
+})();
+
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────
 
 const AI_WORKER_KEY = 'dr_ai_worker_url';       // global worker URL
@@ -10845,6 +10967,9 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
   <input type="file" id="import-file-top" accept=".json" onchange="importAll(this)" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
   <button onclick="editModalOpen()" style="background:rgba(8,7,8,0.85);border:1px solid rgba(90,140,180,0.6);color:rgba(120,180,220,0.9);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">edit</button>
   <div id="data-status-top" style="font-size:9px;color:rgba(180,140,90,0.6);letter-spacing:0.1em;"></div>
+  <button onclick="kvPushState()" title="Push state to cloud now" style="background:rgba(8,7,8,0.85);border:1px solid rgba(80,180,120,0.5);color:rgba(100,220,150,0.8);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">↑ cloud</button>
+  <button onclick="kvPullState()" title="Pull state from cloud" style="background:rgba(8,7,8,0.85);border:1px solid rgba(80,180,120,0.5);color:rgba(100,220,150,0.8);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">↓ cloud</button>
+  <div id="kv-sync-status" style="font-size:9px;color:rgba(100,220,150,0.7);letter-spacing:0.1em;"></div>
 </div>
   <!-- ── EDIT MODAL ── -->
   <div id="edit-modal" onclick="if(event.target===this)editModalClose()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);">

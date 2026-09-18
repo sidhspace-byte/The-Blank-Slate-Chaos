@@ -3206,9 +3206,91 @@ body {
             <button class="btn-ghost" onclick="runLensRead()">Again</button>
           </div>
         </div>
-        <div id="lens-factors-node" style="margin-top:20px;padding:12px 14px;border:1px dashed rgba(224,42,24,0.2);display:flex;align-items:center;gap:10px;opacity:0.5;">
-          <span style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);">Situational lens factors</span>
-          <span style="font-size:10px;color:var(--ink-5);">— node pending, connects here</span>
+        <!-- POINT 3 — SITUATIONAL FACTORS / RIG SELECTOR -->
+        <div id="lens-factors-node" style="margin-top:20px;padding:20px 24px;border:1px solid rgba(224,42,24,0.25);background:rgba(224,42,24,0.02);">
+          <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Point 3 — Situational factors</div>
+          <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:12px;color:var(--ink-3);margin-bottom:16px;line-height:1.6;">Motive decides the rig. Set it before you enter the space.</div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:7px;letter-spacing:0.3em;text-transform:uppercase;color:var(--ink-4);margin-bottom:6px;">What is the motive here?</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="rig-motive-grid">
+              <button class="rig-motive-btn" data-motive="let-in" onclick="selectRigMotive(this)" style="background:none;border:1px solid var(--border);padding:8px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;text-align:left;transition:all 0.2s;">Let someone in — lens</button>
+              <button class="rig-motive-btn" data-motive="redirect" onclick="selectRigMotive(this)" style="background:none;border:1px solid var(--border);padding:8px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;text-align:left;transition:all 0.2s;">Redirect what they did — mirror</button>
+              <button class="rig-motive-btn" data-motive="past-forward" onclick="selectRigMotive(this)" style="background:none;border:1px solid var(--border);padding:8px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;text-align:left;transition:all 0.2s;">Bring past forward — converge</button>
+              <button class="rig-motive-btn" data-motive="read" onclick="selectRigMotive(this)" style="background:none;border:1px solid var(--border);padding:8px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;text-align:left;transition:all 0.2s;">Read the space — observe only</button>
+              <button class="rig-motive-btn" data-motive="build" onclick="selectRigMotive(this)" style="background:none;border:1px solid var(--border);padding:8px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;text-align:left;transition:all 0.2s;">Build something — future oriented</button>
+              <button class="rig-motive-btn" data-motive="contain" onclick="selectRigMotive(this)" style="background:none;border:1px solid var(--border);padding:8px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;text-align:left;transition:all 0.2s;">Contain and stabilise — hold</button>
+            </div>
+          </div>
+          <div id="rig-output" style="display:none;padding:14px 16px;border-left:2px solid var(--red);background:rgba(224,42,24,0.03);margin-bottom:14px;">
+            <div style="font-size:7px;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:10px;">Suggested rig</div>
+            <div id="rig-output-body" style="font-size:12px;color:var(--ink-2);line-height:1.8;"></div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:7px;letter-spacing:0.3em;text-transform:uppercase;color:var(--ink-4);margin-bottom:6px;">Space</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="rig-space-btn" data-space="office" onclick="selectRigSpace(this)" style="background:none;border:1px solid var(--border);padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;transition:all 0.2s;">Office</button>
+              <button class="rig-space-btn" data-space="friends" onclick="selectRigSpace(this)" style="background:none;border:1px solid var(--border);padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;transition:all 0.2s;">Friends</button>
+              <button class="rig-space-btn" data-space="family" onclick="selectRigSpace(this)" style="background:none;border:1px solid var(--border);padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;transition:all 0.2s;">Family</button>
+              <button class="rig-space-btn" data-space="strangers" onclick="selectRigSpace(this)" style="background:none;border:1px solid var(--border);padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;transition:all 0.2s;">Strangers</button>
+              <button class="rig-space-btn" data-space="solo" onclick="selectRigSpace(this)" style="background:none;border:1px solid var(--border);padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;transition:all 0.2s;">Solo</button>
+              <button class="rig-space-btn" data-space="one-time" onclick="selectRigSpace(this)" style="background:none;border:1px solid var(--border);padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--ink-3);cursor:pointer;transition:all 0.2s;">One-time</button>
+            </div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <div style="font-size:7px;letter-spacing:0.3em;text-transform:uppercase;color:var(--ink-4);margin-bottom:10px;">Settings</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <div style="border:1px solid var(--border);padding:10px;">
+                <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">Response</div>
+                <select id="rig-response" class="field" style="font-size:10px;padding:4px 6px;margin-bottom:0;">
+                  <option value="adapt">Adapt</option>
+                  <option value="hold">Hold</option>
+                  <option value="recalibrate">Recalibrate</option>
+                </select>
+              </div>
+              <div style="border:1px solid var(--border);padding:10px;">
+                <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">Aperture</div>
+                <select id="rig-aperture" class="field" style="font-size:10px;padding:4px 6px;margin-bottom:0;">
+                  <option value="wide">Wide — let it all in</option>
+                  <option value="mid" selected>Mid — selective</option>
+                  <option value="narrow">Narrow — controlled</option>
+                </select>
+              </div>
+              <div style="border:1px solid var(--border);padding:10px;">
+                <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">Shutter</div>
+                <select id="rig-shutter" class="field" style="font-size:10px;padding:4px 6px;margin-bottom:0;">
+                  <option value="fast">Fast — react</option>
+                  <option value="mid" selected>Mid — read then respond</option>
+                  <option value="slow">Slow — absorb</option>
+                </select>
+              </div>
+              <div style="border:1px solid var(--border);padding:10px;">
+                <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">ISO / Sensitivity</div>
+                <select id="rig-iso" class="field" style="font-size:10px;padding:4px 6px;margin-bottom:0;">
+                  <option value="low">Low — clean, needs light</option>
+                  <option value="mid" selected>Mid — balanced</option>
+                  <option value="high">High — sensitive, noisy</option>
+                </select>
+              </div>
+              <div style="border:1px solid var(--border);padding:10px;">
+                <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">Direction</div>
+                <select id="rig-direction" class="field" style="font-size:10px;padding:4px 6px;margin-bottom:0;">
+                  <option value="inward">Inward — self</option>
+                  <option value="outward" selected>Outward — them</option>
+                  <option value="both">Both</option>
+                </select>
+              </div>
+              <div style="border:1px solid var(--border);padding:10px;">
+                <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">Stability</div>
+                <select id="rig-stability" class="field" style="font-size:10px;padding:4px 6px;margin-bottom:0;">
+                  <option value="tripod">Tripod — anchored</option>
+                  <option value="is" selected>IS — compensating</option>
+                  <option value="handheld">Handheld — mobile</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <button class="btn" onclick="saveCurrentRig()" style="border-color:var(--red);color:var(--red);margin-top:14px;">Save this rig</button>
+          <div id="rig-saved-label" style="display:none;font-size:9px;color:var(--ink-4);margin-top:8px;letter-spacing:0.1em;">rig saved</div>
         </div>
       </div>
 
@@ -3228,6 +3310,55 @@ body {
         <button class="ex-tab" data-lcat="softfocus"        onclick="setLensCat(this)">Soft Focus</button>
       </div>
       <div id="lens-library-display"></div>
+
+      <!-- MIRROR LIBRARY -->
+      <div class="sep" style="margin:36px 0 28px;"></div>
+      <div style="font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Mirrors</div>
+      <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:13px;color:var(--ink-3);margin-bottom:20px;line-height:1.6;">When you need to redirect outward — show someone what they did. Virtual image. Real effect. Past oriented.</div>
+      <div style="display:grid;gap:10px;" id="mirror-library-display">
+        <div style="border:1px solid rgba(224,42,24,0.15);padding:18px 20px;background:rgba(224,42,24,0.02);">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);margin-bottom:4px;">Flat Mirror</div>
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);margin-bottom:12px;">Exact reflection — undistorted</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div><div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:4px;">What it does</div><div style="font-size:11px;color:var(--ink-3);line-height:1.6;">Shows precisely what was. No distortion, no magnification. The image is virtual — can never be extracted as real on its own.</div></div>
+            <div><div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:4px;">When to use</div><div style="font-size:11px;color:var(--ink-3);line-height:1.6;">When the facts need to be stated as they are. No drama, no inflation. Here is what happened.</div></div>
+          </div>
+          <div style="font-size:10px;color:var(--ink-4);border-top:1px solid var(--border);padding-top:10px;">Warning: two flat mirrors facing each other = infinite regress. No real image. The over-analysis trap. Break one.</div>
+        </div>
+        <div style="border:1px solid rgba(224,42,24,0.15);padding:18px 20px;background:rgba(224,42,24,0.02);">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);margin-bottom:4px;">Concave Mirror</div>
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);margin-bottom:12px;">Converging — magnifies, can produce real image</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div><div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:4px;">What it does</div><div style="font-size:11px;color:var(--ink-3);line-height:1.6;">Converges reflection. Can produce a real image at the right distance. Magnifies. Makes the impact larger than it appeared.</div></div>
+            <div><div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:4px;">When to use</div><div style="font-size:11px;color:var(--ink-3);line-height:1.6;">When the past needs to become actionable. When you bring a virtual image forward into present use — add this to converge it into something real.</div></div>
+          </div>
+          <div style="font-size:10px;color:var(--ink-4);border-top:1px solid var(--border);padding-top:10px;">This is the bridge between past and present. Virtual + concave mirror = real image at the right distance.</div>
+        </div>
+        <div style="border:1px solid rgba(224,42,24,0.15);padding:18px 20px;background:rgba(224,42,24,0.02);">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);margin-bottom:4px;">Convex Mirror</div>
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);margin-bottom:12px;">Diverging — shrinks, widens field</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:4px;">What it does</div><div style="font-size:11px;color:var(--ink-3);line-height:1.6;">Diverges. Shows more of the scene, but smaller and curved. Reduces intensity of the reflected image.</div></div>
+            <div><div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:4px;">When to use</div><div style="font-size:11px;color:var(--ink-3);line-height:1.6;">When you need to reduce the charge of what you are reflecting. Show them what they did but with less heat. Wider view, lower intensity.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAMERA NODES -->
+      <div class="sep" style="margin:36px 0 28px;"></div>
+      <div style="font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Camera Nodes</div>
+      <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:13px;color:var(--ink-3);margin-bottom:20px;line-height:1.6;">Every element of the camera system as a thinking node. Unknown connections will surface when the moment is right.</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;" id="cam-node-tabs">
+        <button class="ex-tab on" data-ccat="body" onclick="setCamNodeCat(this)">Body</button>
+        <button class="ex-tab" data-ccat="exposure" onclick="setCamNodeCat(this)">Exposure</button>
+        <button class="ex-tab" data-ccat="optics" onclick="setCamNodeCat(this)">Optics</button>
+        <button class="ex-tab" data-ccat="composition" onclick="setCamNodeCat(this)">Composition</button>
+        <button class="ex-tab" data-ccat="light" onclick="setCamNodeCat(this)">Light</button>
+        <button class="ex-tab" data-ccat="stability" onclick="setCamNodeCat(this)">Stability</button>
+        <button class="ex-tab" data-ccat="post" onclick="setCamNodeCat(this)">Post</button>
+        <button class="ex-tab" data-ccat="unknown" onclick="setCamNodeCat(this)">Unknown nodes</button>
+      </div>
+      <div id="cam-node-display"></div>
 
       <!-- PATTERN -->
       <div class="sep" style="margin:36px 0 28px;"></div>
@@ -8328,16 +8459,170 @@ function renderLensPattern() {
   }).join('');
 }
 
+// ── RIG SELECTOR ─────────────────────────────────────────────────
+
+const RIG_MOTIVES = {
+  'let-in':      { label: 'Let someone in', tool: 'Lens', orientation: 'Present / future', suggested: 'Portrait or standard lens. Mid aperture. Mid shutter — read before you open. Direction: outward then inward. IS on.' },
+  'redirect':    { label: 'Redirect what they did', tool: 'Mirror', orientation: 'Past', suggested: 'Flat mirror for precision. Concave if you need it to land harder. Direction: outward. Fast shutter — don\'t absorb, reflect. Hold mode.' },
+  'past-forward':{ label: 'Bring past forward', tool: 'Mirror + converging lens', orientation: 'Past → Present', suggested: 'Concave mirror first, then converging lens to extract real image. Slow shutter. Wide aperture — you need the light. Recalibrate mode.' },
+  'read':        { label: 'Read the space', tool: 'Telephoto or wide', orientation: 'Observe only', suggested: 'Telephoto to compress and study from distance. Or wide to hold the whole room. Fast shutter. Low ISO. Direction: outward. Handheld — stay mobile.' },
+  'build':       { label: 'Build something', tool: 'Lens — converging', orientation: 'Future', suggested: 'Standard or wide. Deep depth of field — keep context in frame. Mid shutter. Direction: both. Tripod if the exposure is long.' },
+  'contain':     { label: 'Contain and stabilise', tool: 'Soft focus or standard', orientation: 'Present', suggested: 'Soft focus — reduce the edge. Narrow aperture — don\'t let too much in right now. Slow shutter. Hold mode. Tripod. Direction: inward.' },
+};
+
+let currentRigMotive = null;
+let currentRigSpace  = null;
+
+function selectRigMotive(btn) {
+  document.querySelectorAll('.rig-motive-btn').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--ink-3)';
+  });
+  btn.style.borderColor = 'var(--red)';
+  btn.style.color = 'var(--red)';
+  currentRigMotive = btn.dataset.motive;
+  const rig = RIG_MOTIVES[currentRigMotive];
+  if (!rig) return;
+  const out = document.getElementById('rig-output');
+  const body = document.getElementById('rig-output-body');
+  if (out) out.style.display = 'block';
+  if (body) body.innerHTML = `
+    <div style="margin-bottom:6px;"><span style="color:var(--ink-4);font-size:10px;letter-spacing:0.1em;">Tool — </span><span style="color:var(--ink);">${rig.tool}</span></div>
+    <div style="margin-bottom:6px;"><span style="color:var(--ink-4);font-size:10px;letter-spacing:0.1em;">Orientation — </span><span style="color:var(--ink);">${rig.orientation}</span></div>
+    <div style="margin-top:10px;padding:10px 12px;border-left:1px solid rgba(224,42,24,0.3);font-size:11px;color:var(--ink-3);line-height:1.7;">${rig.suggested}</div>
+  `;
+}
+
+function selectRigSpace(btn) {
+  document.querySelectorAll('.rig-space-btn').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--ink-3)';
+  });
+  btn.style.borderColor = 'var(--red)';
+  btn.style.color = 'var(--red)';
+  currentRigSpace = btn.dataset.space;
+}
+
+function saveCurrentRig() {
+  const rig = {
+    motive:    currentRigMotive,
+    space:     currentRigSpace,
+    response:  document.getElementById('rig-response')?.value,
+    aperture:  document.getElementById('rig-aperture')?.value,
+    shutter:   document.getElementById('rig-shutter')?.value,
+    iso:       document.getElementById('rig-iso')?.value,
+    direction: document.getElementById('rig-direction')?.value,
+    stability: document.getElementById('rig-stability')?.value,
+    saved:     new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),
+  };
+  const rigs = JSON.parse(localStorage.getItem('dr_rigs') || '[]');
+  rigs.unshift(rig);
+  if (rigs.length > 50) rigs.pop();
+  localStorage.setItem('dr_rigs', JSON.stringify(rigs));
+  const lbl = document.getElementById('rig-saved-label');
+  if (lbl) { lbl.style.display = 'block'; setTimeout(() => { lbl.style.display = 'none'; }, 2000); }
+}
+
+// ── CAMERA NODES ─────────────────────────────────────────────────
+
+const CAM_NODES = {
+  body: [
+    { name: 'The Body', sub: 'Fixed. You. Constant.', node: 'Your wiring, processing architecture, visual-first reading. The camera doesn\'t change. The glass and settings do. Body quality determines what\'s possible — sensor size, dynamic range, how much noise it can handle.' },
+    { name: 'Sensor size', sub: 'How much you can hold', node: 'Larger sensor = more light captured, shallower DOF possible, more dynamic range. Your capacity to hold complexity in one frame without clipping.' },
+    { name: 'Dynamic range', sub: 'Light to dark simultaneously', node: 'How much difference between lightest and darkest the sensor can hold at once. Exceed it and highlights clip or shadows crush. The range of a situation you can hold before something gets lost.' },
+    { name: 'Noise floor', sub: 'Baseline static', node: 'Every sensor has a noise floor — the static that exists even before signal arrives. Your nervous system chronically elevated = elevated noise floor. Signal still comes through, but it has to be louder to register cleanly.' },
+  ],
+  exposure: [
+    { name: 'Aperture', sub: 'How much you let in', node: 'Wide aperture (f/1.4) — lots of light, shallow DOF, subject isolated. Narrow (f/16) — less light, everything in focus. How open or controlled your intake is in a situation.' },
+    { name: 'Shutter speed', sub: 'How long you stay open', node: 'Fast = freezes motion, nothing bleeds. Slow = motion blur, light accumulates. Your auditory processing delay = naturally slower shutter on the audio channel. The reciprocal rule applies: longer focal length needs faster response to stay sharp.' },
+    { name: 'ISO', sub: 'Sensitivity', node: 'Low ISO — clean signal, needs lots of light. High ISO — amplifies everything including the noise. Running at high ISO baseline = picking up static that wasn\'t meant for you. The cost of high sensitivity in a dark room.' },
+    { name: 'Exposure triangle', sub: 'Three that always move together', node: 'Aperture, shutter, ISO — change one, the others must compensate. No single setting exists in isolation. Every adjustment has a downstream effect on the other two.' },
+    { name: 'Exposure latitude', sub: 'Tolerance for error', node: 'How much the medium tolerates before information is lost. Digital clips highlights fast. Film rolls off gradually. Some situations have narrow latitude — one misstep and detail is gone. Others are forgiving.' },
+  ],
+  optics: [
+    { name: 'Pinhole', sub: 'Origin state — no lens', node: 'Everything in focus, nothing sharp. Infinite depth of field. No distortion. Long exposure required. The state before you\'ve chosen a lens. Pre-motive. Everything in frame, nothing precise.' },
+    { name: 'Depth of field', sub: 'What\'s in focus and what isn\'t', node: 'Only one plane is truly sharp. Everything else falls off in both directions. In any conversation, only one thing can be in focus. The choice of what that is — and what falls into bokeh — is compositional.' },
+    { name: 'Bokeh', sub: 'Quality of the out-of-focus', node: 'How the lens renders what it\'s not focused on. Some lenses produce smooth, creamy bokeh. Others produce harsh, nervous bokeh. What you do with what you\'re not directly attending to.' },
+    { name: 'Chromatic aberration', sub: 'Unresolved tension at high contrast edges', node: 'Produced by two factors simultaneously: high contrast boundary AND unresolved information. Neither alone causes it. What happens when you\'re obsessed with information at a high contrast edge without taking action to eliminate the ambiguity. The fix is action — remove the unresolved variable.' },
+    { name: 'Distortion', sub: 'Barrel and pincushion', node: 'Wide lenses bow outward (barrel). Tele lenses pull inward (pincushion). Every lens introduces some distortion. Knowing which kind you\'re using tells you which direction the bias goes.' },
+    { name: 'Vignetting', sub: 'Darkening at edges', node: 'Natural focus to centre. Edges receive less light. What falls into the periphery of your attention gets darker. Sometimes intentional, sometimes a side effect of the glass.' },
+    { name: 'Lens breathing', sub: 'Focal length shifts as you focus', node: 'What you framed at one distance shifts slightly when you focus closer. The composition you set up is not entirely stable — it moves with your focus point.' },
+    { name: 'Back/front focus', sub: 'Landing behind or ahead of where you aimed', node: 'The lens focuses slightly behind or in front of where you pointed. You aimed at something and the sharpness landed elsewhere. A calibration issue — not random, systematic.' },
+  ],
+  composition: [
+    { name: 'Point of view', sub: 'Where you stand changes everything', node: 'Same subject, different angle = different truth. The position you occupy determines what you see and what you can\'t. Visual read is primary — where you\'re reading from matters as much as what you\'re reading.' },
+    { name: 'Negative space', sub: 'What you leave empty', node: 'What you leave empty is as intentional as what you fill. The absence communicates. Silence in a conversation is composition.' },
+    { name: 'Frame within frame', sub: 'Environment isolating the subject', node: 'Using the space to direct attention further. A doorway, an arch, a window. Context that narrows to what matters.' },
+    { name: 'Leading lines', sub: 'Elements that direct attention', node: 'What in the situation naturally pulls attention toward the subject. Can be used or disrupted deliberately.' },
+    { name: 'Foreground / midground / background', sub: 'Depth planes', node: 'Three distinct layers in a frame. Subject placement across these changes the read entirely. Which depth plane you put something on determines its weight.' },
+    { name: 'Zone system', sub: 'Pre-visualise before you shoot', node: 'Ansel Adams: see the finished print in the scene before you release the shutter. Map the tones deliberately. Pre-visualisation as a trained skill — the whole point of this framework.' },
+  ],
+  light: [
+    { name: 'Quality', sub: 'Hard vs soft', node: 'Hard light — direct, high contrast, harsh shadows, everything stark. Soft light — diffused, gradual transitions, more forgiving. The emotional and contextual conditions of the space you\'re in.' },
+    { name: 'Direction', sub: 'Where it comes from', node: 'Front light — flat, no shadow, everything visible. Side light — texture revealed, depth created. Back light — silhouette, subject defined by outline not detail. Same subject, different truth.' },
+    { name: 'Colour temperature', sub: 'Warm vs cool', node: 'Warm (golden hour, tungsten) vs cool (open shade, overcast). The emotional register of the environment. You can\'t control the colour temperature. You can only read it and compensate.' },
+    { name: 'Available vs artificial', sub: 'Working with what\'s there', node: 'Available light = working with what the space gives you. Artificial = introducing your own source. Both valid. The choice changes what\'s possible and what\'s honest.' },
+    { name: 'White balance', sub: 'What you define as neutral', node: 'What you define as neutral determines how everything else reads. Set white balance wrong and all colours shift. What you call baseline affects the entire read of the scene.' },
+  ],
+  stability: [
+    { name: 'Tripod', sub: 'Complete anchor', node: 'No camera shake. Long exposures possible. Zero mobility. Your tools that fully anchor you — anchor sentence, a formula you\'ve drilled — this is tripod-level stability.' },
+    { name: 'Image stabilisation', sub: 'Compensating for movement', node: 'Built into lens or body. Compensates for small movements, buys 2–4 stops. Not as stable as a tripod but mobile. What you have when your tools are partially working — enough to get a sharp image if the exposure isn\'t too long.' },
+    { name: 'Handheld', sub: 'Maximum mobility, minimum stability', node: 'Fastest to move. Requires faster shutter to compensate. The way you move through most situations — no anchor, relying on speed of response to stay sharp.' },
+    { name: 'Reciprocity failure', sub: 'At extremes, the math breaks down', node: 'In film, very long exposures don\'t behave as predicted. The relationship between time and exposure fails at extremes. Prolonged high-stress situations stop responding to normal compensations.' },
+  ],
+  post: [
+    { name: 'Reload', sub: 'Develop the negative', node: 'The shoot is done. Now you sit with what came out. Exposure adjustment, contrast, colour grade. What you decide to bring forward from the raw capture.' },
+    { name: 'Simulate', sub: 'Test the negative', node: 'What happens if you\'d shot it differently. Run the scenario before committing to the print.' },
+    { name: 'Train + Formulas + Forge', sub: 'The print', node: 'Usable output from the developed negative. What you actually take forward and apply. The image becomes a tool.' },
+    { name: 'RAW vs JPEG', sub: 'All data vs already decided', node: 'RAW = all the data captured, you decide in post. JPEG = the camera decided and discarded the rest. Some conversations you process fully. Some you let the moment decide and move on.' },
+    { name: 'Dodge and burn', sub: 'Selective brightening and darkening', node: 'Pull specific areas up or push them down. Targeted attention to what matters most in the image. Not global — local.' },
+    { name: 'Film negative', sub: 'The inverse comes first', node: 'The image exists as its inverse before it becomes what it is. The negative is not wrong — it\'s not finished. What looks dark may be light once developed.' },
+  ],
+  unknown: [
+    { name: 'Diffraction', sub: 'Stopped too far down — sharpness degrades', node: 'Past f/16, sharpness actually gets worse. Trying to control everything too tightly produces worse results than leaving some things open. Over-control has a ceiling where it starts defeating itself.', status: 'unknown' },
+    { name: 'Hyperfocal distance', sub: 'The focus point that maximises depth of field', node: 'A specific focus distance at a given aperture that keeps everything from half that distance to infinity acceptably sharp. There is a precise point that gives maximum useful range. Not yet connected to a specific situation — waiting.', status: 'unknown' },
+    { name: 'Reciprocity failure', sub: 'Long exposure math breaks down', node: 'Already in stability section. Also appears here as unknown because its deeper framework connection is not yet resolved — prolonged stress situations and non-linear breakdown. Where exactly does this land?', status: 'unknown' },
+    { name: 'Focus breathing', sub: 'Image changes as you rack focus', node: 'Related to lens breathing but distinct — the composition shifts slightly as you move through the focus range. What you aimed at and what you get are not identical. Not yet placed.', status: 'unknown' },
+    { name: 'Camera obscura', sub: 'Origin of the darkroom', node: 'Darkened chamber, pinhole, inverted image projected inside. Camera obscura = darkened room in Latin. THE SYSTEM\'s name origin locked here. Still has connections to surface.', status: 'pending' },
+    { name: 'Ibn al-Haytham', sub: 'Optics as science — 1000 AD', node: 'First to describe how light travels in straight lines. Seeing as a discipline, not just a sense. The moment observation became something you could study rather than just do. Connection to darkroom as a system not yet fully mapped.', status: 'pending' },
+  ],
+};
+
+let currentCamCat = 'body';
+
+function setCamNodeCat(btn) {
+  document.querySelectorAll('#cam-node-tabs .ex-tab').forEach(t => t.classList.remove('on'));
+  btn.classList.add('on');
+  currentCamCat = btn.dataset.ccat;
+  renderCamNodes();
+}
+
+function renderCamNodes() {
+  const el = document.getElementById('cam-node-display');
+  if (!el) return;
+  const nodes = CAM_NODES[currentCamCat] || [];
+  el.innerHTML = nodes.map(n => `
+    <div style="border:1px solid ${n.status==='unknown'?'rgba(224,42,24,0.15)':n.status==='pending'?'rgba(180,140,90,0.2)':'rgba(224,42,24,0.2)'};padding:16px 20px;margin-bottom:8px;background:rgba(224,42,24,0.01);animation:rise 0.25s ease both;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px;">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);">${n.name}</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);opacity:0.7;">${n.sub}</div>
+        ${n.status ? `<div style="margin-left:auto;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-5);border:1px solid var(--border);padding:2px 6px;">${n.status}</div>` : ''}
+      </div>
+      <div style="font-size:12px;color:var(--ink-3);line-height:1.7;">${n.node}</div>
+    </div>
+  `).join('');
+}
+
 // Hook go() to init Lens chamber
 const _goLens = go;
 go = function(c) {
   _goLens(c);
-  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); populateLensSelects(); }, 80);
+  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); populateLensSelects(); renderCamNodes(); }, 80);
 };
 const _enterLens = enter;
 enter = function(c) {
   _enterLens(c);
-  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); populateLensSelects(); }, 80);
+  if (c==='lens') setTimeout(()=>{ renderCurrentLensGrid(); renderLensLibrary(); renderLensPattern(); populateLensSelects(); renderCamNodes(); }, 80);
 };
 
 
@@ -10374,6 +10659,7 @@ initFormulas = function() {
 
 // Add to export keys
 DR_KEYS.push('dr_custom_formulas');
+DR_KEYS.push('dr_rigs');
 
 // ── KV SYNC SYSTEM ──────────────────────────────────────────────
 // Syncs content data (DR_KEYS) to Cloudflare KV via the worker.

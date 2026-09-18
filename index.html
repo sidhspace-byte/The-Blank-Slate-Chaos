@@ -3291,6 +3291,29 @@ body {
           </div>
           <button class="btn" onclick="saveCurrentRig()" style="border-color:var(--red);color:var(--red);margin-top:14px;">Save this rig</button>
           <div id="rig-saved-label" style="display:none;font-size:9px;color:var(--ink-4);margin-top:8px;letter-spacing:0.1em;">rig saved</div>
+
+          <!-- RECALIBRATE -->
+          <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);">
+            <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Recalibrate</div>
+            <div style="font-size:11px;color:var(--ink-4);margin-bottom:14px;line-height:1.6;">Signal hit — internal chaos, achievement anxiety. Something about the current rig is wrong. Use this to find what.</div>
+            <textarea id="recal-input" class="field" rows="3" placeholder="What were you trying to achieve? What's the chaos about?" style="width:100%;margin-bottom:10px;font-size:12px;"></textarea>
+            <button class="btn" onclick="runRecalibrate()" style="border-color:var(--red);color:var(--red);">Find what's wrong</button>
+            <div id="recal-thinking" style="display:none;font-size:10px;color:var(--ink-4);margin-top:10px;letter-spacing:0.1em;"></div>
+            <div id="recal-output" style="display:none;margin-top:14px;padding:14px 16px;border-left:2px solid var(--red);background:rgba(224,42,24,0.03);font-size:12px;color:var(--ink-2);line-height:1.8;"></div>
+          </div>
+
+          <!-- AI RIG DISCUSSION -->
+          <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);">
+            <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Discuss the rig</div>
+            <div style="font-size:11px;color:var(--ink-4);margin-bottom:14px;line-height:1.6;">Describe the situation. AI reads your current settings and helps you choose the right lens, mirror, and combination.</div>
+            <div id="rig-chat-history" style="margin-bottom:12px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
+            <textarea id="rig-chat-input" class="field" rows="2" placeholder="Describe the situation or ask about the rig…" style="width:100%;margin-bottom:8px;font-size:12px;"></textarea>
+            <div style="display:flex;gap:8px;">
+              <button class="btn" onclick="sendRigChat()" style="border-color:var(--red);color:var(--red);">Send</button>
+              <button class="btn-ghost" onclick="clearRigChat()" style="font-size:10px;">Clear</button>
+            </div>
+            <div id="rig-chat-thinking" style="display:none;font-size:10px;color:var(--ink-4);margin-top:8px;letter-spacing:0.1em;"></div>
+          </div>
         </div>
       </div>
 
@@ -8523,6 +8546,133 @@ function saveCurrentRig() {
   if (lbl) { lbl.style.display = 'block'; setTimeout(() => { lbl.style.display = 'none'; }, 2000); }
 }
 
+function getCurrentRigSummary() {
+  const motive    = currentRigMotive ? (RIG_MOTIVES[currentRigMotive]?.label || currentRigMotive) : 'not set';
+  const space     = currentRigSpace || 'not set';
+  const response  = document.getElementById('rig-response')?.value || 'not set';
+  const aperture  = document.getElementById('rig-aperture')?.value || 'not set';
+  const shutter   = document.getElementById('rig-shutter')?.value || 'not set';
+  const iso       = document.getElementById('rig-iso')?.value || 'not set';
+  const direction = document.getElementById('rig-direction')?.value || 'not set';
+  const stability = document.getElementById('rig-stability')?.value || 'not set';
+  return `Current rig — Motive: ${motive} | Space: ${space} | Response: ${response} | Aperture: ${aperture} | Shutter: ${shutter} | ISO: ${iso} | Direction: ${direction} | Stability: ${stability}`;
+}
+
+async function runRecalibrate() {
+  const input = document.getElementById('recal-input')?.value?.trim();
+  if (!input) return;
+  const thinking = document.getElementById('recal-thinking');
+  const output   = document.getElementById('recal-output');
+  if (thinking) { thinking.style.display = 'block'; thinking.textContent = 'reading the rig…'; }
+  if (output)   { output.style.display = 'none'; output.innerHTML = ''; }
+
+  const rigSummary = getCurrentRigSummary();
+  const sys = `You are the recalibration system inside THE SYSTEM darkroom. The user's recalibration signal has fired — internal chaos followed by achievement anxiety. They couldn't reach what they were trying to achieve and the rig they were running is wrong somewhere.
+
+The camera framework: Lenses = let someone in, present/future, converging, real image. Mirrors = redirect outward, past, virtual. Settings: aperture (intake), shutter (response speed), ISO (sensitivity), response mode, direction, stability. The exposure triangle always moves together — change one, others compensate.
+
+The user has ADHD (novelty craving, hyperfocus that disrupts routine) and autistic traits (locks into wrong rig without recognising it until signal fires). The signal is: internal chaos + achievement anxiety = gap between where they are and what they wanted.
+
+${rigSummary}
+
+Your job: identify what's wrong with the current rig for what they were trying to achieve. Be specific. Name which setting is off and why. Suggest the exact adjustment — not a general recommendation. One or two things maximum. Do not over-explain. Be surgical.`;
+
+  const msg = `What I was trying to achieve and what the chaos is about: ${input}`;
+
+  const workerUrl = getWorkerUrlForChamber('lens');
+  const model     = getAIModelForChamber('lens');
+  if (!workerUrl) {
+    if (thinking) thinking.style.display = 'none';
+    if (output)   { output.style.display = 'block'; output.textContent = 'No worker URL set. Go to AI settings in this chamber.'; }
+    return;
+  }
+
+  try {
+    const res  = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 600, messages: [{ role: 'user', content: `${sys}\n\n${msg}` }] }),
+    });
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || 'No response.';
+    if (thinking) thinking.style.display = 'none';
+    if (output)   { output.style.display = 'block'; output.innerHTML = text.replace(/\n/g,'<br>'); }
+  } catch (err) {
+    if (thinking) thinking.style.display = 'none';
+    if (output)   { output.style.display = 'block'; output.textContent = 'Worker error: ' + err.message; }
+  }
+}
+
+// ── RIG CHAT ─────────────────────────────────────────────────────
+let rigChatHistory = [];
+
+function clearRigChat() {
+  rigChatHistory = [];
+  const el = document.getElementById('rig-chat-history');
+  if (el) el.innerHTML = '';
+}
+
+function appendRigChatBubble(role, text) {
+  const el = document.getElementById('rig-chat-history');
+  if (!el) return;
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;justify-content:${isUser?'flex-end':'flex-start'};`;
+  div.innerHTML = `<div style="max-width:85%;padding:10px 14px;border:1px solid ${isUser?'rgba(224,42,24,0.3)':'var(--border)'};background:${isUser?'rgba(224,42,24,0.04)':'transparent'};font-size:12px;color:var(--ink-2);line-height:1.7;">${text.replace(/\n/g,'<br>')}</div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendRigChat() {
+  const input = document.getElementById('rig-chat-input');
+  const msg   = input?.value?.trim();
+  if (!msg) return;
+  input.value = '';
+
+  appendRigChatBubble('user', msg);
+  rigChatHistory.push({ role: 'user', content: msg });
+
+  const thinking = document.getElementById('rig-chat-thinking');
+  if (thinking) { thinking.style.display = 'block'; thinking.textContent = 'reading the situation…'; }
+
+  const rigSummary = getCurrentRigSummary();
+  const sys = `You are a thinking companion inside THE SYSTEM Lens chamber. You help the user choose and discuss the right lens, mirror, and camera rig for their situation.
+
+The camera framework: Lenses = let someone in (present/future, converging, real image). Mirrors = redirect outward (past, virtual image). Lens types: ultra-wide (max context, high distortion), wide (environmental, honest), normal/50mm (what it is), portrait/85-135mm (intimacy, controlled), telephoto (compression, reveals pattern from distance), super-telephoto (extreme compression, needs stability). Mirror types: flat (exact, undistorted), concave (magnifies, can produce real image, brings past forward), convex (shrinks, widens, reduces charge). Settings: aperture (how much you let in), shutter (how long you stay open / response speed), ISO (sensitivity — high ISO = high noise), response mode (adapt/hold/recalibrate), direction (inward/outward/both), stability (tripod/IS/handheld). Exposure triangle: aperture, shutter, ISO always move together. Chromatic aberration = info obsession at high contrast edge without action — fix is action not analysis. The user's recalibration signal = internal chaos + achievement anxiety.
+
+The user has ADHD (novelty craving, hyperfocus disrupts routine) and autistic traits (locks into rig even when wrong, needs signal to recalibrate).
+
+${rigSummary}
+
+Discuss like a DP (director of photography) before a shoot — direct, specific, ask what they need to know, push back when the framing is imprecise. Don't over-explain. Ask one question if you need to before giving a recommendation.`;
+
+  const workerUrl = getWorkerUrlForChamber('lens');
+  const model     = getAIModelForChamber('lens');
+  if (!workerUrl) {
+    if (thinking) thinking.style.display = 'none';
+    appendRigChatBubble('ai', 'No worker URL set. Go to AI settings in this chamber.');
+    rigChatHistory.push({ role: 'assistant', content: 'No worker URL set.' });
+    return;
+  }
+
+  try {
+    const messages = [{ role: 'user', content: sys }, ...rigChatHistory];
+    const res  = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 700, messages }),
+    });
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || 'No response.';
+    if (thinking) thinking.style.display = 'none';
+    appendRigChatBubble('ai', text);
+    rigChatHistory.push({ role: 'assistant', content: text });
+  } catch (err) {
+    if (thinking) thinking.style.display = 'none';
+    appendRigChatBubble('ai', 'Worker error: ' + err.message);
+  }
+}
+
 // ── CAMERA NODES ─────────────────────────────────────────────────
 
 const CAM_NODES = {
@@ -11024,7 +11174,7 @@ const AI_CHAMBER_CONTEXT = {
   formulas:  'FORMULAS chamber — the user is working with equations, frameworks, or mental models. Help them apply or derive the right formula for their situation.',
   wiring:    'WIRING chamber — the user is thinking about systems, connections, and how things link together. Help them map the structure and find the leverage points.',
   projects:  'PROJECTS chamber — the user is thinking about a project: scope, status, blockers, next moves. Help them think clearly about what matters and what to do next.',
-  lens:      'LENS chamber — the user is examining which mental lens they are using to see a situation — wide angle (zoomed out, abstract), telephoto (zoomed in, obsessive), macro (microscopic detail), or prime (fixed, committed). Help them identify which lens they are holding and whether it is the right one for the situation.',
+  lens:      'LENS chamber — the user is working with an optics-based thinking framework. Lenses let someone in (present/future, converging, real image). Mirrors redirect outward (past, virtual image, show what was done). The camera body is fixed — the user. Settings: aperture (how much you let in), shutter (how long you stay open), ISO (sensitivity/noise), response mode (adapt/hold/recalibrate), direction (inward/outward), stability (tripod/IS/handheld). Depth of field = what is in focus vs what is bokeh. Chromatic aberration = unresolved tension at high contrast edges, fixed by action not more analysis. The exposure triangle: aperture, shutter, ISO always move together. Motive decides the rig before entering a space. The user has ADHD (novelty seeking, hyperfocus that disrupts routine, tabs racing) and autistic traits (locks into a rig even when wrong, needs external signal to recalibrate). The recalibration signal is: internal chaos followed by achievement anxiety — the gap between where they are and what they wanted becomes visceral. Help them identify which lens or mirror fits the situation, what the rig should be, and when to recalibrate.',
   forge:     'FORGE chamber — the user is building or creating something. Help them think through the design, the decisions, and the path from idea to made thing.',
 };
 

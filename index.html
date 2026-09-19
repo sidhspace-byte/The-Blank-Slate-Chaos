@@ -10900,8 +10900,8 @@ async function kvPullState() {
       }
     });
     kvSetSyncStatus(`loaded ${loaded} keys ✓`, 0, loadedKeys);
-    // Reload the page so all chambers re-init from fresh localStorage
-    setTimeout(() => location.reload(), 800);
+    // Delay reload so user can read which keys loaded
+    setTimeout(() => location.reload(), 2500);
   } catch (err) {
     kvSetSyncStatus('load failed', 5000);
     console.warn('[KV] pull error:', err.message);

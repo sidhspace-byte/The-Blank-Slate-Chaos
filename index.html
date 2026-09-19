@@ -10877,7 +10877,7 @@ async function kvPushState() {
   }
 }
 
-// Pull state from KV on open — hydrate localStorage then reload data
+// Pull state from KV — hydrate localStorage, no page reload
 async function kvPullState() {
   const url = getKVWorkerUrl();
   if (!url) return;
@@ -10890,17 +10890,15 @@ async function kvPullState() {
       return;
     }
     const snap = data.state;
-    let loaded = 0;
     const loadedKeys = [];
     DR_KEYS.forEach(k => {
       if (snap[k] !== undefined) {
         localStorage.setItem(k, JSON.stringify(snap[k]));
-        loaded++;
         loadedKeys.push(k);
       }
     });
-    kvSetSyncStatus(`loaded ${loaded} keys ✓`, 0, loadedKeys);
-    // Set flag so auto-pull on reload doesn't fire again
+    kvSetSyncStatus(`loaded ${loadedKeys.length} keys ✓`, 0, loadedKeys);
+    // Reload once so chambers re-init from fresh localStorage
     sessionStorage.setItem('dr_kv_pulled', '1');
     setTimeout(() => location.reload(), 2500);
   } catch (err) {
@@ -10933,8 +10931,32 @@ function kvSetSyncStatus(msg, clearAfterMs = 0, keys = null) {
 
 // On load — pull from KV if worker is set and this isn't a post-sync reload
 (function kvAutoLoad() {
-  // Auto-pull disabled — use ↓ cloud button to pull manually
-  // Prevents reload loop on every page open
+  const url = getKVWorkerUrl();
+  if (!url) return;
+  // Pull silently on open — no reload, just hydrate localStorage
+  // Chambers already read from localStorage on init so this is safe
+  setTimeout(async () => {
+    try {
+      const res  = await fetch(url + '/state');
+      const data = await res.json();
+      if (!data.state) return;
+      const snap = data.state;
+      const loadedKeys = [];
+      DR_KEYS.forEach(k => {
+        if (snap[k] !== undefined) {
+          // Only write if localStorage doesn't already have this key
+          // — local data takes priority, KV fills gaps
+          if (localStorage.getItem(k) === null) {
+            localStorage.setItem(k, JSON.stringify(snap[k]));
+            loadedKeys.push(k);
+          }
+        }
+      });
+      if (loadedKeys.length) {
+        kvSetSyncStatus(`synced — ${loadedKeys.join(', ')}`, 4000, loadedKeys);
+      }
+    } catch { /* silent fail */ }
+  }, 1200);
 })();
 
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────

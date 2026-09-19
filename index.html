@@ -10891,13 +10891,15 @@ async function kvPullState() {
     }
     const snap = data.state;
     let loaded = 0;
+    const loadedKeys = [];
     DR_KEYS.forEach(k => {
       if (snap[k] !== undefined) {
         localStorage.setItem(k, JSON.stringify(snap[k]));
         loaded++;
+        loadedKeys.push(k);
       }
     });
-    kvSetSyncStatus(`loaded ${loaded} keys ✓`, 3000);
+    kvSetSyncStatus(`loaded ${loaded} keys ✓`, 0, loadedKeys);
     // Reload the page so all chambers re-init from fresh localStorage
     setTimeout(() => location.reload(), 800);
   } catch (err) {
@@ -10906,12 +10908,21 @@ async function kvPullState() {
   }
 }
 
-function kvSetSyncStatus(msg, clearAfterMs = 0) {
+function kvSetSyncStatus(msg, clearAfterMs = 0, keys = null) {
   const el = document.getElementById('kv-sync-status');
-  if (el) {
-    el.textContent = msg;
-    if (clearAfterMs) setTimeout(() => { el.textContent = ''; }, clearAfterMs);
-  }
+  if (!el) return;
+  el.textContent = msg;
+  el.style.cursor = keys && keys.length ? 'pointer' : 'default';
+  el.onclick = keys && keys.length ? () => {
+    const existing = document.getElementById('kv-key-list');
+    if (existing) { existing.remove(); return; }
+    const list = document.createElement('div');
+    list.id = 'kv-key-list';
+    list.style.cssText = 'position:fixed;bottom:40px;left:16px;background:#080708;border:1px solid rgba(100,220,150,0.3);padding:10px 14px;z-index:999999;font-family:"DM Mono",monospace;font-size:9px;color:rgba(100,220,150,0.8);letter-spacing:0.1em;line-height:1.9;';
+    list.innerHTML = keys.map(k => `<div>${k}</div>`).join('') + `<div style="margin-top:6px;color:rgba(100,220,150,0.4);font-size:8px;cursor:pointer;" onclick="this.parentElement.remove()">× close</div>`;
+    document.body.appendChild(list);
+  } : null;
+  if (clearAfterMs) setTimeout(() => { el.textContent = ''; el.onclick = null; }, clearAfterMs);
 }
 
 // Patch localStorage setter so any DR_KEY write triggers a sync

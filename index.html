@@ -10911,18 +10911,14 @@ async function kvPullState() {
 function kvSetSyncStatus(msg, clearAfterMs = 0, keys = null) {
   const el = document.getElementById('kv-sync-status');
   if (!el) return;
-  el.textContent = msg;
-  el.style.cursor = keys && keys.length ? 'pointer' : 'default';
-  el.onclick = keys && keys.length ? () => {
-    const existing = document.getElementById('kv-key-list');
-    if (existing) { existing.remove(); return; }
-    const list = document.createElement('div');
-    list.id = 'kv-key-list';
-    list.style.cssText = 'position:fixed;bottom:40px;left:16px;background:#080708;border:1px solid rgba(100,220,150,0.3);padding:10px 14px;z-index:999999;font-family:"DM Mono",monospace;font-size:9px;color:rgba(100,220,150,0.8);letter-spacing:0.1em;line-height:1.9;';
-    list.innerHTML = keys.map(k => `<div>${k}</div>`).join('') + `<div style="margin-top:6px;color:rgba(100,220,150,0.4);font-size:8px;cursor:pointer;" onclick="this.parentElement.remove()">× close</div>`;
-    document.body.appendChild(list);
-  } : null;
-  if (clearAfterMs) setTimeout(() => { el.textContent = ''; el.onclick = null; }, clearAfterMs);
+  el.style.cursor = 'default';
+  el.onclick = null;
+  if (keys && keys.length) {
+    el.textContent = `loaded ${keys.length} keys — ${keys.join(', ')}`;
+  } else {
+    el.textContent = msg;
+  }
+  if (clearAfterMs) setTimeout(() => { el.textContent = ''; }, clearAfterMs);
 }
 
 // Patch localStorage setter so any DR_KEY write triggers a sync

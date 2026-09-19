@@ -1848,7 +1848,25 @@ body {
       <div class="resp" id="load-resp">
         <div class="resp-label">what i'm hearing</div>
         <div class="resp-body" id="load-resp-body"></div>
-        <div class="resp-actions">
+
+        <!-- ANCHOR WORD -->
+        <div id="anchor-word-section" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+          <div style="font-size:7px;letter-spacing:0.25em;text-transform:uppercase;color:var(--load);margin-bottom:8px;">Anchor word</div>
+          <div style="font-size:11px;color:var(--ink-4);margin-bottom:12px;line-height:1.6;">One word to grip the situation. Collapses the overload into something the mind can hold.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn" onclick="generateAnchorWord()" style="border-color:var(--load);color:var(--load);">Ask AI for a word</button>
+            <span style="font-size:10px;color:var(--ink-5);">or</span>
+            <input type="text" id="anchor-word-input" class="field" placeholder="define your own" style="flex:1;min-width:120px;margin-bottom:0;font-size:13px;">
+            <button class="btn" onclick="saveAnchorWord()" style="border-color:var(--load);color:var(--load);">Set</button>
+          </div>
+          <div id="anchor-word-thinking" style="display:none;font-size:10px;color:var(--ink-4);margin-top:8px;letter-spacing:0.1em;"></div>
+          <div id="anchor-word-display" style="display:none;margin-top:12px;padding:14px 18px;border-left:2px solid var(--load);background:rgba(var(--load-rgb,180,140,90),0.03);">
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--load);letter-spacing:0.05em;" id="anchor-word-text"></div>
+            <div style="font-size:10px;color:var(--ink-4);margin-top:4px;" id="anchor-word-meta"></div>
+          </div>
+        </div>
+
+        <div class="resp-actions" style="margin-top:14px;">
           <button class="btn-ghost" onclick="carryTo('load','map')">→ Map first</button>
           <button class="btn-ghost" onclick="carryTo('load','aim')">→ Aim directly</button>
           <button class="btn-ghost" onclick="toArsenal()">Save</button>
@@ -2283,6 +2301,17 @@ body {
         <div class="resp-label">the pattern</div>
         <div class="resp-body" id="reload-resp-body"></div>
       </div>
+
+      <!-- ANCHOR WORD CORRECTION -->
+      <div class="sep"></div>
+      <div style="font-size:8px;letter-spacing:0.25em;text-transform:uppercase;color:var(--reload);margin-bottom:8px;">Anchor word</div>
+      <div id="reload-anchor-current" style="margin-bottom:12px;min-height:20px;"></div>
+      <div style="font-size:11px;color:var(--ink-4);margin-bottom:12px;line-height:1.6;">If the word was wrong, correct it here. The wrong word is kept as history — mistakes are data.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="reload-anchor-input" class="field" placeholder="corrected word" style="flex:1;min-width:120px;margin-bottom:0;font-size:13px;">
+        <button class="btn" onclick="correctAnchorWord()" style="border-color:var(--reload);color:var(--reload);">Correct</button>
+      </div>
+      <div id="reload-anchor-history" style="margin-top:14px;"></div>
       <div class="sep"></div>
       <div class="hist-label">All entries</div>
       <div class="hist-list" id="reload-list"><div class="empty">Nothing here yet.</div></div>
@@ -2687,13 +2716,27 @@ body {
       <button class="btn" onclick="toggleCustomFormulaForm()" id="cfbtn" style="border-color:var(--form);color:var(--form);margin-bottom:16px;">+ New formula</button>
       <div id="custom-formula-form" style="display:none;padding:16px;border:1px solid var(--border2);margin-bottom:20px;">
         <input id="cf-name" type="text" placeholder="Formula name" style="width:100%;background:var(--black);border:1px solid var(--border);color:var(--ink);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;margin-bottom:8px;">
-        <input id="cf-eq" type="text" placeholder="Equation or shorthand — e.g. Output = Input × Focus" style="width:100%;background:var(--black);border:1px solid var(--border);color:var(--ink);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;margin-bottom:8px;">
+        <input id="cf-eq" type="text" placeholder="Equation or shorthand — e.g. Output = Input × Focus" style="width:100%;background:var(--black);border:1px solid var(--border);color:var(--ink);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;margin-bottom:6px;">
+        <!-- SYMBOL KEYBOARD -->
+        <div id="symbol-keyboard" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;padding:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);">
+          <div style="width:100%;font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:4px;">Symbols</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;" id="sym-ops"></div>
+        </div>
         <textarea id="cf-desc" rows="3" placeholder="What it does and when to use it" style="width:100%;background:var(--black);border:1px solid var(--border);color:var(--ink);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;resize:none;margin-bottom:10px;"></textarea>
         <div style="display:flex;gap:8px;">
           <button class="btn" onclick="addCustomFormula()" style="border-color:var(--form);color:var(--form);">Save formula</button>
           <button class="btn" onclick="toggleCustomFormulaForm()">Cancel</button>
         </div>
       </div>
+
+      <!-- AI FORMULA GENERATOR -->
+      <div class="sep"></div>
+      <div style="font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:var(--form);margin-bottom:8px;">Generate a formula</div>
+      <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:13px;color:var(--ink-3);margin-bottom:14px;line-height:1.5;">Name a domain or situation. AI builds a formula using proper mathematical symbols with plain-language explanation. Add it directly to your inventory.</div>
+      <input type="text" id="gen-formula-domain" class="field" placeholder="e.g. decision under pressure, energy management, creative output…" style="margin-bottom:10px;">
+      <button class="btn" onclick="generateFormulaAI()" style="border-color:var(--form);color:var(--form);">Generate formula</button>
+      <div id="gen-formula-thinking" style="display:none;font-size:10px;color:var(--ink-4);margin-top:10px;letter-spacing:0.1em;"></div>
+      <div id="gen-formula-output" style="display:none;margin-top:14px;"></div>
 
       <!-- Apply to my situation -->
       <div class="sep"></div>
@@ -6909,6 +6952,7 @@ document.addEventListener('keydown',e=>{
 // ====================================
 renderArsenal();
 renderReloads();
+renderReloadAnchorCurrent();
 tick();
 initIndependence();
 
@@ -10805,16 +10849,240 @@ function renderCustomFormulas() {
   `).join('');
 }
 
+// ── ANCHOR WORD SYSTEM ───────────────────────────────────────────
+// Storage: dr_anchor_words — array of { word, source, timestamp, situation, corrections:[] }
+
+function getAnchorWords() {
+  try { return JSON.parse(localStorage.getItem('dr_anchor_words') || '[]'); } catch { return []; }
+}
+function saveAnchorWords(words) {
+  localStorage.setItem('dr_anchor_words', JSON.stringify(words));
+}
+
+async function generateAnchorWord() {
+  const situation = document.getElementById('load-in')?.value.trim() || document.getElementById('load-resp-body')?.textContent.trim();
+  if (!situation) return;
+  const thinking = document.getElementById('anchor-word-thinking');
+  if (thinking) { thinking.style.display = 'block'; thinking.textContent = 'finding the word…'; }
+
+  const workerUrl = getWorkerUrlForChamber('load');
+  const model     = getAIModelForChamber('load');
+  if (!workerUrl) {
+    if (thinking) thinking.style.display = 'none';
+    return;
+  }
+
+  const sys = `You are an anchor word generator. The user has described a situation or feeling. Give them ONE word that collapses the overload into something grippable — a word their mind can hold onto as an anchor point. The word doesn't have to be perfectly accurate. It just has to be gripable. It can be a noun, a verb, an adjective, or even an abstract concept. Respond with ONLY the single word. Nothing else. No punctuation, no explanation.`;
+
+  try {
+    const res  = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 10, messages: [{ role: 'user', content: `${sys}\n\nSituation: ${situation}` }] }),
+    });
+    const data = await res.json();
+    const word = (data.choices?.[0]?.message?.content || '').trim().split(/\s+/)[0].replace(/[^a-zA-Z]/g,'');
+    if (thinking) thinking.style.display = 'none';
+    if (word) displayAnchorWord(word, 'ai');
+  } catch (err) {
+    if (thinking) thinking.style.display = 'none';
+  }
+}
+
+function saveAnchorWord() {
+  const input = document.getElementById('anchor-word-input');
+  const word  = input?.value.trim();
+  if (!word) return;
+  displayAnchorWord(word, 'self');
+  if (input) input.value = '';
+}
+
+function displayAnchorWord(word, source) {
+  const situation = document.getElementById('load-in')?.value.trim() || '';
+  const entry = { word, source, timestamp: Date.now(), situation, corrections: [] };
+  const words = getAnchorWords();
+  words.unshift(entry);
+  if (words.length > 200) words.pop();
+  saveAnchorWords(words);
+
+  const display = document.getElementById('anchor-word-display');
+  const text    = document.getElementById('anchor-word-text');
+  const meta    = document.getElementById('anchor-word-meta');
+  if (display) display.style.display = 'block';
+  if (text)    text.textContent = word;
+  if (meta)    meta.textContent = `${source === 'ai' ? 'AI suggested' : 'self defined'} — ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+
+  renderReloadAnchorCurrent();
+}
+
+function renderReloadAnchorCurrent() {
+  const el    = document.getElementById('reload-anchor-current');
+  if (!el) return;
+  const words = getAnchorWords();
+  if (!words.length) { el.innerHTML = '<div style="font-size:11px;color:var(--ink-5);">No anchor word set yet. Set one in Load.</div>'; return; }
+  const latest = words[0];
+  el.innerHTML = `<div style="display:flex;align-items:baseline;gap:12px;">
+    <div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--reload);">${latest.word}</div>
+    <div style="font-size:9px;color:var(--ink-4);">${latest.source === 'ai' ? 'AI' : 'self'} · ${new Date(latest.timestamp).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+    ${latest.corrections.length ? `<div style="font-size:9px;color:var(--ink-5);">corrected ${latest.corrections.length}×</div>` : ''}
+  </div>`;
+  renderAnchorHistory();
+}
+
+function correctAnchorWord() {
+  const input = document.getElementById('reload-anchor-input');
+  const newWord = input?.value.trim();
+  if (!newWord) return;
+  const words = getAnchorWords();
+  if (!words.length) return;
+  words[0].corrections.unshift({ word: newWord, timestamp: Date.now() });
+  saveAnchorWords(words);
+  if (input) input.value = '';
+  renderReloadAnchorCurrent();
+}
+
+function renderAnchorHistory() {
+  const el = document.getElementById('reload-anchor-history');
+  if (!el) return;
+  const words = getAnchorWords().slice(0, 20);
+  if (words.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:8px;">History</div>` +
+    words.slice(1).map(w => `
+      <div style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink-3);">${w.word}</div>
+        ${w.corrections.length ? `<div style="font-size:9px;color:var(--ink-4);">→ ${w.corrections[0].word}</div>` : ''}
+        <div style="font-size:9px;color:var(--ink-5);margin-left:auto;">${new Date(w.timestamp).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+      </div>`
+    ).join('');
+}
+const MATH_SYMBOLS = [
+  ['=','≠','≈','<','>','≤','≥'],
+  ['+','−','×','÷','±','∓'],
+  ['^','√','∛','∑','∏','∫'],
+  ['α','β','γ','δ','λ','μ','σ','ω','Δ','Ω','π','φ','θ'],
+  ['∞','∝','∴','∵','⟹','⟺','↑','↓','→','←'],
+  ['(',')','{','}','[',']','|','‖'],
+  ['%','‰','°','′','″'],
+];
+
+function initSymbolKeyboard() {
+  const el = document.getElementById('sym-ops');
+  if (!el) return;
+  el.innerHTML = MATH_SYMBOLS.flat().map(s =>
+    `<button onclick="insertSymbol('${s}')" style="background:none;border:1px solid var(--border);color:var(--ink-2);font-family:'DM Mono',monospace;font-size:13px;padding:4px 8px;cursor:pointer;min-width:32px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--form)'" onmouseout="this.style.borderColor='var(--border)'">${s}</button>`
+  ).join('');
+}
+
+function insertSymbol(sym) {
+  const input = document.getElementById('cf-eq');
+  if (!input) return;
+  const start = input.selectionStart;
+  const end   = input.selectionEnd;
+  const val   = input.value;
+  input.value = val.slice(0, start) + sym + val.slice(end);
+  input.selectionStart = input.selectionEnd = start + sym.length;
+  input.focus();
+}
+
+// ── AI FORMULA GENERATOR ─────────────────────────────────────────
+async function generateFormulaAI() {
+  const domain  = document.getElementById('gen-formula-domain')?.value.trim();
+  if (!domain) return;
+  const thinking = document.getElementById('gen-formula-thinking');
+  const output   = document.getElementById('gen-formula-output');
+  if (thinking) { thinking.style.display = 'block'; thinking.textContent = 'building formula…'; }
+  if (output)   { output.style.display = 'none'; output.innerHTML = ''; }
+
+  const sys = `You are a formula architect inside THE SYSTEM. The user wants a formula for a specific domain or situation.
+
+Build ONE precise formula using proper mathematical symbols (×, ÷, Δ, Σ, √, ≥, →, ∝, etc). The formula should capture a real relationship — not decorative math.
+
+Respond ONLY in this JSON format, nothing else:
+{
+  "name": "Formula name",
+  "equation": "The formula using proper symbols",
+  "variables": [
+    { "symbol": "X", "meaning": "plain language meaning" }
+  ],
+  "when": "One sentence — when to use this",
+  "how": "One sentence — how to apply it"
+}`;
+
+  const workerUrl = getWorkerUrlForChamber('formulas');
+  const model     = getAIModelForChamber('formulas');
+  if (!workerUrl) {
+    if (thinking) thinking.style.display = 'none';
+    if (output)   { output.style.display = 'block'; output.innerHTML = '<div style="color:var(--ink-4);font-size:12px;">No worker URL set. Open AI settings in this chamber.</div>'; }
+    return;
+  }
+
+  try {
+    const res  = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 600, messages: [{ role: 'user', content: `${sys}\n\nDomain: ${domain}` }] }),
+    });
+    const data = await res.json();
+    let text = data.choices?.[0]?.message?.content || '';
+    text = text.replace(/```json|```/g,'').trim();
+    let f;
+    try { f = JSON.parse(text); } catch { 
+      if (thinking) thinking.style.display = 'none';
+      if (output)   { output.style.display = 'block'; output.innerHTML = `<div style="font-size:12px;color:var(--ink-3);line-height:1.7;">${text.replace(/\n/g,'<br>')}</div>`; }
+      return;
+    }
+    if (thinking) thinking.style.display = 'none';
+    if (output) {
+      output.style.display = 'block';
+      output.innerHTML = `
+        <div style="border:1px solid rgba(var(--form-rgb,180,140,90),0.3);padding:16px 20px;background:rgba(180,140,90,0.02);">
+          <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--ink);margin-bottom:4px;">${f.name||''}</div>
+          <div style="font-size:18px;color:var(--form);letter-spacing:0.05em;margin:10px 0 14px;font-family:'DM Mono',monospace;">${f.equation||''}</div>
+          ${f.variables?.length ? `
+            <div style="margin-bottom:12px;">
+              <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);margin-bottom:6px;">Variables</div>
+              ${f.variables.map(v=>`<div style="font-size:11px;color:var(--ink-3);line-height:1.8;"><span style="color:var(--form);font-family:'DM Mono',monospace;">${v.symbol}</span> — ${v.meaning}</div>`).join('')}
+            </div>` : ''}
+          ${f.when ? `<div style="font-size:11px;color:var(--ink-3);margin-bottom:6px;line-height:1.6;"><span style="color:var(--ink-4);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;">When — </span>${f.when}</div>` : ''}
+          ${f.how  ? `<div style="font-size:11px;color:var(--ink-3);line-height:1.6;"><span style="color:var(--ink-4);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;">How — </span>${f.how}</div>` : ''}
+          <button class="btn" onclick="addGeneratedFormula(${JSON.stringify(f).replace(/"/g,'&quot;')})" style="border-color:var(--form);color:var(--form);margin-top:14px;">+ Add to inventory</button>
+        </div>`;
+    }
+  } catch (err) {
+    if (thinking) thinking.style.display = 'none';
+    if (output)   { output.style.display = 'block'; output.innerHTML = `<div style="font-size:12px;color:var(--ink-4);">Error: ${err.message}</div>`; }
+  }
+}
+
+function addGeneratedFormula(f) {
+  const desc = [
+    f.variables?.map(v=>`${v.symbol} = ${v.meaning}`).join(', '),
+    f.when,
+    f.how
+  ].filter(Boolean).join(' | ');
+  customFormulas.unshift({ id:'cf_'+Date.now(), name: f.name, eq: f.equation, desc });
+  saveCustomFormulas();
+  renderCustomFormulas();
+  // Scroll to top of custom formulas
+  const el = document.getElementById('custom-formulas-list');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+  // Clear the generator
+  const out = document.getElementById('gen-formula-output');
+  if (out) { out.innerHTML = '<div style="font-size:11px;color:var(--ink-4);padding:10px 0;">Added to inventory ✓</div>'; }
+}
+
 // Hook formulas init to also render custom formulas
 const _initFormOrig = initFormulas;
 initFormulas = function() {
   _initFormOrig();
   renderCustomFormulas();
+  initSymbolKeyboard();
 };
 
 // Add to export keys
 DR_KEYS.push('dr_custom_formulas');
 DR_KEYS.push('dr_rigs');
+DR_KEYS.push('dr_anchor_words');
 
 // ── KV SYNC SYSTEM ──────────────────────────────────────────────
 // Syncs content data (DR_KEYS) to Cloudflare KV via the worker.

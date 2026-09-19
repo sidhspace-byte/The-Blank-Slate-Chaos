@@ -10900,7 +10900,8 @@ async function kvPullState() {
       }
     });
     kvSetSyncStatus(`loaded ${loaded} keys ✓`, 0, loadedKeys);
-    // Delay reload so user can read which keys loaded
+    // Set flag so auto-pull on reload doesn't fire again
+    sessionStorage.setItem('dr_kv_pulled', '1');
     setTimeout(() => location.reload(), 2500);
   } catch (err) {
     kvSetSyncStatus('load failed', 5000);

@@ -10933,17 +10933,8 @@ function kvSetSyncStatus(msg, clearAfterMs = 0, keys = null) {
 
 // On load — pull from KV if worker is set and this isn't a post-sync reload
 (function kvAutoLoad() {
-  const url = getKVWorkerUrl();
-  if (!url) return;
-  // Avoid reload loop — if we just reloaded from a pull, skip
-  if (sessionStorage.getItem('dr_kv_pulled')) {
-    sessionStorage.removeItem('dr_kv_pulled');
-    kvSetSyncStatus('');
-    return;
-  }
-  sessionStorage.setItem('dr_kv_pulled', '1');
-  // Small delay so the page renders first
-  setTimeout(() => kvPullState(), 600);
+  // Auto-pull disabled — use ↓ cloud button to pull manually
+  // Prevents reload loop on every page open
 })();
 
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────

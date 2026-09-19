@@ -5373,6 +5373,7 @@ function flowHitNode(world) {
 
 function showTooltip(node, screenPos) {
   const tip = document.getElementById('flow-tooltip');
+  if(!tip) return;
   if(!node){ tip.style.display='none'; return; }
   tip.style.display = 'block';
   tip.style.left    = (screenPos.x + 12) + 'px';

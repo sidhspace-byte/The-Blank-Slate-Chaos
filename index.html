@@ -10812,7 +10812,10 @@ function saveCustomFormulas() {
 
 function toggleCustomFormulaForm() {
   const f = document.getElementById('custom-formula-form');
-  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f) {
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    if (f.style.display === 'block') initSymbolKeyboard();
+  }
 }
 
 function addCustomFormula() {

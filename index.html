@@ -7936,7 +7936,13 @@ function orbDraw() {
       if(len<2) return;
       const perpX=-ddy/len, perpY=ddx/len;
       const zc = Math.max(0.25, Math.min(z, 2.0));
-      const nStrands = Math.max(2, Math.round((isCenter?WS.strandsCentre:WS.strandsRing)*Math.min(zc/0.6,1.0)));
+      const nStrands = Math.max(2, Math.round(WS.strandsRing*Math.min(zc/0.6,1.0)));
+
+      // Distance-based amplitude — closer = tighter threads, farther = more wave
+      // Normalise against a reference distance (300px at z=1) so formula is zoom-aware
+      const refDist = 300;
+      const distFactor = Math.max(0.3, Math.min(1.6, len / refDist));
+      const baseAmp = WS.amp * 0.4 * distFactor;
 
       for(let fi=0; fi<nStrands; fi++){
         const seed = fi*2.718 + ci*1.618;
@@ -7945,8 +7951,8 @@ function orbDraw() {
         const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
           const bx = ap.x + ddx*tt;
           const by = ap.y + ddy*tt;
-          const amp  = WS.amp*0.65 * Math.sin(seed + wi*1.9) * zc;
-          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * WS.amp*0.28 * zc;
+          const amp  = baseAmp * Math.sin(seed + wi*1.9) * zc;
+          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * baseAmp*0.45 * zc;
           return { x: bx + perpX*(amp+slow), y: by + perpY*(amp+slow) };
         });
         const pts = [ap, ...wp, bp];

@@ -3721,6 +3721,7 @@ const ifPH  = new Float32Array(NIF);
 const ifLR  = new Float32Array(NIF); // radial layer 0-1 (0=core,1=outer)
 const ifANG = new Float32Array(NIF); // base angle
 const ifR   = new Float32Array(NIF); // base radius (normalised 0-1)
+const ifLAY = new Uint8Array(NIF);   // which PFE layer index this particle belongs to
 
 // Fast noise
 function ifN(x, y) {
@@ -3745,7 +3746,9 @@ function ifInit() {
     // Pick layer by density weight
     const t = Math.random();
     let chosen = layerCDF[layerCDF.length-1].l;
-    for(const entry of layerCDF){ if(t<=entry.cdf){ chosen=entry.l; break; } }
+    let chosenIdx = layerCDF.length-1;
+    for(let li=0;li<layerCDF.length;li++){ if(t<=layerCDF[li].cdf){ chosen=layerCDF[li].l; chosenIdx=li; break; } }
+    ifLAY[i] = chosenIdx;
     const nr = chosen.minR + Math.random()*(chosen.maxR-chosen.minR);
 
     const ang = Math.random()*Math.PI*2;
@@ -3777,6 +3780,7 @@ CV.addEventListener('click',e=>ifPulses.push({x:e.clientX,y:e.clientY,t:0}));
 CV.addEventListener('touchstart',e=>ifPulses.push({x:e.touches[0].clientX,y:e.touches[0].clientY,t:0}),{passive:true});
 
 function ifUpdate() {
+  const activeLayers = PFE.layers.filter(l=>l.on!==false);
   for(const k of Object.keys(ifMode)) ifMode[k]+=(ifModeTarget[k]-ifMode[k])*0.03;
 
   ifThinkTimer++;
@@ -3814,25 +3818,26 @@ function ifUpdate() {
     const normR=dist/maxR;
 
     let targetR, orbitStr, noiseStr, chaosStr;
+    const layerChaos = (activeLayers[ifLAY[i]] || activeLayers[0] || {chaos:1}).chaos;
     if(isOuter){
       targetR  = maxR*(0.86+ifR[i]*0.14);
       orbitStr = PFE.orbit;
-      noiseStr = PFE.ochaos*(1-ifMode.order*0.15);
+      noiseStr = PFE.ochaos*(1-ifMode.order*0.15)*layerChaos;
       chaosStr = 1.0;
     } else if(isMidOut2){
       targetR  = maxR*(0.78+ifR[i]*0.06);
       orbitStr = 0.00045;
-      noiseStr = PFE.mchaos*0.75*(1-ifMode.order*0.2);
+      noiseStr = PFE.mchaos*0.75*(1-ifMode.order*0.2)*layerChaos;
       chaosStr = 0.55;
     } else if(isMidOut){
       targetR  = maxR*(0.70+ifR[i]*0.06);
       orbitStr = 0.00060;
-      noiseStr = PFE.mchaos*0.5*(1-ifMode.order*0.25);
+      noiseStr = PFE.mchaos*0.5*(1-ifMode.order*0.25)*layerChaos;
       chaosStr = 0.40;
     } else if(isMid){
       targetR  = maxR*(0.42+ifR[i]*0.26);
       orbitStr = 0.0012;
-      noiseStr = 1.4*(1-ifMode.order*0.4);
+      noiseStr = 1.4*(1-ifMode.order*0.4)*layerChaos;
       chaosStr = 0.6;
     } else if(isInner){
       targetR  = maxR*(0.16+ifR[i]*0.22);
@@ -4006,8 +4011,11 @@ function ifDraw() {
   cx.restore();
 
   // Draw particles
+  const activeLayers = PFE.layers.filter(l=>l.on!==false);
   for(let i=0;i<NIF;i++){
     const ty=ifTY[i],br=ifBR[i],lr=ifLR[i];
+    // Get this particle's layer bright multiplier
+    const layerBright = (activeLayers[ifLAY[i]] || activeLayers[0] || {bright:1}).bright;
     const sz=ifSZ[i]*PFE.size*(1+(ifThinking>0.1&&lr<0.4?ifThinking*1.2:0));
     const isOuterP   = lr>0.85;
     const isMidOut2P = lr>0.77&&lr<=0.85;
@@ -4020,7 +4028,7 @@ function ifDraw() {
                  : lr<0.14    ? 0.70 + br*0.30
                  : lr<0.39    ? 0.55 + br*0.35
                  : lr<0.69    ? 0.38 + br*0.40
-                 : (1-lr)*(0.6+br*0.4)) * PFE.bright;
+                 : (1-lr)*(0.6+br*0.4)) * PFE.bright * layerBright;
 
     if(ty===0){
       const al = baseBr * 0.22;
@@ -7440,12 +7448,14 @@ function efRenderLayers(){
 
 function efAddLayer(){
   PFE.layers.push({id:'layer'+PFE.layers.length,minR:0.5,maxR:0.7,density:0.10,chaos:1.0,bright:1.0,on:true});
+  ifInited=false;
   efRenderLayers();
 }
 
 function efDeleteLayer(i){
   if(PFE.layers.length<=1) return;
   PFE.layers.splice(i,1);
+  ifInited=false;
   efRenderLayers();
 }
 

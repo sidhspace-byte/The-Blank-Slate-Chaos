@@ -3857,16 +3857,6 @@ function ifUpdate() {
       noiseStr = 0.08;
       chaosStr = 0.08;
     }
-      targetR  = maxR*(0.16+ifR[i]*0.22);
-      orbitStr = 0.004;
-      noiseStr = 0.35*(1-ifMode.order*0.7);
-      chaosStr = 0.25;
-    } else {
-      targetR  = maxR*0.06*(1+Math.sin(T*0.001+ifPH[i])*0.4);
-      orbitStr = 0.006;
-      noiseStr = 0.08;
-      chaosStr = 0.08;
-    }
 
     const radErr = dist - targetR;
     const radLease = isOuter?PFE.leash:isMidOut2?0.70:isMidOut?0.85:isMid?0.70:isInner?1.4:2.0;

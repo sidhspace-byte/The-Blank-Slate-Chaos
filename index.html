@@ -7456,6 +7456,8 @@ function efRenderLayers(){
           <input type="range" min="0.1" max="3" step="0.05" value="${l.bright}" oninput="PFE.layers[${i}].bright=+this.value;document.getElementById('efl${i}br').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
         <div>gravity <span id="efl${i}grav" style="color:#888;font-weight:bold;">${(l.gravity||1).toFixed(2)}</span>
           <input type="range" min="0.1" max="5" step="0.05" value="${l.gravity||1}" oninput="PFE.layers[${i}].gravity=+this.value;document.getElementById('efl${i}grav').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
+        <div>thickness <span id="efl${i}thick" style="color:#888;font-weight:bold;">${((l.maxR||0.7)-(l.minR||0.5)).toFixed(2)}</span>
+          <input type="range" min="0.01" max="0.8" step="0.01" value="${((l.maxR||0.7)-(l.minR||0.5)).toFixed(2)}" oninput="efSetLayerThickness(${i},+this.value);document.getElementById('efl${i}thick').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
       </div>
     </div>`).join('');
 }
@@ -7467,6 +7469,17 @@ function efMoveLayer(i, dir) {
   [PFE.layers[i], PFE.layers[j]] = [PFE.layers[j], PFE.layers[i]];
   ifInited = false; // trigger particle reinit so zones reassign
   efRenderLayers();
+}
+
+function efSetLayerThickness(i, thickness) {
+  const l = PFE.layers[i];
+  if (!l) return;
+  // Keep centre point, expand/contract symmetrically
+  const centre = (l.minR + l.maxR) / 2;
+  const half   = thickness / 2;
+  l.minR = Math.max(0, centre - half);
+  l.maxR = Math.min(1.5, centre + half);
+  ifInited = false;
 }
 
 function efAddLayer(){

@@ -11187,7 +11187,8 @@ async function kvPullState() {
         loadedKeys.push(k);
       }
     });
-    kvSetSyncStatus(`loaded ${loadedKeys.length} keys ✓`, 0, loadedKeys);
+    kvSetSyncStatus(`loaded ${loadedKeys.length} keys ✓ — reloading…`, 0, loadedKeys);
+    setTimeout(() => location.reload(), 1500);
   } catch (err) {
     kvSetSyncStatus('load failed', 5000);
     console.warn('[KV] pull error:', err.message);
@@ -11266,12 +11267,8 @@ function kvToggleSyncPanel(e) {
       const loadedKeys = [];
       DR_KEYS.forEach(k => {
         if (snap[k] !== undefined) {
-          // Only write if localStorage doesn't already have this key
-          // — local data takes priority, KV fills gaps
-          if (localStorage.getItem(k) === null) {
-            localStorage.setItem(k, JSON.stringify(snap[k]));
-            loadedKeys.push(k);
-          }
+          localStorage.setItem(k, JSON.stringify(snap[k]));
+          loadedKeys.push(k);
         }
       });
       if (loadedKeys.length) {

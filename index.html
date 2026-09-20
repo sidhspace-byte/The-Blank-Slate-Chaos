@@ -11278,6 +11278,15 @@ function kvToggleSyncPanel(e) {
   }, 1200);
 })();
 
+// ── WORKER URL NOTICE ────────────────────────────────────────────
+(function checkWorkerUrl() {
+  const url = localStorage.getItem('dr_ai_worker_url') || '';
+  if (!url.trim()) {
+    const el = document.getElementById('worker-url-notice');
+    if (el) el.style.display = 'flex';
+  }
+})();
+
 // ── AI CHAT SYSTEM ──────────────────────────────────────────────
 
 const AI_WORKER_KEY = 'dr_ai_worker_url';       // global worker URL
@@ -11529,6 +11538,10 @@ function getWorkerUrl() {
 
 function saveWorkerUrl(url) {
   localStorage.setItem(AI_WORKER_KEY, url.trim());
+  if (url.trim()) {
+    const el = document.getElementById('worker-url-notice');
+    if (el) el.style.display = 'none';
+  }
 }
 
 function updateChamberStatus(ch) {
@@ -11742,6 +11755,12 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 </script>
 
 <!-- ── ALWAYS-ON-TOP BAR — outside entry/app, above all canvases ── -->
+<!-- WORKER URL NOTICE -->
+<div id="worker-url-notice" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(224,42,24,0.12);border-bottom:1px solid rgba(224,42,24,0.3);padding:10px 16px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(224,42,24,0.9);letter-spacing:0.1em;display:flex;align-items:center;gap:12px;">
+  <span>⚠ No worker URL set — cloud sync and AI won't work. Open any chamber → AI settings → paste your worker URL.</span>
+  <button onclick="document.getElementById('worker-url-notice').style.display='none'" style="background:none;border:none;color:rgba(224,42,24,0.6);font-size:14px;cursor:pointer;margin-left:auto;padding:0;">×</button>
+</div>
+
 <div id="entry-data-bar" style="position:fixed;bottom:20px;left:16px;z-index:99999;display:flex;gap:8px;align-items:center;">
   <button onclick="exportAll()" style="background:rgba(8,7,8,0.85);border:1px solid rgba(138,100,60,0.5);color:rgba(180,140,90,0.8);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">export</button>
   <label for="import-file-top" style="background:rgba(8,7,8,0.85);border:1px solid rgba(138,100,60,0.5);color:rgba(180,140,90,0.8);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">import</label>

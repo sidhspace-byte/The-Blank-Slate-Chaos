@@ -3860,8 +3860,10 @@ function ifUpdate() {
 
     const radErr = dist - targetR;
     const radLease = isOuter?PFE.leash:isMidOut2?0.70:isMidOut?0.85:isMid?0.70:isInner?1.4:2.0;
-    ifVX[i] -= (dx/dist)*radErr*0.007*radLease;
-    ifVY[i] -= (dy/dist)*radErr*0.007*radLease;
+    // Distance-scaled restore — further from target = stronger pull back
+    const radForce = 0.012 * radLease * (1 + Math.abs(radErr) / (maxR * 0.3));
+    ifVX[i] -= (dx/dist)*radErr*radForce;
+    ifVY[i] -= (dy/dist)*radErr*radForce;
 
     const tang = ifMode.order*(isOuter?0.3:isMidOut2?0.38:isMidOut?0.48:isMid?0.6:0.9);
     ifVX[i] += (-dy/dist)*orbitStr*dist*tang*(1+T*0.000001%0.1);

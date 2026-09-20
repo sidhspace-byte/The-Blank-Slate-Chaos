@@ -3860,8 +3860,9 @@ function ifUpdate() {
 
     const radErr = dist - targetR;
     const radLease = isOuter?PFE.leash:isMidOut2?0.70:isMidOut?0.85:isMid?0.70:isInner?1.4:2.0;
+    const layerGravity = (activeLayers[ifLAY[i]] || activeLayers[0] || {gravity:1}).gravity || 1;
     // Distance-scaled restore — further from target = stronger pull back
-    const radForce = 0.012 * radLease * (1 + Math.abs(radErr) / (maxR * 0.3));
+    const radForce = 0.012 * radLease * layerGravity * (1 + Math.abs(radErr) / (maxR * 0.3));
     ifVX[i] -= (dx/dist)*radErr*radForce;
     ifVY[i] -= (dy/dist)*radErr*radForce;
 
@@ -7453,6 +7454,8 @@ function efRenderLayers(){
           <input type="range" min="0.01" max="6" step="0.1" value="${l.chaos}" oninput="PFE.layers[${i}].chaos=+this.value;document.getElementById('efl${i}chaos').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
         <div>brightness <span id="efl${i}br" style="color:#888;font-weight:bold;">${l.bright.toFixed(2)}</span>
           <input type="range" min="0.1" max="3" step="0.05" value="${l.bright}" oninput="PFE.layers[${i}].bright=+this.value;document.getElementById('efl${i}br').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
+        <div>gravity <span id="efl${i}grav" style="color:#888;font-weight:bold;">${(l.gravity||1).toFixed(2)}</span>
+          <input type="range" min="0.1" max="5" step="0.05" value="${l.gravity||1}" oninput="PFE.layers[${i}].gravity=+this.value;document.getElementById('efl${i}grav').textContent=(+this.value).toFixed(2)" style="width:100%;display:block;accent-color:#5ab4cc;"></div>
       </div>
     </div>`).join('');
 }
@@ -7467,7 +7470,7 @@ function efMoveLayer(i, dir) {
 }
 
 function efAddLayer(){
-  PFE.layers.push({id:'layer'+PFE.layers.length,minR:0.5,maxR:0.7,density:0.10,chaos:1.0,bright:1.0,on:true});
+  PFE.layers.push({id:'layer'+PFE.layers.length,minR:0.5,maxR:0.7,density:0.10,chaos:1.0,bright:1.0,gravity:1.0,on:true});
   ifInited=false;
   efRenderLayers();
 }

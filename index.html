@@ -3819,27 +3819,44 @@ function ifUpdate() {
 
     let targetR, orbitStr, noiseStr, chaosStr;
     const layerChaos = (activeLayers[ifLAY[i]] || activeLayers[0] || {chaos:1}).chaos;
+
+    // Use assigned layer radial range as the actual target
+    const assignedLayer = activeLayers[ifLAY[i]] || activeLayers[0];
+    const layerTargetR  = assignedLayer
+      ? maxR * (assignedLayer.minR + ifR[i] * (assignedLayer.maxR - assignedLayer.minR))
+      : null;
+
     if(isOuter){
-      targetR  = maxR*(0.86+ifR[i]*0.14);
+      targetR  = layerTargetR || maxR*(0.86+ifR[i]*0.14);
       orbitStr = PFE.orbit;
       noiseStr = PFE.ochaos*(1-ifMode.order*0.15)*layerChaos;
       chaosStr = 1.0;
     } else if(isMidOut2){
-      targetR  = maxR*(0.78+ifR[i]*0.06);
+      targetR  = layerTargetR || maxR*(0.78+ifR[i]*0.06);
       orbitStr = 0.00045;
       noiseStr = PFE.mchaos*0.75*(1-ifMode.order*0.2)*layerChaos;
       chaosStr = 0.55;
     } else if(isMidOut){
-      targetR  = maxR*(0.70+ifR[i]*0.06);
+      targetR  = layerTargetR || maxR*(0.70+ifR[i]*0.06);
       orbitStr = 0.00060;
       noiseStr = PFE.mchaos*0.5*(1-ifMode.order*0.25)*layerChaos;
       chaosStr = 0.40;
     } else if(isMid){
-      targetR  = maxR*(0.42+ifR[i]*0.26);
+      targetR  = layerTargetR || maxR*(0.42+ifR[i]*0.26);
       orbitStr = 0.0012;
       noiseStr = 1.4*(1-ifMode.order*0.4)*layerChaos;
       chaosStr = 0.6;
     } else if(isInner){
+      targetR  = layerTargetR || maxR*(0.16+ifR[i]*0.22);
+      orbitStr = 0.004;
+      noiseStr = 0.35*(1-ifMode.order*0.7);
+      chaosStr = 0.25;
+    } else {
+      targetR  = layerTargetR || maxR*0.06*(1+Math.sin(T*0.001+ifPH[i])*0.4);
+      orbitStr = 0.006;
+      noiseStr = 0.08;
+      chaosStr = 0.08;
+    }
       targetR  = maxR*(0.16+ifR[i]*0.22);
       orbitStr = 0.004;
       noiseStr = 0.35*(1-ifMode.order*0.7);

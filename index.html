@@ -11737,6 +11737,10 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
   <button onclick="kvPushState()" title="Push state to cloud now" style="background:rgba(8,7,8,0.85);border:1px solid rgba(80,180,120,0.5);color:rgba(100,220,150,0.8);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">↑ cloud</button>
   <button onclick="kvPullState()" title="Pull state from cloud" style="background:rgba(8,7,8,0.85);border:1px solid rgba(80,180,120,0.5);color:rgba(100,220,150,0.8);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:6px 12px;cursor:pointer;border-radius:2px;">↓ cloud</button>
   <div id="kv-sync-status" onclick="kvToggleSyncPanel(event)" style="font-size:9px;color:rgba(100,220,150,0.7);letter-spacing:0.1em;cursor:pointer;user-select:none;">keys</div>
+  <div style="display:flex;align-items:center;gap:4px;" title="Service worker status">
+    <div id="sw-status-dot" style="width:6px;height:6px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.4s;"></div>
+    <div id="sw-status-label" style="font-size:8px;color:rgba(255,255,255,0.25);letter-spacing:0.1em;font-family:'DM Mono',monospace;"></div>
+  </div>
 </div>
 
 <!-- KV SYNC PANEL -->
@@ -11876,9 +11880,51 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/The-Blank-Slate-Chaos/sw.js')
-      .then(reg => console.log('[SW] registered, scope:', reg.scope))
-      .catch(err => console.warn('[SW] registration failed:', err));
+      .then(reg => {
+        console.log('[SW] registered, scope:', reg.scope);
+
+        function setSWStatus(state, title) {
+          const dot = document.getElementById('sw-status-dot');
+          const lbl = document.getElementById('sw-status-label');
+          if (!dot || !lbl) return;
+          const states = {
+            installing: { color: '#c8902a', text: 'caching…' },
+            ready:      { color: '#4caf7d', text: 'offline ready' },
+            updated:    { color: '#5ab4cc', text: 'updated' },
+          };
+          const s = states[state] || { color: '#555', text: state };
+          dot.style.background = s.color;
+          lbl.textContent = s.text;
+          if (title) dot.title = title;
+        }
+
+        if (reg.installing) {
+          setSWStatus('installing');
+          reg.installing.addEventListener('statechange', function() {
+            if (this.state === 'activated') setSWStatus('ready', 'App cached — works offline');
+          });
+        } else if (reg.active) {
+          setSWStatus('ready', 'App cached — works offline');
+        }
+
+        reg.addEventListener('updatefound', () => {
+          setSWStatus('installing', 'Updating cache…');
+          reg.installing.addEventListener('statechange', function() {
+            if (this.state === 'activated') setSWStatus('updated', 'Cache updated');
+          });
+        });
+      })
+      .catch(err => {
+        console.warn('[SW] registration failed:', err);
+        const dot = document.getElementById('sw-status-dot');
+        const lbl = document.getElementById('sw-status-label');
+        if (dot) dot.style.background = '#555';
+        if (lbl) lbl.textContent = 'sw failed';
+      });
   });
+} else {
+  const lbl = document.getElementById('sw-status-label');
+  if (lbl) lbl.textContent = 'no sw support';
 }
 </script>
 </body>

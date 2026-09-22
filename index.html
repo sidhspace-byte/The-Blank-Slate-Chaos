@@ -10914,6 +10914,7 @@ function deleteCustomFormula(id) {
 
 function renderCustomFormulas() {
   const el = document.getElementById('custom-formulas-list'); if (!el) return;
+  customFormulas = JSON.parse(localStorage.getItem('dr_custom_formulas') || '[]');
   if (!customFormulas.length) { el.innerHTML=''; return; }
   el.innerHTML = customFormulas.map(f => `
     <div class="formula-card" style="margin-bottom:10px;" id="fcard-${f.id}">

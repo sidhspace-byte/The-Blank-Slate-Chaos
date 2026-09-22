@@ -10550,11 +10550,12 @@ function renderForge() {
     return;
   }
   list.innerHTML = forgeTools.map((t, i) => `
-    <div class="forge-tool-card">
+    <div class="forge-tool-card" id="ftcard-${t.id}">
       <div class="forge-tool-header">
         <span class="forge-tool-num">${String(i+1).padStart(2,'0')}</span>
         <span class="forge-tool-name">${t.name}</span>
         <button class="forge-tool-status ${t.status}" onclick="fgCycleStatus('${t.id}')">${t.status}</button>
+        <button onclick="editForgeTool('${t.id}')" style="background:none;border:none;color:var(--ink-4);font-size:10px;cursor:pointer;letter-spacing:0.05em;font-family:'DM Mono',monospace;">edit</button>
         <button class="forge-tool-rm" onclick="fgRemove('${t.id}')">×</button>
       </div>
       ${t.problem ? `<div class="forge-tool-row"><span class="forge-tool-label">Problem</span><span class="forge-tool-val">${t.problem}</span></div>` : ''}
@@ -10562,6 +10563,36 @@ function renderForge() {
       ${t.trigger ? `<div class="forge-tool-row"><span class="forge-tool-label">Deploy when</span><span class="forge-tool-val">${t.trigger}</span></div>` : ''}
     </div>
   `).join('');
+}
+
+// ── Chamber drawer ──
+function editForgeTool(id) {
+  const t = forgeTools.find(x => x.id === id);
+  if (!t) return;
+  const card = document.getElementById('ftcard-' + id);
+  if (!card) return;
+  card.innerHTML = `
+    <div style="padding:4px 0;">
+      <input id="fedit-fn-${id}" type="text" value="${t.name||''}" class="field" placeholder="Tool name" style="width:100%;margin-bottom:6px;font-size:12px;">
+      <textarea id="fedit-fp-${id}" rows="2" class="field" placeholder="Problem it solves" style="width:100%;margin-bottom:6px;font-size:12px;resize:none;">${t.problem||''}</textarea>
+      <textarea id="fedit-fm-${id}" rows="2" class="field" placeholder="Mechanism — how it works" style="width:100%;margin-bottom:6px;font-size:12px;resize:none;">${t.mechanism||''}</textarea>
+      <textarea id="fedit-ft-${id}" rows="2" class="field" placeholder="Deploy when…" style="width:100%;margin-bottom:8px;font-size:12px;resize:none;">${t.trigger||''}</textarea>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="saveForgeTool('${id}')" style="border-color:var(--forge);color:var(--forge);">Save</button>
+        <button class="btn" onclick="renderForge()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function saveForgeTool(id) {
+  const t = forgeTools.find(x => x.id === id);
+  if (!t) return;
+  t.name      = document.getElementById('fedit-fn-' + id)?.value.trim() || t.name;
+  t.problem   = document.getElementById('fedit-fp-' + id)?.value.trim() || '';
+  t.mechanism = document.getElementById('fedit-fm-' + id)?.value.trim() || '';
+  t.trigger   = document.getElementById('fedit-ft-' + id)?.value.trim() || '';
+  localStorage.setItem('dr_forge', JSON.stringify(forgeTools));
+  renderForge();
 }
 
 // ── Chamber drawer ──
@@ -10885,17 +10916,53 @@ function renderCustomFormulas() {
   const el = document.getElementById('custom-formulas-list'); if (!el) return;
   if (!customFormulas.length) { el.innerHTML=''; return; }
   el.innerHTML = customFormulas.map(f => `
-    <div class="formula-card" style="margin-bottom:10px;">
+    <div class="formula-card" style="margin-bottom:10px;" id="fcard-${f.id}">
       <div class="formula-header">
-        <div>
+        <div style="flex:1;">
           <div class="formula-name">${f.name}</div>
           ${f.eq ? `<div class="formula-eq" style="margin-top:4px;">${f.eq}</div>` : ''}
           ${f.desc ? `<div class="formula-source" style="margin-top:6px;font-style:italic;">${f.desc}</div>` : ''}
         </div>
-        <button onclick="deleteCustomFormula('${f.id}')" style="background:none;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0;align-self:flex-start;">×</button>
+        <div style="display:flex;gap:8px;align-self:flex-start;">
+          <button onclick="editCustomFormula('${f.id}')" style="background:none;border:none;color:var(--ink-4);font-size:11px;cursor:pointer;padding:0;letter-spacing:0.05em;">edit</button>
+          <button onclick="deleteCustomFormula('${f.id}')" style="background:none;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0;">×</button>
+        </div>
       </div>
     </div>
   `).join('');
+}
+
+function editCustomFormula(id) {
+  const f = customFormulas.find(x => x.id === id);
+  if (!f) return;
+  const card = document.getElementById('fcard-' + id);
+  if (!card) return;
+  card.innerHTML = `
+    <div style="padding:4px 0;">
+      <input id="fedit-name-${id}" type="text" value="${f.name}" class="field" placeholder="Formula name" style="width:100%;margin-bottom:6px;font-size:12px;">
+      <input id="fedit-eq-${id}" type="text" value="${f.eq||''}" class="field" placeholder="Equation" style="width:100%;margin-bottom:6px;font-size:12px;">
+      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;padding:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border);">
+        <div style="width:100%;font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-5);margin-bottom:3px;">Symbols</div>
+        ${['=','≠','≈','<','>','≤','≥','+','−','×','÷','±','∓','^','√','∑','∏','∫','α','β','γ','δ','λ','μ','σ','ω','Δ','Ω','π','φ','θ','∞','∝','⟹','→','%','°'].map(s=>
+          `<button onclick="document.getElementById('fedit-eq-${id}').value+=('${s}')" style="background:none;border:1px solid var(--border);color:var(--ink-2);font-family:'DM Mono',monospace;font-size:12px;padding:3px 7px;cursor:pointer;">${s}</button>`
+        ).join('')}
+      </div>
+      <textarea id="fedit-desc-${id}" rows="2" class="field" placeholder="Description" style="width:100%;margin-bottom:8px;font-size:12px;resize:none;">${f.desc||''}</textarea>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="saveCustomFormulaEdit('${id}')" style="border-color:var(--form);color:var(--form);">Save</button>
+        <button class="btn" onclick="renderCustomFormulas()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function saveCustomFormulaEdit(id) {
+  const f = customFormulas.find(x => x.id === id);
+  if (!f) return;
+  f.name = document.getElementById('fedit-name-' + id)?.value.trim() || f.name;
+  f.eq   = document.getElementById('fedit-eq-'   + id)?.value.trim() || f.eq;
+  f.desc = document.getElementById('fedit-desc-' + id)?.value.trim() || f.desc;
+  saveCustomFormulas();
+  renderCustomFormulas();
 }
 
 // ── ANCHOR WORD SYSTEM ───────────────────────────────────────────
@@ -11134,6 +11201,10 @@ DR_KEYS.push('dr_rigs');
 DR_KEYS.push('dr_anchor_words');
 DR_KEYS.push('dr_pfe');
 DR_KEYS.push('dr_ws');
+DR_KEYS.push('dr_ned_nodes');
+DR_KEYS.push('dr_simlog');
+DR_KEYS.push('dr_carried_lens');
+DR_KEYS.push('dr_lens_history');
 
 // ── KV SYNC SYSTEM ──────────────────────────────────────────────
 // Syncs content data (DR_KEYS) to Cloudflare KV via the worker.

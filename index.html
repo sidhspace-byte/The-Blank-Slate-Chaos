@@ -1844,28 +1844,28 @@ body {
         <button class="btn-ghost" onclick="carryTo('load','map')">→ Map first</button>
         <button class="btn-ghost" onclick="carryTo('load','aim')">→ Aim</button>
       </div>
+
+      <!-- ANCHOR WORD — always visible -->
+      <div id="anchor-word-section" style="margin-top:16px;padding:14px 16px;border:1px solid var(--border);">
+        <div style="font-size:7px;letter-spacing:0.25em;text-transform:uppercase;color:var(--load);margin-bottom:8px;">Anchor word</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-bottom:12px;line-height:1.6;">One word to grip the situation. Write something above or process it first.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn" onclick="generateAnchorWord()" style="border-color:var(--load);color:var(--load);">Ask AI for a word</button>
+          <span style="font-size:10px;color:var(--ink-5);">or</span>
+          <input type="text" id="anchor-word-input" class="field" placeholder="define your own" style="flex:1;min-width:120px;margin-bottom:0;font-size:13px;">
+          <button class="btn" onclick="saveAnchorWord()" style="border-color:var(--load);color:var(--load);">Set</button>
+        </div>
+        <div id="anchor-word-thinking" style="display:none;font-size:10px;color:var(--ink-4);margin-top:8px;letter-spacing:0.1em;"></div>
+        <div id="anchor-word-display" style="display:none;margin-top:12px;padding:14px 18px;border-left:2px solid var(--load);background:rgba(var(--load-rgb,180,140,90),0.03);">
+          <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--load);letter-spacing:0.05em;" id="anchor-word-text"></div>
+          <div style="font-size:10px;color:var(--ink-4);margin-top:4px;" id="anchor-word-meta"></div>
+        </div>
+      </div>
+
       <div class="thinking" id="load-think"><div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div><span>reading what's underneath</span></div>
       <div class="resp" id="load-resp">
         <div class="resp-label">what i'm hearing</div>
         <div class="resp-body" id="load-resp-body"></div>
-
-        <!-- ANCHOR WORD -->
-        <div id="anchor-word-section" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-          <div style="font-size:7px;letter-spacing:0.25em;text-transform:uppercase;color:var(--load);margin-bottom:8px;">Anchor word</div>
-          <div style="font-size:11px;color:var(--ink-4);margin-bottom:12px;line-height:1.6;">One word to grip the situation. Collapses the overload into something the mind can hold.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn" onclick="generateAnchorWord()" style="border-color:var(--load);color:var(--load);">Ask AI for a word</button>
-            <span style="font-size:10px;color:var(--ink-5);">or</span>
-            <input type="text" id="anchor-word-input" class="field" placeholder="define your own" style="flex:1;min-width:120px;margin-bottom:0;font-size:13px;">
-            <button class="btn" onclick="saveAnchorWord()" style="border-color:var(--load);color:var(--load);">Set</button>
-          </div>
-          <div id="anchor-word-thinking" style="display:none;font-size:10px;color:var(--ink-4);margin-top:8px;letter-spacing:0.1em;"></div>
-          <div id="anchor-word-display" style="display:none;margin-top:12px;padding:14px 18px;border-left:2px solid var(--load);background:rgba(var(--load-rgb,180,140,90),0.03);">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--load);letter-spacing:0.05em;" id="anchor-word-text"></div>
-            <div style="font-size:10px;color:var(--ink-4);margin-top:4px;" id="anchor-word-meta"></div>
-          </div>
-        </div>
-
         <div class="resp-actions" style="margin-top:14px;">
           <button class="btn-ghost" onclick="carryTo('load','map')">→ Map first</button>
           <button class="btn-ghost" onclick="carryTo('load','aim')">→ Aim directly</button>
@@ -4363,10 +4363,18 @@ function saveReload(){
 function incUse(c){ D.counts[c]++; ls('dr_counts',D.counts); }
 function ls(k,v){ localStorage.setItem(k, typeof v==='object'?JSON.stringify(v):String(v)); }
 
+function loadArsenalItem(i) {
+  const item = D.arsenal[i];
+  if (!item) return;
+  const inp = document.getElementById('load-in');
+  if (inp) inp.value = item.text;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function renderArsenal(){
   const el=document.getElementById('arsenal-list');
   if(!D.arsenal.length){el.innerHTML='<div class="empty">Nothing loaded yet.</div>';return;}
-  el.innerHTML=D.arsenal.map((item,i)=>`<div class="hist-row${!item.resolved?' unr':''}" onclick="document.getElementById('load-in').value=${JSON.stringify(item.text)};window.scrollTo({top:0,behavior:'smooth'})"><div class="hist-i">${!item.resolved?'o':''}</div><div class="hist-t">${item.preview}</div><div class="hist-d">${item.date}</div></div>`).join('');
+  el.innerHTML=D.arsenal.map((item,i)=>`<div class="hist-row${!item.resolved?' unr':''}" onclick="loadArsenalItem(${i})"><div class="hist-i">${!item.resolved?'o':''}</div><div class="hist-t">${item.preview}</div><div class="hist-d">${item.date}</div></div>`).join('');
 }
 function renderReloads(){
   const el=document.getElementById('reload-list');
@@ -11007,14 +11015,18 @@ function saveAnchorWords(words) {
 
 async function generateAnchorWord() {
   const situation = document.getElementById('load-in')?.value.trim() || document.getElementById('load-resp-body')?.textContent.trim();
-  if (!situation) return;
+  if (!situation) {
+    const thinking = document.getElementById('anchor-word-thinking');
+    if (thinking) { thinking.style.display = 'block'; thinking.textContent = 'write something in Load first'; setTimeout(() => thinking.style.display='none', 2000); }
+    return;
+  }
   const thinking = document.getElementById('anchor-word-thinking');
   if (thinking) { thinking.style.display = 'block'; thinking.textContent = 'finding the word…'; }
 
-  const workerUrl = getWorkerUrlForChamber('load');
+  const workerUrl = getWorkerUrlForChamber('load') || getWorkerUrl();
   const model     = getAIModelForChamber('load');
   if (!workerUrl) {
-    if (thinking) thinking.style.display = 'none';
+    if (thinking) { thinking.textContent = 'no worker URL — set it in AI settings'; setTimeout(() => thinking.style.display='none', 3000); }
     return;
   }
 
@@ -11027,11 +11039,12 @@ async function generateAnchorWord() {
       body: JSON.stringify({ model, max_tokens: 10, messages: [{ role: 'user', content: `${sys}\n\nSituation: ${situation}` }] }),
     });
     const data = await res.json();
-    const word = (data.choices?.[0]?.message?.content || '').trim().split(/\s+/)[0].replace(/[^a-zA-Z]/g,'');
+    const word = (data.choices?.[0]?.message?.content || '').trim().split(/\s+/)[0].replace(/[^a-zA-ZÀ-ÿ]/g,'');
     if (thinking) thinking.style.display = 'none';
     if (word) displayAnchorWord(word, 'ai');
+    else if (thinking) { thinking.style.display='block'; thinking.textContent='no word returned — try again'; setTimeout(()=>thinking.style.display='none',2000); }
   } catch (err) {
-    if (thinking) thinking.style.display = 'none';
+    if (thinking) { thinking.textContent = 'error: ' + err.message; setTimeout(() => thinking.style.display='none', 3000); }
   }
 }
 

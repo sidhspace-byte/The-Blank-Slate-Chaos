@@ -10924,16 +10924,45 @@ function renderCustomFormulas() {
           ${f.eq ? `<div class="formula-eq" style="margin-top:4px;">${f.eq}</div>` : ''}
           ${f.desc ? `<div class="formula-source" style="margin-top:6px;font-style:italic;">${f.desc}</div>` : ''}
         </div>
-        <div style="display:flex;gap:8px;align-self:flex-start;">
+        <div style="display:flex;gap:8px;align-self:flex-start;flex-wrap:wrap;justify-content:flex-end;">
           <button onclick="editCustomFormula('${f.id}')" style="background:none;border:1px solid var(--border);color:var(--ink-3);font-size:9px;cursor:pointer;padding:4px 8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;">edit</button>
           <button onclick="deleteCustomFormula('${f.id}')" style="background:none;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0;">×</button>
         </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn-ghost" onclick="practiseCustomFormula('${f.id}')" style="color:var(--form);text-decoration-color:var(--form);font-size:9px;">Add to today's training →</button>
+        <button class="btn" onclick="stressTestCustomFormula('${f.id}')" style="border-color:var(--ink-4);color:var(--ink-4);font-size:8px;">Stress test</button>
       </div>
     </div>
   `).join('');
 }
 
+function stressTestCustomFormula(id) {
+  const f = customFormulas.find(x => x.id === id);
+  if (!f) return;
+  stressTestFormula(f.name, f.eq || '');
+}
+
 function editCustomFormula(id) {
+
+function practiseCustomFormula(id) {
+  const f = customFormulas.find(x => x.id === id);
+  if (!f) return;
+  const trainLog = JSON.parse(localStorage.getItem('dr_train') || '[]');
+  trainLog.unshift({
+    date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),
+    timestamp: Date.now(),
+    ex: -1,
+    skill: 'formula',
+    data: { formula: f.name, source: 'custom', equation: f.eq || '' }
+  });
+  localStorage.setItem('dr_train', JSON.stringify(trainLog));
+  const msg = document.createElement('div');
+  msg.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--form);padding:14px 24px;z-index:9999;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--form);animation:rise 0.3s ease both;';
+  msg.textContent = f.name + ' — added to training log';
+  document.body.appendChild(msg);
+  setTimeout(() => msg.remove(), 3000);
+}
   const f = customFormulas.find(x => x.id === id);
   if (!f) return;
   const card = document.getElementById('fcard-' + id);

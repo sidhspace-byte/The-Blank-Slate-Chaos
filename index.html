@@ -4351,7 +4351,9 @@ const now=()=>new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'
 
 function toArsenal(){
   const t=document.getElementById('load-in').value.trim(); if(!t) return;
-  D.arsenal.unshift({text:t,preview:t.slice(0,90),date:now(),resolved:false});
+  const anchorEl = document.getElementById('anchor-word-text');
+  const anchor = anchorEl?.textContent?.trim() || '';
+  D.arsenal.unshift({text:t, title:anchor, preview:anchor ? anchor.toUpperCase() + ' — ' + t.slice(0,60) : t.slice(0,90), date:now(), resolved:false});
   if(D.arsenal.length>40) D.arsenal.pop();
   D.unresolved=Math.min(D.unresolved+1,10);
   ls('dr_arsenal',D.arsenal); ls('dr_unresolved',D.unresolved);
@@ -4380,7 +4382,7 @@ function loadArsenalItem(i) {
 function renderArsenal(){
   const el=document.getElementById('arsenal-list');
   if(!D.arsenal.length){el.innerHTML='<div class="empty">Nothing loaded yet.</div>';return;}
-  el.innerHTML=D.arsenal.map((item,i)=>`<div class="hist-row${!item.resolved?' unr':''}" onclick="loadArsenalItem(${i})"><div class="hist-i">${!item.resolved?'o':''}</div><div class="hist-t">${item.preview}</div><div class="hist-d">${item.date}</div></div>`).join('');
+  el.innerHTML=D.arsenal.map((item,i)=>`<div class="hist-row${!item.resolved?' unr':''}" onclick="loadArsenalItem(${i})"><div class="hist-i">${!item.resolved?'o':''}</div><div class="hist-t">${item.title ? `<span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--load);margin-right:8px;">${item.title}</span>` : ''}${item.preview}</div><div class="hist-d">${item.date}</div></div>`).join('');
 }
 function renderReloads(){
   const el=document.getElementById('reload-list');

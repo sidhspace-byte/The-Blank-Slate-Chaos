@@ -4351,8 +4351,7 @@ const now=()=>new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'
 
 function toArsenal(){
   const t=document.getElementById('load-in').value.trim(); if(!t) return;
-  const anchorEl = document.getElementById('anchor-word-text');
-  const anchor = anchorEl?.textContent?.trim() || '';
+  const anchor = _currentAnchorWord || '';
   D.arsenal.unshift({text:t, title:anchor, preview:anchor ? anchor.toUpperCase() + ' — ' + t.slice(0,60) : t.slice(0,90), date:now(), resolved:false});
   if(D.arsenal.length>40) D.arsenal.pop();
   D.unresolved=Math.min(D.unresolved+1,10);
@@ -11070,7 +11069,10 @@ function saveAnchorWord() {
   if (input) input.value = '';
 }
 
+let _currentAnchorWord = '';
+
 function displayAnchorWord(word, source) {
+  _currentAnchorWord = word;
   const situation = document.getElementById('load-in')?.value.trim() || '';
   const entry = { word, source, timestamp: Date.now(), situation, corrections: [] };
   const words = getAnchorWords();

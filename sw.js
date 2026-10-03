@@ -3,7 +3,7 @@
 // On first load: caches index.html, manifest, icon.
 // On subsequent loads: serves from cache, updates in background.
 
-const CACHE = 'darkroom-v1';
+const CACHE = 'darkroom-v2';
 const BASE  = '/The-Blank-Slate-Chaos';
 
 const SHELL = [

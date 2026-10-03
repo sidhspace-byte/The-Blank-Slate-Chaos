@@ -1553,6 +1553,8 @@ body {
     <!-- Current chamber name -->
     <div id="nav-current" style="flex:1;display:flex;align-items:center;padding:0 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--ink-3);"></div>
 
+    <!-- Arsenal -->
+    <button id="ars-btn" onclick="arsToggle()" title="Arsenal" style="background:none;border:none;border-left:1px solid var(--border);padding:0 16px;cursor:pointer;height:100%;flex-shrink:0;color:#c8902a;font-size:15px;line-height:1;">◇</button>
     <!-- Chamber menu trigger — wave symbol -->
     <button id="nav-menu-btn" onclick="toggleChamberMenu()" style="background:none;border:none;border-left:1px solid var(--border);padding:0 18px;cursor:pointer;display:flex;align-items:center;height:100%;flex-shrink:0;" title="Chambers">
       <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
@@ -4352,10 +4354,9 @@ const now=()=>new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'
 function toArsenal(){
   const t=document.getElementById('load-in').value.trim(); if(!t) return;
   const anchor = _currentAnchorWord || '';
-  D.arsenal.unshift({text:t, title:anchor, preview:anchor ? anchor.toUpperCase() + ' — ' + t.slice(0,60) : t.slice(0,90), date:now(), resolved:false});
-  if(D.arsenal.length>40) D.arsenal.pop();
+  arsenalSave({text:t, title:anchor, chamber:'load', origin:'me'});
   D.unresolved=Math.min(D.unresolved+1,10);
-  ls('dr_arsenal',D.arsenal); ls('dr_unresolved',D.unresolved);
+  ls('dr_unresolved',D.unresolved);
   renderArsenal(); tick();
 }
 function saveReload(){
@@ -4373,6 +4374,7 @@ function ls(k,v){ localStorage.setItem(k, typeof v==='object'?JSON.stringify(v):
 function loadArsenalItem(i) {
   const item = D.arsenal[i];
   if (!item) return;
+  if (item.id) arsenalPull(item.id, 'load');
   const inp = document.getElementById('load-in');
   if (inp) inp.value = item.text;
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4381,7 +4383,7 @@ function loadArsenalItem(i) {
 function renderArsenal(){
   const el=document.getElementById('arsenal-list');
   if(!D.arsenal.length){el.innerHTML='<div class="empty">Nothing loaded yet.</div>';return;}
-  el.innerHTML=D.arsenal.map((item,i)=>`<div class="hist-row${!item.resolved?' unr':''}" onclick="loadArsenalItem(${i})"><div class="hist-i">${!item.resolved?'o':''}</div><div class="hist-t">${item.title ? `<span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--load);margin-right:8px;">${item.title}</span>` : ''}${item.preview}</div><div class="hist-d">${item.date}</div></div>`).join('');
+  el.innerHTML=D.arsenal.map((item,i)=>`<div class="hist-row${!item.resolved?' unr':''}" onclick="loadArsenalItem(${i})"><div class="hist-i">${!item.resolved?'o':''}</div><div class="hist-t">${item.title ? `<span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--load);margin-right:8px;">${item.title}</span>` : ''}${item.preview}</div><div class="hist-d">${item.date}${item.chamber&&item.chamber!=='load'?' · '+item.chamber:''}${item.origin==='ai'?' · ai':''}</div></div>`).join('');
 }
 function renderReloads(){
   const el=document.getElementById('reload-list');
@@ -5088,7 +5090,7 @@ function buildFlow() {
   });
 
   // == LOAD ENTRIES ==
-  const loadEntries = D.arsenal.filter(e=>!e.fromSim).slice(0,5);
+  const loadEntries = D.arsenal.filter(arsIsLoad).slice(0,5);
   loadEntries.forEach((e,i) => {
     const angle = (-Math.PI/2) + (i - loadEntries.length/2) * 0.5;
     const dist  = 200 + i*15;
@@ -5168,7 +5170,7 @@ function buildFlow() {
   });
 
   // == UNRESOLVED NODES -- loaded guns ==
-  const unresolved = D.arsenal.filter(e=>!e.resolved&&!e.fromSim).slice(0,3);
+  const unresolved = D.arsenal.filter(e=>!e.resolved&&arsIsLoad(e)).slice(0,3);
   unresolved.forEach((e,i) => {
     const angle = Math.PI*0.75 + i*0.35;
     const id    = 'unres-'+i;
@@ -6339,7 +6341,7 @@ async function runSolve(){
   }).join('\n');
 
   // Load entries
-  const loadData = D.arsenal.filter(e => !e.fromSim).slice(0, 8)
+  const loadData = D.arsenal.filter(arsIsLoad).slice(0, 8)
     .map(e => e.preview).join(' | ');
 
   // One point entries from training
@@ -6557,13 +6559,14 @@ function feedSimToIntelligence(simEntry, transcript, debrief) {
     date: simEntry.date,
     resolved: false,
     fromSim: true,
+    id: arsId(), chamber: 'sim', origin: 'ai', usedIn: [], ts: Date.now(),
     simType: simEntry.type,
     simDiff: simEntry.diff
   };
 
   // Add to arsenal so Pattern Recognition picks it up
   D.arsenal.unshift(patternEntry);
-  if(D.arsenal.length > 40) D.arsenal.pop();
+  arsTrim();
   ls('dr_arsenal', D.arsenal);
   renderArsenal();
 
@@ -6586,7 +6589,7 @@ function feedSimToIntelligence(simEntry, transcript, debrief) {
 // Override the Pattern Recognition exercise to include sim data
 function getPatternEntries() {
   // Combine Load entries + simulation debriefs
-  const loadEntries = D.arsenal.filter(e => !e.fromSim).slice(0, 4);
+  const loadEntries = D.arsenal.filter(arsIsLoad).slice(0, 4);
   const simEntries  = D.arsenal.filter(e => e.fromSim).slice(0, 2);
   return [...loadEntries, ...simEntries].slice(0, 6);
 }
@@ -6639,7 +6642,7 @@ async function runWeekly() {
   ).join('\n');
 
   // Recent Load entries
-  const loadSummary = D.arsenal.filter(e => !e.fromSim).slice(0, 5)
+  const loadSummary = D.arsenal.filter(arsIsLoad).slice(0, 5)
     .map(e => e.preview).join(' | ');
 
   const sys = `You are the intelligence layer inside THE SYSTEM for ${WHO}
@@ -6657,7 +6660,7 @@ Be specific. Reference actual content from the data. Be honest. This is the week
 
   const trainCount2 = week.length;
   const simCount2 = simLog.slice(0,5).length;
-  const loadCount3 = D.arsenal.filter(e=>!e.fromSim).slice(0,5).length;
+  const loadCount3 = D.arsenal.filter(arsIsLoad).slice(0,5).length;
   const hasData = trainCount2 > 0 || simCount2 > 0 || loadCount3 > 0;
 
   let out = '';
@@ -8054,20 +8057,9 @@ function orbDraw() {
         const seed = fi*2.718 + ci*1.618;
         // animation speed proportional to zoom — slow when zoomed out, fast when in
         const t0 = ORB.t * 0.025 * (z/0.6);
-        const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
-          const bx = ap.x + ddx*tt;
-          const by = ap.y + ddy*tt;
-          const amp  = baseAmp * Math.sin(seed + wi*1.9) * zc;
-          const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * baseAmp*0.45 * zc;
-          return { x: bx + perpX*(amp+slow), y: by + perpY*(amp+slow) };
-        });
-        const pts = [ap, ...wp, bp];
+        const pts = orbThreadPts(ap, bp, seed, z);
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for(let p=0; p<pts.length-1; p++){
-          const p0=pts[Math.max(0,p-1)],p1=pts[p],p2=pts[p+1],p3=pts[Math.min(pts.length-1,p+2)];
-          ctx.bezierCurveTo(p1.x+(p2.x-p0.x)/6,p1.y+(p2.y-p0.y)/6,p2.x-(p3.x-p1.x)/6,p2.y-(p3.y-p1.y)/6,p2.x,p2.y);
-        }
+        orbTraceSpline(ctx, pts);
         // Brightness flat — same as ring nodes
         const al = WS.opacity*0.65 + (WS.opacity*0.5)*Math.abs(Math.sin(seed + t0*0.7));
         ctx.strokeStyle = isCenter
@@ -8078,6 +8070,9 @@ function orbDraw() {
       }
     });
   }
+
+  // ── ARSENAL FLOW THREADS ──
+  orbDrawArsenalFlow(ctx, z);
 
   // ── NODES ──
   ORB.nodes.forEach(n => {
@@ -11267,6 +11262,9 @@ DR_KEYS.push('dr_ned_nodes');
 DR_KEYS.push('dr_simlog');
 DR_KEYS.push('dr_carried_lens');
 DR_KEYS.push('dr_lens_history');
+DR_KEYS.push('dr_arsenal_flow');
+DR_KEYS.push('dr_arsenal_archive');
+DR_KEYS.push('dr_ars_log');
 
 // ── KV SYNC SYSTEM ──────────────────────────────────────────────
 // Syncs content data (DR_KEYS) to Cloudflare KV via the worker.
@@ -11901,6 +11899,813 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 })();
 
 
+
+// ══════════════════════════════════════════════════════════════
+// ARSENAL v2 — one store, every chamber, flow threads on the map
+// ══════════════════════════════════════════════════════════════
+// Entry: { id, text, title, preview, date, ts, resolved, chamber, origin:'me'|'ai', usedIn:[] }
+// Flow log (dr_arsenal_flow): [{ e:entryId, from:chamber, to:chamber, t:ms }]
+// Every time an entry is pulled into a chamber other than its origin, a flow
+// is logged. The node map draws each from→to pair as a thread bundle using the
+// SAME curvature formula as the wiring threads (orbThreadPts).
+const ARS_CAP      = 400;
+const ARS_FLOW_KEY = 'dr_arsenal_flow';
+const ARS_ARCH_KEY = 'dr_arsenal_archive';
+let arsFlow = (() => { try { return JSON.parse(localStorage.getItem(ARS_FLOW_KEY) || '[]'); } catch { return []; } })();
+let _arsAgg = null;
+let _arsSel = null;               // last text selection (for "save selection")
+let arsFilter = { origin: 'all', chamber: 'any', q: '' };
+let arsEditing = null;   // entry id being edited in the drawer
+let arsDelArm  = null;   // entry id armed for delete (two-tap)
+
+function arsId() { return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function arsEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function arsMigrate() {
+  let ch = false;
+  D.arsenal.forEach(e => {
+    if (!e.id)      { e.id = arsId(); ch = true; }
+    if (!e.chamber) { e.chamber = e.fromSim ? 'sim' : 'load'; ch = true; }
+    if (!e.origin)  { e.origin = e.fromSim ? 'ai' : 'me'; ch = true; }
+    if (!Array.isArray(e.usedIn)) { e.usedIn = []; ch = true; }
+    if (!e.ts) { e.ts = 0; ch = true; }
+  });
+  if (ch) ls('dr_arsenal', D.arsenal);
+}
+
+// Over the cap → oldest move to an archive key instead of vanishing
+function arsTrim() {
+  if (D.arsenal.length <= ARS_CAP) return;
+  const over = D.arsenal.splice(ARS_CAP);
+  try {
+    const a = JSON.parse(localStorage.getItem(ARS_ARCH_KEY) || '[]');
+    a.unshift(...over);
+    if (a.length > 2000) a.length = 2000;
+    localStorage.setItem(ARS_ARCH_KEY, JSON.stringify(a));
+  } catch (e) {}
+}
+
+function arsenalSave({ text, title = '', chamber, origin = 'me', extra = {} }) {
+  text = (text || '').trim();
+  if (!text) return null;
+  const e = Object.assign({
+    id: arsId(), text, title,
+    preview: title ? title.toUpperCase() + ' — ' + text.slice(0, 60) : text.slice(0, 90),
+    date: now(), ts: Date.now(), resolved: false,
+    chamber: chamber || D.chamber || 'load', origin, usedIn: []
+  }, extra);
+  D.arsenal.unshift(e);
+  arsTrim();
+  ls('dr_arsenal', D.arsenal);
+  return e;
+}
+
+// Log a flow when an entry is used in a chamber other than where it was born
+function arsenalPull(id, toChamber) {
+  const e = D.arsenal.find(x => x.id === id);
+  if (!e) return null;
+  if (!Array.isArray(e.usedIn)) e.usedIn = [];
+  if (toChamber && e.chamber !== toChamber) {
+    arsFlow.push({ e: id, from: e.chamber, to: toChamber, t: Date.now() });
+    if (arsFlow.length > 1500) arsFlow.splice(0, arsFlow.length - 1500);
+    if (!e.usedIn.includes(toChamber)) e.usedIn.push(toChamber);
+    try { localStorage.setItem(ARS_FLOW_KEY, JSON.stringify(arsFlow)); } catch (err) {}
+    ls('dr_arsenal', D.arsenal);
+    _arsAgg = null;
+  }
+  return e;
+}
+
+function arsAggregate() {
+  if (_arsAgg) return _arsAgg;
+  const m = new Map();
+  arsFlow.forEach(f => {
+    const k = f.from + '>' + f.to;
+    const o = m.get(k) || { from: f.from, to: f.to, count: 0, last: 0 };
+    o.count++; if (f.t > o.last) o.last = f.t;
+    m.set(k, o);
+  });
+  _arsAgg = [...m.values()];
+  return _arsAgg;
+}
+
+// ── Thread geometry (shared formula) ──────────────────────────
+// Returns the 5 control points [a, w1, w2, w3, b] for one strand.
+function orbThreadPts(ap, bp, seed, z) {
+  const ddx = bp.x - ap.x, ddy = bp.y - ap.y;
+  const len = Math.sqrt(ddx*ddx + ddy*ddy);
+  if (len < 2) return null;
+  const perpX = -ddy/len, perpY = ddx/len;
+  const zc = Math.max(0.25, Math.min(z, 2.0));
+  const distFactor = Math.max(0.3, Math.min(1.6, len / 300));
+  const baseAmp = WS.amp * 0.4 * distFactor;
+  const t0 = ORB.t * 0.025 * (z / 0.6);
+  const wp = [0.22, 0.50, 0.76].map((tt, wi) => {
+    const bx = ap.x + ddx*tt, by = ap.y + ddy*tt;
+    const amp  = baseAmp * Math.sin(seed + wi*1.9) * zc;
+    const slow = Math.sin(t0 + seed*0.7 + wi*2.3) * baseAmp*0.45 * zc;
+    return { x: bx + perpX*(amp+slow), y: by + perpY*(amp+slow) };
+  });
+  return [ap, ...wp, bp];
+}
+function orbTraceSpline(ctx, pts) {
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let p = 0; p < pts.length - 1; p++) {
+    const p0 = pts[Math.max(0,p-1)], p1 = pts[p], p2 = pts[p+1], p3 = pts[Math.min(pts.length-1,p+2)];
+    ctx.bezierCurveTo(p1.x+(p2.x-p0.x)/6, p1.y+(p2.y-p0.y)/6, p2.x-(p3.x-p1.x)/6, p2.y-(p3.y-p1.y)/6, p2.x, p2.y);
+  }
+}
+// Point on the same spline at u∈[0,1] (for the travelling bead)
+function orbSplineAt(pts, u) {
+  const n = pts.length - 1;
+  const s = Math.min(n - 1e-6, Math.max(0, u * n));
+  const p = Math.floor(s), f = s - p;
+  const p0 = pts[Math.max(0,p-1)], p1 = pts[p], p2 = pts[p+1], p3 = pts[Math.min(pts.length-1,p+2)];
+  const c1x = p1.x+(p2.x-p0.x)/6, c1y = p1.y+(p2.y-p0.y)/6;
+  const c2x = p2.x-(p3.x-p1.x)/6, c2y = p2.y-(p3.y-p1.y)/6;
+  const m = 1 - f;
+  return {
+    x: m*m*m*p1.x + 3*m*m*f*c1x + 3*m*f*f*c2x + f*f*f*p2.x,
+    y: m*m*m*p1.y + 3*m*m*f*c1y + 3*m*f*f*c2y + f*f*f*p2.y
+  };
+}
+
+// ── Draw Arsenal flow threads on the node map ─────────────────
+// Colour runs origin-node colour → destination-node colour (shows direction).
+// Strands grow with traffic (log2). Recent travel glows and sends a bead
+// origin → destination; everything settles to a faint permanent trace.
+function orbDrawArsenalFlow(ctx, z) {
+  const agg = arsAggregate();
+  if (!agg.length) return;
+  const nowMs = Date.now();
+  const zc = Math.max(0.25, Math.min(z, 2.0));
+  agg.forEach((g, gi) => {
+    const a = ORB.nodes.find(n => n.id === g.from);
+    const b = ORB.nodes.find(n => n.id === g.to);
+    if (!a || !b || a.hidden || b.hidden) return;
+    const ap = orbGetNodeXY(a), bp = orbGetNodeXY(b);
+    const recent = Math.exp(-(nowMs - g.last) / 90000);
+    const nStr = Math.min(6, 1 + Math.floor(Math.log2(g.count + 1)));
+    const grad = ctx.createLinearGradient(ap.x, ap.y, bp.x, bp.y);
+    grad.addColorStop(0, a.color + 'dd');
+    grad.addColorStop(1, b.color + 'dd');
+    for (let fi = 0; fi < nStr; fi++) {
+      const seed = fi*2.718 + (gi + 101)*1.618;   // offset so they never trace the base wires
+      const pts = orbThreadPts(ap, bp, seed, z);
+      if (!pts) break;
+      ctx.beginPath();
+      orbTraceSpline(ctx, pts);
+      ctx.globalAlpha = Math.min(0.9, 0.2 + 0.55*recent + 0.04*nStr);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = (0.7 + 0.35*Math.abs(Math.sin(seed))) * Math.max(0.8, zc);
+      ctx.stroke();
+      if (fi === 0 && recent > 0.08) {
+        const p = orbSplineAt(pts, (ORB.t*0.12 + gi*0.37) % 1);
+        ctx.globalAlpha = Math.min(1, 0.15 + 0.85*recent);
+        ctx.fillStyle = b.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.2*zc, 0, Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ── Chamber helpers ───────────────────────────────────────────
+function arsActiveInput(ch) {
+  const hint = { load:'load-in', map:'map-sit', aim:'aim-in', fire:'fire-in',
+                 reload:'reload-in', sim:'sim-context', formulas:'form-situation' }[ch];
+  let el = hint && document.getElementById(hint);
+  if (el && el.offsetParent !== null) return el;
+  const host = document.getElementById('ch-' + ch);
+  if (host) {
+    el = [...host.querySelectorAll('textarea, input[type=text]')]
+      .find(i => !/^ai-(input|url)/.test(i.id) && i.offsetParent !== null);
+    if (el) return el;
+  }
+  return null;
+}
+function arsAIInput(ch) { const el = document.getElementById('ai-input-' + ch); return el || null; }
+
+function arsGrabAI(ch) {
+  if (_arsSel && Date.now() - _arsSel.at < 90000) { const t = _arsSel.t; _arsSel = null; return t; }
+  const resp = document.getElementById(ch + '-resp-body');
+  const rt = resp && resp.offsetParent !== null ? resp.innerText.trim() : '';
+  if (rt) return rt;
+  const msgs = [...document.querySelectorAll('#ai-msgs-' + ch + ' .ai-msg-body.ai')];
+  return msgs.length ? msgs[msgs.length - 1].textContent.trim() : '';
+}
+document.addEventListener('selectionchange', () => {
+  const s = String(window.getSelection() || '').trim();
+  if (s.length > 3) _arsSel = { t: s, at: Date.now() };
+});
+
+function arsInsert(el, text) {
+  el.value = el.value.trim() ? el.value.replace(/\s+$/, '') + '\n\n' + text : text;
+  const ev = new Event('input', { bubbles: true }); ev._ars = 1; el.dispatchEvent(ev);
+  el.focus();
+}
+
+// ── Drawer UI ─────────────────────────────────────────────────
+function arsStatus(msg) {
+  const s = document.getElementById('ars-status');
+  if (!s) return;
+  s.textContent = msg;
+  clearTimeout(arsStatus._t);
+  arsStatus._t = setTimeout(() => { s.textContent = ''; }, 2600);
+}
+function arsEnsureDrawer() {
+  if (document.getElementById('ars-drawer')) return;
+  const d = document.createElement('div');
+  d.id = 'ars-drawer';
+  d.style.cssText = 'display:none;position:fixed;inset:0;z-index:210;';
+  d.onclick = e => { if (e.target === d) arsToggle(false); };
+  d.innerHTML = `
+    <div id="ars-panel" style="position:absolute;top:0;right:0;bottom:0;width:min(340px,100vw);background:rgba(7,6,8,0.98);border-left:1px solid var(--border);backdrop-filter:blur(12px);display:flex;flex-direction:column;font-family:'DM Mono',monospace;">
+      <div style="padding:16px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <span id="ars-title" style="font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:#c8902a;"></span>
+        <button onclick="arsToggle(false)" style="background:none;border:none;color:var(--ink-4);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
+      </div>
+      <div style="padding:10px 18px 0;display:flex;gap:6px;"><span class="ars-tab" data-t="arsenal" onclick="arsSetTab('arsenal')">arsenal</span><span class="ars-tab" data-t="activity" onclick="arsSetTab('activity')">activity</span></div>
+      <div style="padding:10px 18px 0;font-size:9px;letter-spacing:0.15em;color:var(--ink-4);">INTO: <span id="ars-into" style="color:var(--ink-2);"></span></div>
+      <div style="padding:10px 18px;display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn" onclick="arsSaveInput()" style="flex:1;font-size:9px;">save input</button>
+        <button class="btn" onclick="arsSaveAI()" style="flex:1;font-size:9px;" title="Saves highlighted text if you just selected some, otherwise the last AI reply here">save AI / selection</button>
+      </div>
+      <div id="ars-status" style="padding:0 18px;min-height:14px;font-size:9px;color:#c8902a;"></div>
+      <div style="padding:6px 18px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0;"><span id="ars-orig" style="display:contents;">
+        <span class="ars-chip" data-o="all"  onclick="arsSetOrigin('all')">all</span>
+        <span class="ars-chip" data-o="me"   onclick="arsSetOrigin('me')">mine</span>
+        <span class="ars-chip" data-o="ai"   onclick="arsSetOrigin('ai')">ai</span>
+        </span><select id="ars-ch-sel" onchange="arsFilter.chamber=this.value;arsRender()" style="margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--ink-3);font-family:inherit;font-size:9px;padding:3px 4px;"></select>
+      </div>
+      <div style="padding:4px 18px 8px;flex-shrink:0;"><input id="ars-q" type="text" placeholder="search" oninput="arsFilter.q=this.value;arsRender()" style="width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--border);color:var(--ink-2);font-family:inherit;font-size:11px;padding:6px 8px;"></div>
+      <div id="ars-list" style="flex:1;overflow-y:auto;padding:0 0 24px;"></div>
+    </div>
+    <style>
+      .ars-chip{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-4);border:1px solid var(--border);padding:3px 8px;cursor:pointer;}
+      .ars-chip.on{color:#c8902a;border-color:#c8902a;}
+      .ars-tab{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-4);border-bottom:1px solid transparent;padding:3px 2px;margin-right:10px;cursor:pointer;}
+      .ars-tab.on{color:#c8902a;border-bottom-color:#c8902a;}
+      .ars-row{padding:10px 18px;border-top:1px solid var(--border);}
+      .ars-row-t{font-size:11px;line-height:1.5;color:var(--ink-2);word-break:break-word;}
+      .ars-row-m{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-4);margin:4px 0 6px;}
+      .ars-act{font-size:9px;letter-spacing:0.1em;color:#c8902a;background:none;border:1px solid rgba(200,144,42,0.35);padding:3px 8px;cursor:pointer;margin-right:6px;font-family:inherit;}
+    </style>`;
+  document.body.appendChild(d);
+  const sel = d.querySelector('#ars-ch-sel');
+  sel.innerHTML = '<option value="any">from: any</option>' +
+    ORB.nodes.map(n => `<option value="${n.id}">${arsEsc(n.label)}</option>`).join('');
+}
+function arsToggle(force) {
+  arsEnsureDrawer();
+  const d = document.getElementById('ars-drawer');
+  const open = force === undefined ? d.style.display === 'none' : !!force;
+  d.style.display = open ? 'block' : 'none';
+  if (open) {
+    document.getElementById('ars-into').textContent = (CHAMBER_NAMES[D.chamber] || D.chamber || '').toUpperCase();
+    arsRender();
+  }
+}
+function arsSetOrigin(o) { arsFilter.origin = o; arsRender(); }
+
+function arsRender() {
+  const list = document.getElementById('ars-list');
+  if (!list) return;
+  document.getElementById('ars-title').textContent = 'Arsenal · ' + D.arsenal.length;
+  const _into = document.getElementById('ars-into');
+  if (_into) _into.innerHTML = arsEsc((CHAMBER_NAMES[D.chamber] || D.chamber || '').toUpperCase()) + ((typeof arsCarry !== 'undefined' && arsCarry && D.chamber === arsCarry.to) ? ' · carrying from ' + arsEsc(CHAMBER_NAMES[arsCarry.from] || arsCarry.from) + ' <a onclick="arsCarryClear()" style="color:#c8902a;cursor:pointer;text-decoration:underline;">stop</a>' : '');
+  document.querySelectorAll('.ars-chip').forEach(c => c.classList.toggle('on', c.dataset.o === arsFilter.origin));
+  document.querySelectorAll('.ars-tab').forEach(c => c.classList.toggle('on', c.dataset.t === arsTab));
+  const _og = document.getElementById('ars-orig'); if (_og) _og.style.display = arsTab === 'activity' ? 'none' : 'contents';
+  const _sel = document.getElementById('ars-ch-sel'); if (_sel && _sel.value !== arsFilter.chamber) _sel.value = arsFilter.chamber;
+  if (arsTab === 'activity') { document.getElementById('ars-title').textContent = 'Activity · ' + arsLog.length; arsRenderActivity(list); return; }
+  const q = arsFilter.q.trim().toLowerCase();
+  const rows = D.arsenal.filter(e =>
+    (arsFilter.origin === 'all' || e.origin === arsFilter.origin) &&
+    (arsFilter.chamber === 'any' || e.chamber === arsFilter.chamber) &&
+    (!q || (e.text + ' ' + (e.title || '')).toLowerCase().includes(q))
+  ).slice(0, 60);
+  if (!rows.length) { list.innerHTML = '<div style="padding:18px;font-size:10px;color:var(--ink-4);">Nothing here.</div>'; return; }
+  const takeOpts = '<option value="">take to →</option>' + ORB.nodes.map(n => `<option value="${n.id}"${n.id === D.chamber ? ' disabled' : ''}>${arsEsc(n.label)}</option>`).join('');
+  const hasAIIn = !!arsAIInput(D.chamber);
+  const inEls = [arsActiveInput(D.chamber), arsAIInput(D.chamber)].filter(Boolean);
+  list.innerHTML = rows.map(e => {
+    if (arsEditing === e.id) return `
+    <div class="ars-row">
+      <input id="ars-ed-t" type="text" value="${arsEsc(e.title || '')}" placeholder="title (optional)" style="width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--border);color:var(--ink-2);font-family:inherit;font-size:11px;padding:6px 8px;margin-bottom:6px;">
+      <textarea id="ars-ed-x" rows="6" style="width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--border);color:var(--ink-2);font-family:inherit;font-size:11px;padding:6px 8px;resize:vertical;">${arsEsc(e.text)}</textarea>
+      <div style="margin-top:6px;"><button class="ars-act" onclick="arsEditSave('${e.id}')">save</button><button class="ars-act" onclick="arsEditCancel()" style="color:var(--ink-4);border-color:var(--border);">cancel</button></div>
+    </div>`;
+    const loaded = inEls.some(el => e.text && el.value.includes(e.text));
+    const armed = arsDelArm === e.id;
+    return `
+    <div class="ars-row">
+      <div class="ars-row-t">${e.title ? `<span style="color:#c8902a;letter-spacing:0.12em;text-transform:uppercase;margin-right:6px;">${arsEsc(e.title)}</span>` : ''}${arsEsc(e.text.slice(0, 140))}${e.text.length > 140 ? '…' : ''}</div>
+      <div class="ars-row-m">${arsEsc(CHAMBER_NAMES[e.chamber] || e.chamber)} · ${e.origin === 'ai' ? 'ai' : 'mine'} · ${arsEsc(e.date)}${e.edited ? ' · edited' : ''}${(e.usedIn && e.usedIn.length) ? ' · used in ' + e.usedIn.length : ''}</div>
+      ${loaded ? `<button class="ars-act" onclick="arsUnload('${e.id}')">unload</button>` : `<button class="ars-act" onclick="arsUse('${e.id}','input')">load</button>`}${hasAIIn && !loaded ? `<button class="ars-act" onclick="arsUse('${e.id}','ai')">load → ai</button>` : ''}<button class="ars-act" onclick="arsTrailToggle('${e.id}')">trail${(e.trail && e.trail.length) ? ' ' + e.trail.length : ''}</button><button class="ars-act" onclick="arsEdit('${e.id}')">edit</button><button class="ars-act" onclick="arsDelete('${e.id}')" style="${armed ? 'color:#e83a20;border-color:#e83a20;' : 'color:var(--ink-4);border-color:var(--border);'}">${armed ? 'sure?' : 'delete'}</button>
+      <select onchange="arsTakeTo('${e.id}',this.value);this.value=''" style="margin-top:8px;display:block;background:transparent;border:1px solid rgba(200,144,42,0.35);color:#c8902a;font-family:inherit;font-size:9px;letter-spacing:0.1em;padding:4px 6px;">${takeOpts}</select>
+      ${arsTrailOpen === e.id ? arsTrailHTML(e) : ''}
+    </div>`;
+  }).join('');
+}
+
+
+// ── Edit / delete / unload cores ──────────────────────────────
+function arsUpdate(id, { title, text }) {
+  const e = D.arsenal.find(x => x.id === id);
+  text = (text || '').trim();
+  if (!e || !text) return null;
+  e.text = text;
+  e.title = (title || '').trim();
+  e.preview = e.fromSim ? text.slice(0, 90)
+            : (e.title ? e.title.toUpperCase() + ' — ' + text.slice(0, 60) : text.slice(0, 90));
+  e.edited = Date.now();
+  ls('dr_arsenal', D.arsenal);
+  return e;
+}
+// Remove an entry and every thread it created
+function arsRemove(id) {
+  const i = D.arsenal.findIndex(x => x.id === id);
+  if (i < 0) return null;
+  const [e] = D.arsenal.splice(i, 1);
+  const before = arsFlow.length;
+  arsFlow = arsFlow.filter(f => f.e !== id);
+  ls('dr_arsenal', D.arsenal);
+  if (arsFlow.length !== before) { try { localStorage.setItem(ARS_FLOW_KEY, JSON.stringify(arsFlow)); } catch (err) {} }
+  _arsAgg = null;
+  return e;
+}
+// Take an entry's text back out of an input. If the load was just now (<2 min),
+// treat it as an accidental load and retract that thread too.
+function arsUnloadFrom(id, els, chamber) {
+  const e = D.arsenal.find(x => x.id === id);
+  if (!e) return false;
+  let removed = false;
+  els.filter(Boolean).forEach(el => {
+    if (el.value.includes(e.text)) {
+      el.value = el.value.replace(e.text, '').replace(/\n{3,}/g, '\n\n').trim();
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      removed = true;
+    }
+  });
+  if (removed) {
+    for (let i = arsFlow.length - 1; i >= 0; i--) {
+      const f = arsFlow[i];
+      if (f.e === id && f.to === chamber) {
+        if (Date.now() - f.t < 120000) {
+          arsFlow.splice(i, 1);
+          if (!arsFlow.some(x => x.e === id && x.to === chamber)) e.usedIn = (e.usedIn || []).filter(c => c !== chamber);
+          try { localStorage.setItem(ARS_FLOW_KEY, JSON.stringify(arsFlow)); } catch (err) {}
+          ls('dr_arsenal', D.arsenal);
+          _arsAgg = null;
+        }
+        break;
+      }
+    }
+  }
+  return removed;
+}
+
+function arsUse(id, where) {
+  const ch = D.chamber;
+  const el = where === 'ai' ? arsAIInput(ch) : (arsActiveInput(ch) || arsAIInput(ch));
+  if (!el) { arsStatus('no input in this chamber'); return; }
+  const e = arsenalPull(id, ch);
+  if (!e) return;
+  arsInsert(el, e.text);
+  arsStatus('inserted' + (e.chamber !== ch ? ' · thread ' + (CHAMBER_NAMES[e.chamber] || e.chamber) + ' → ' + (CHAMBER_NAMES[ch] || ch) : ''));
+  arsRender();
+  try { renderArsenal(); } catch (err) {}
+}
+function arsSaveInput() {
+  const ch = D.chamber, el = arsActiveInput(ch);
+  const t = el ? el.value.trim() : '';
+  if (!t) { arsStatus('nothing in the input'); return; }
+  arsenalSave({ text: t, chamber: ch, origin: 'me' });
+  arsStatus('saved to arsenal'); arsRender();
+  try { renderArsenal(); } catch (err) {}
+}
+function arsSaveAI() {
+  const ch = D.chamber, t = arsGrabAI(ch);
+  if (!t) { arsStatus('no AI reply or selection found'); return; }
+  arsenalSave({ text: t, chamber: ch, origin: 'ai' });
+  arsStatus('saved to arsenal'); arsRender();
+  try { renderArsenal(); } catch (err) {}
+}
+
+function arsEdit(id) { arsEditing = id; arsDelArm = null; arsRender(); }
+function arsEditCancel() { arsEditing = null; arsRender(); }
+function arsEditSave(id) {
+  const t = document.getElementById('ars-ed-t'), x = document.getElementById('ars-ed-x');
+  const e = arsUpdate(id, { title: t ? t.value : '', text: x ? x.value : '' });
+  if (!e) { arsStatus('text can\'t be empty'); return; }
+  arsEditing = null; arsStatus('updated'); arsRender();
+  try { renderArsenal(); } catch (err) {}
+}
+function arsDelete(id) {
+  if (arsDelArm !== id) {
+    arsDelArm = id; arsRender(); arsStatus('tap delete again to remove');
+    setTimeout(() => { if (arsDelArm === id) { arsDelArm = null; arsRender(); } }, 3000);
+    return;
+  }
+  arsDelArm = null; arsEditing = null;
+  const e = arsRemove(id);
+  if (arsCarry && arsCarry.entryId === id) { arsCarry = null; arsCarryPill(); }
+  if (e && !e.resolved && arsIsLoad(e) && D.unresolved > 0) { D.unresolved--; ls('dr_unresolved', D.unresolved); try { tick(); } catch (err) {} }
+  arsStatus(e ? 'deleted' : 'not found'); arsRender();
+  try { renderArsenal(); } catch (err) {}
+}
+function arsUnload(id) {
+  const ch = D.chamber;
+  const ok = arsUnloadFrom(id, [arsActiveInput(ch), arsAIInput(ch)], ch);
+  if (ok && arsCarry && arsCarry.entryId === id && arsCarry.to === ch) { arsCarry = null; arsCarryPill(); }
+  arsStatus(ok ? 'unloaded' : 'not in this chamber\'s input'); arsRender();
+}
+
+
+// ── TAKE TO: carry an entry + the memory of THIS chamber into another ─────
+// Memory = what you'd written here, the last AI reply here, recent chat here.
+// Persisted across close/reopen; the pill shows it's active and tap stops it.
+// While you're in the destination chamber it is prepended to every AI request
+// (see fetch wrapper below); the pill at top-right shows it's active, tap to stop.
+const ARS_CARRY_KEY = 'dr_ars_carry';
+let arsCarry = (() => { try { return JSON.parse(localStorage.getItem(ARS_CARRY_KEY) || 'null'); } catch (e) { return null; } })();   // {from,to,entryId,entry,input,reply,chat,t}
+
+function arsCap(s, n) { s = String(s == null ? '' : s).trim(); return s.length > n ? s.slice(0, n) + '…' : s; }
+
+function arsLastReply(ch) {
+  const resp = document.getElementById(ch + '-resp-body');
+  const rt = resp && resp.offsetParent !== null ? resp.innerText.trim() : '';
+  if (rt) return rt;
+  const msgs = [...document.querySelectorAll('#ai-msgs-' + ch + ' .ai-msg-body.ai')];
+  return msgs.length ? msgs[msgs.length - 1].textContent.trim() : '';
+}
+
+function arsLogFlow(id, from, to) {
+  const e = D.arsenal.find(x => x.id === id);
+  if (!e || !from || !to || from === to) return;
+  arsFlow.push({ e: id, from, to, t: Date.now() });
+  if (arsFlow.length > 1500) arsFlow.splice(0, arsFlow.length - 1500);
+  if (!Array.isArray(e.usedIn)) e.usedIn = [];
+  if (!e.usedIn.includes(to)) e.usedIn.push(to);
+  try { localStorage.setItem(ARS_FLOW_KEY, JSON.stringify(arsFlow)); } catch (err) {}
+  ls('dr_arsenal', D.arsenal);
+  _arsAgg = null;
+}
+
+function arsTakeTo(id, dest, mem) {
+  const e = D.arsenal.find(x => x.id === id);
+  if (!e || !dest) return;
+  const from = mem ? mem.from : D.chamber;
+  if (!mem && dest === from) { arsStatus('already in ' + (CHAMBER_NAMES[from] || from)); return; }
+  const inEl = arsActiveInput(from);
+  const hist = (typeof aiHistory !== 'undefined' && aiHistory[from]) || [];
+  const T = Date.now();
+  arsCarry = {
+    from, to: dest, entryId: id, entry: e.text,
+    input: mem ? mem.input : (inEl ? inEl.value.trim() : ''),
+    reply: mem ? mem.reply : arsLastReply(from),
+    chat: mem ? '' : hist.slice(-6).map(m => m.role === 'user' ? 'me: ' + arsCap(m.content, 400) : 'ai: ' + arsCap(arsCave(m.content), 300)).join('\n'),
+    t: T
+  };
+  (e.trail = e.trail || []).push({ t: T, ch: from, type: 'taken', to: dest, input: arsCap(arsCarry.input, 600), reply: arsCap(arsCarry.reply, 800) });
+  if (e.trail.length > 60) e.trail.splice(0, e.trail.length - 60);
+  arsLogFlow(id, from, dest);          // thread: where it came from → where you took it
+  ls('dr_arsenal', D.arsenal);
+  arsToggle(false);
+  go(dest);
+  setTimeout(() => {
+    const el = arsActiveInput(dest);
+    if (el && !el.value.includes(e.text)) arsInsert(el, e.text);
+    arsCarryPill();
+  }, 180);
+}
+
+function arsCarryBlock() {
+  const c = arsCarry;
+  if (!c || D.chamber !== c.to) return '';
+  const f = CHAMBER_NAMES[c.from] || c.from, t = CHAMBER_NAMES[c.to] || c.to;
+  const parts = [
+    'CARRIED FROM ' + f.toUpperCase() + ' — the user brought this into ' + t + ' with them. It is background memory of what just happened in ' + f + ', not their current question.',
+    'Saved entry they carried: ' + arsCap(arsEntryText(c), 700)
+  ];
+  if (c.input && c.input !== c.entry) parts.push('What they had written in ' + f + ': ' + arsCap(c.input, 600));
+  if (c.reply && c.reply !== c.entry) parts.push('What the AI said in ' + f + ': ' + arsCap(arsCave(c.reply), 800));
+  if (c.chat) parts.push('Recent chat in ' + f + ':\n' + arsCap(c.chat, 900));
+  const en = D.arsenal.find(x => x.id === c.entryId);
+  const tr = (en && en.trail ? en.trail : []).filter(x => x.ch !== c.to && x.t !== c.t && ((x.type === 'ai' && arsReplyOf(x) !== en.text) || x.type === 'taken')).slice(-8);
+  if (tr.length) parts.push('Earlier trail of this entry across chambers (AI replies compressed telegraphic style; user words verbatim):\n' + arsCap(tr.map(x => x.type === 'ai'
+    ? '- In ' + arsChName(x.ch) + ': user said "' + arsCap(x.u, 160) + '" -> AI said "' + arsCap(arsCave(arsReplyOf(x)), 260) + '"'
+    : '- Left ' + arsChName(x.ch) + ' -> ' + arsChName(x.to) + (x.reply ? ': AI had said "' + arsCap(arsCave(x.reply), 260) + '"' : '')).join('\n'), 1600));
+  return parts.join('\n');
+}
+
+// One interception point instead of patching 18 call sites.
+// (1) While a carry is active and you're in its destination chamber, prepend it
+//     to the first message. (2) Every AI reply, in every chamber, is logged to
+//     dr_ars_log (and onto the carried entry's trail). Stopgap — folds into the
+//     shared aiRequest() helper when that gets built.
+(function () {
+  const _f = window.fetch.bind(window);
+  window.fetch = function (url, opts) {
+    let chat = null;
+    try {
+      const u = typeof url === 'string' ? url : (url && url.url) || '';
+      if (opts && opts.method === 'POST' && typeof opts.body === 'string' &&
+          opts.body.indexOf('"messages"') > -1 && !/\/(state|models)\/?(\?|$)/.test(u)) {
+        const b = JSON.parse(opts.body);
+        if (Array.isArray(b.messages)) {
+          const um = [...b.messages].reverse().find(m => m && m.role === 'user' && typeof m.content === 'string');
+          const carrying = arsCarry && D.chamber === arsCarry.to;
+          chat = { ch: D.chamber, u: arsCleanUser(um ? um.content : ''), cid: carrying ? arsCarry.entryId : null };
+          const m0 = b.messages[0];
+          if (carrying && m0 && typeof m0.content === 'string' && m0.content.indexOf('CARRIED FROM') !== 0) {
+            const blk = arsCarryBlock();
+            if (blk) { m0.content = blk + '\n\n' + m0.content; opts = Object.assign({}, opts, { body: JSON.stringify(b) }); }
+          }
+        }
+      }
+    } catch (err) {}
+    const pr = _f(url, opts);
+    if (chat) {
+      pr.then(res => {
+        try {
+          res.clone().json().then(d => {
+            const body = d && d.body ? d.body : d;
+            const r = body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content;
+            if (typeof r === 'string' && r.trim()) arsRecordReply(chat.ch, chat.u, r, chat.cid);
+          }).catch(() => {});
+        } catch (err) {}
+      }).catch(() => {});
+    }
+    return pr;
+  };
+})();
+
+function arsCarryPill() {
+  try { if (arsCarry) localStorage.setItem(ARS_CARRY_KEY, JSON.stringify(arsCarry)); else localStorage.removeItem(ARS_CARRY_KEY); } catch (err) {}
+  let p = document.getElementById('ars-pill');
+  const app = document.getElementById('app');
+  const show = arsCarry && D.chamber === arsCarry.to && app && app.classList.contains('on');
+  if (!show) { if (p) p.style.display = 'none'; return; }
+  if (!p) {
+    p = document.createElement('div');
+    p.id = 'ars-pill';
+    p.style.cssText = "position:fixed;top:48px;right:12px;z-index:150;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;color:#c8902a;border:1px solid rgba(200,144,42,0.45);background:rgba(7,6,8,0.92);padding:4px 8px;cursor:pointer;";
+    p.onclick = arsCarryClear;
+    document.body.appendChild(p);
+  }
+  p.textContent = '◇ carrying from ' + (CHAMBER_NAMES[arsCarry.from] || arsCarry.from) + ' ✕';
+  p.title = 'Tap to stop carrying this into AI replies here';
+  p.style.display = 'block';
+}
+function arsCarryClear() { arsCarry = null; arsCarryPill(); try { arsRender(); } catch (err) {} }
+(function () { const _g = go; go = function (c) { _g(c); arsCarryPill(); }; })();
+
+
+// ── Persistent AI activity log + per-entry trail ──────────────
+const ARS_LOG_KEY = 'dr_ars_log';
+let arsLog = (() => { try { return JSON.parse(localStorage.getItem(ARS_LOG_KEY) || '[]'); } catch (e) { return []; } })();
+let arsTab = 'arsenal', arsLogOpen = null, arsTrailOpen = null;
+
+function arsTail(s, n) { s = String(s == null ? '' : s); return s.length > n ? '…' + s.slice(-n) : s; }
+function arsChName(id) { const n = ORB.nodes.find(x => x.id === id); return n ? n.label : ((CHAMBER_NAMES && CHAMBER_NAMES[id]) || id || '?'); }
+function arsFmtT(t) { if (!t) return ''; try { return new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+
+function arsRecordReply(ch, u, r, cid) {
+  const t = Date.now();
+  const rec = { id: arsId(), ch, u: arsCap(u, 4000), r: arsCap(r, 6000), t, e: cid || null };
+  arsLog.unshift(rec);
+  if (arsLog.length > 300) arsLog.length = 300;
+  try { localStorage.setItem(ARS_LOG_KEY, JSON.stringify(arsLog)); } catch (err) {}
+  if (cid) {
+    const en = D.arsenal.find(x => x.id === cid);
+    if (en) {
+      (en.trail = en.trail || []).push({ t, ch, type: 'ai', u: rec.u, r: rec.r });
+      if (en.trail.length > 60) en.trail.splice(0, en.trail.length - 60);
+      ls('dr_arsenal', D.arsenal);
+    }
+  }
+  arsCompact();
+  const dr = document.getElementById('ars-drawer');
+  if (dr && dr.style.display === 'block') arsRender();
+}
+
+function arsSetTab(t) {
+  arsTab = t;
+  arsFilter.chamber = t === 'activity' ? D.chamber : 'any';
+  arsRender();
+}
+function arsLogToggle(id) { arsLogOpen = arsLogOpen === id ? null : id; arsRender(); }
+function arsTrailToggle(id) { arsTrailOpen = arsTrailOpen === id ? null : id; arsRender(); }
+
+function arsTrailHTML(e) {
+  const tr = (e.trail || []).slice(-20);
+  if (!tr.length) return '<div class="ars-row-m">no trail yet</div>';
+  return '<div style="margin-top:8px;border-left:1px solid rgba(200,144,42,0.35);padding-left:10px;">' + tr.map(x => {
+    let h = arsEsc(arsFmtT(x.t)) + ' · ';
+    if (x.type === 'taken') h += 'left ' + arsEsc(arsChName(x.ch)) + ' → ' + arsEsc(arsChName(x.to)) + (x.reply ? '<br><span style="color:var(--ink-3);">AI had said: ' + arsEsc(arsCap(x.reply, 160)) + '</span>' : '');
+    else if (x.type === 'ai') h += arsEsc(arsChName(x.ch)) + ' AI: ' + (x.r === undefined ? '≈ ' : '') + arsEsc(arsCap(arsReplyOf(x), 200));
+    else h += arsEsc(x.type || '');
+    return '<div class="ars-row-m" style="text-transform:none;letter-spacing:0.02em;line-height:1.5;">' + h + '</div>';
+  }).join('') + '</div>';
+}
+
+function arsRenderActivity(list) {
+  const q = arsFilter.q.trim().toLowerCase();
+  const rows = arsLog.filter(l =>
+    (arsFilter.chamber === 'any' || l.ch === arsFilter.chamber) &&
+    (!q || ((l.u || '') + ' ' + arsReplyOf(l)).toLowerCase().includes(q))
+  ).slice(0, 60);
+  if (!rows.length) { list.innerHTML = '<div style="padding:18px;font-size:10px;color:var(--ink-4);">No AI replies logged' + (arsFilter.chamber === 'any' ? '' : ' for this chamber') + ' yet.</div>'; return; }
+  const takeOpts = '<option value="">take to →</option>' + ORB.nodes.map(n => `<option value="${n.id}">${arsEsc(n.label)}</option>`).join('');
+  list.innerHTML = arsStatsHTML() + rows.map(l => {
+    const open = arsLogOpen === l.id;
+    const en = l.e && D.arsenal.find(x => x.id === l.e);
+    const isCave = arsLogViewMap[l.id] === 'cave';
+    const body = isCave ? arsCave(arsReplyOf(l)) : arsReplyOf(l);
+    return `
+    <div class="ars-row">
+      <div class="ars-row-m" style="margin-top:0;">${arsEsc(arsChName(l.ch))} · ${arsEsc(arsFmtT(l.t))}${l.tier ? ' · ' + l.tier : (isCave ? ' · caveman view' : '')}${en ? ' · carrying ' + arsEsc(arsCap(en.title || en.text, 24)) : ''}</div>
+      ${l.u ? `<div class="ars-row-t" style="color:var(--ink-4);">you: ${arsEsc(arsCap(l.u, open ? 700 : 120))}</div>` : ''}
+      <div class="ars-row-t" style="margin-top:4px;">${arsEsc(open ? body : arsCap(body, 220))}</div>
+      <div style="margin-top:6px;"><button class="ars-act" onclick="arsLogToggle('${l.id}')">${open ? 'less' : 'more'}</button><button class="ars-act" onclick="arsLogSave('${l.id}')">save to arsenal</button>${l.r !== undefined ? `<button class="ars-act" onclick="arsLogViewToggle('${l.id}')">${isCave ? 'raw' : 'caveman'}</button>` : ''}</div>
+      ${open ? `<select onchange="arsLogTake('${l.id}',this.value);this.value=''" style="margin-top:8px;display:block;background:transparent;border:1px solid rgba(200,144,42,0.35);color:#c8902a;font-family:inherit;font-size:9px;letter-spacing:0.1em;padding:4px 6px;">${takeOpts}</select>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Turn a logged exchange into an arsenal entry (reply = text, exchange = first trail item)
+function arsEntryFromLog(l) {
+  const rr = arsReplyOf(l);
+  return arsenalSave({ text: rr, chamber: l.ch, origin: 'ai', extra: { trail: [{ t: l.t, ch: l.ch, type: 'ai', u: l.u, r: rr }] } });
+}
+function arsLogSave(id) {
+  const l = arsLog.find(x => x.id === id); if (!l) return;
+  arsEntryFromLog(l);
+  arsStatus('saved to arsenal'); arsRender();
+  try { renderArsenal(); } catch (err) {}
+}
+function arsLogTake(id, dest) {
+  const l = arsLog.find(x => x.id === id); if (!l || !dest) return;
+  const e = arsEntryFromLog(l); if (!e) return;
+  arsTakeTo(e.id, dest, { from: l.ch, input: l.u, reply: arsReplyOf(l) });
+}
+
+
+// ── CAVEMAN: telegraphic compression for stored AI text ───────────────────
+// Policy: YOUR words are never rewritten (u, trail user text, your saved
+// entries stay verbatim). Only AI replies get compressed — drop filler, keep
+// meaning. Rule-based on purpose: instant, offline, free, can't invent facts.
+// Only words on a short drop-list are removed, so everything else survives:
+// negations, modals, numbers, names, connectors (because/but/if/unless).
+// Quotes, code, URLs are fenced off first. A fidelity guard refuses any output
+// that lost a negation or changed a number — then the original is kept.
+const ARS_RAW_N  = 30;    // newest exchanges kept raw
+const ARS_GIST_N = 150;   // beyond this: one-paragraph gist
+let arsTyped = {};        // input id → {v, t}: what you actually typed
+let arsLogViewMap = {};   // log id → 'cave' (audit view of a raw item)
+
+function arsReplyOf(x) { return x.r !== undefined ? x.r : (x.rc !== undefined ? x.rc : ''); }
+
+// exact duplicate sentences (AI restating itself); quotes/code are placeholders here
+function arsDedupe(s) {
+  const seen = new Set(), parts = s.split(/([.!?]+(?:\s+|$))/); let out = '';
+  for (let i = 0; i < parts.length; i += 2) {
+    const sent = parts[i], delim = parts[i + 1] || '', key = sent.trim().toLowerCase();
+    if (key.length >= 25) { if (seen.has(key)) continue; seen.add(key); }
+    out += sent + delim;
+  }
+  return out;
+}
+function arsCave(text) {
+  const orig = String(text == null ? '' : text);
+  if (orig.length < 60) return orig;
+  const prot = [];
+  const hold = m => { prot.push(m); return '\u0001' + (prot.length - 1) + '\u0002'; };
+  let s = orig
+    .replace(/```[\s\S]*?```/g, hold).replace(/`[^`\n]+`/g, hold)
+    .replace(/https?:\/\/\S+/g, hold)
+    .replace(/"[^"\n]{2,}"/g, hold).replace(/\u201c[^\u201d\n]{2,}\u201d/g, hold);
+  s = arsDedupe(s);
+  const base = s.replace(/\u0001(\d+)\u0002/g, (m, i) => prot[+i]);   // guard compares against this
+  // markdown decoration
+  s = s.replace(/^#{1,6}\s*/gm, '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1')
+       .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, '$1$2')
+       .replace(/^\s*[-*\u2022]\s+/gm, '- ').replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '');
+  // social filler at the edges
+  s = s.replace(/^\s*(?:sure|certainly|of course|absolutely)[,!.]\s*/i, '')
+       .replace(/^\s*(?:great|good) question[^.!?\n]*[.!?]\s*/i, '')
+       .replace(/^\s*(?:i['\u2019]d|i would) be (?:happy|glad) to help[^.!?\n]*[.!?]\s*/i, '')
+       .replace(/\s*(?:let me know if[^.!?\n]*|hope (?:this|that) helps[^.!?\n]*|feel free to[^.!?\n]*|happy to (?:help|elaborate)[^.!?\n]*)[.!?]\s*$/i, '');
+  // phrase swaps
+  [[/\b(?:it['\u2019]s|it is) (?:worth|important) (?:noting|to note)(?: that)?\s*/gi, ''],
+   [/\bplease note(?: that)?\s*/gi, ''], [/\bkeep in mind(?: that)?\s*/gi, ''],
+   [/\bin order to\b/gi, 'to'], [/\bdue to the fact that\b/gi, 'because'], [/\bin the event that\b/gi, 'if'],
+   [/\ba number of\b/gi, 'some'], [/\bis able to\b/gi, 'can'], [/\b(?:has|have) the ability to\b/gi, 'can'],
+   [/\bfor example\b/gi, 'e.g.'], [/\bthat is to say\b/gi, 'i.e.'],
+   [/\b(?:leads? to|results? in|which means)\b/gi, '\u2192'], [/\bapproximately\b/gi, '~']
+  ].forEach(([re, to]) => { s = s.replace(re, to); });
+  // drop-list: articles, copulas, empty intensifiers (only when followed by a space)
+  s = s.replace(/(^|[\s(])(?:a|an|the|is|are|am|was|were|be|been|very|really|quite|actually|basically|essentially|simply|literally|honestly)(?=\s)/gi, '$1');
+  let out = s.replace(/[ \t]{2,}/g, ' ').replace(/ +([,.;:!?])/g, '$1').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+           .replace(/\u0001(\d+)\u0002/g, (m, i) => prot[+i]);
+  if (!arsCaveOK(base, out)) return orig;
+  return out.length <= orig.length * 0.94 ? out : orig;
+}
+// Fidelity guard: no negation lost, numbers identical and in order
+function arsCaveOK(orig, out) {
+  const NEG = /\b(?:no|not|never|none|nothing|nobody|nowhere|without|cannot|neither|nor)\b|\b\w+n['\u2019]t\b/gi;
+  const cnt = (t, re) => (t.match(re) || []).length;
+  if (cnt(out, NEG) < cnt(orig, NEG)) return false;
+  const nums = t => (t.match(/\d+(?:[.,]\d+)?/g) || []).join('|');
+  return nums(out) === nums(orig);
+}
+function arsGist(text) {
+  const c = arsCave(text);
+  if (c.length <= 300) return c;
+  const sents = c.match(/[^.!?\n]+[.!?]*/g) || [c];
+  const pick = sents.slice(0, 2); const last = sents[sents.length - 1];
+  if (sents.length > 2 && pick.indexOf(last) < 0) pick.push(last);
+  return arsCap(pick.map(x => x.trim()).join(' … '), 300);
+}
+
+// Age out: newest ARS_RAW_N stay raw → caveman → gist. Never touches `u`.
+function arsCompact() {
+  let ch = false;
+  arsLog.forEach((l, i) => {
+    if (i < ARS_RAW_N) return;
+    const gist = i >= ARS_GIST_N;
+    if (l.r !== undefined) {
+      l.rn = l.rn || l.r.length;
+      l.rc = gist ? arsGist(l.r) : arsCave(l.r);
+      l.tier = gist ? 'gist' : 'cave';
+      delete l.r; ch = true;
+    } else if (gist && l.tier !== 'gist' && l.rc !== undefined) {
+      l.rc = arsGist(l.rc); l.tier = 'gist'; ch = true;
+    }
+  });
+  D.arsenal.forEach(e => {
+    if (!e.trail) return;
+    const ai = e.trail.filter(x => x.type === 'ai');
+    ai.slice(0, Math.max(0, ai.length - 10)).forEach(x => {
+      if (x.r !== undefined) { x.rn = x.r.length; x.rc = arsCave(x.r); delete x.r; ch = true; }
+    });
+  });
+  if (ch) { try { localStorage.setItem(ARS_LOG_KEY, JSON.stringify(arsLog)); } catch (err) {} ls('dr_arsenal', D.arsenal); }
+}
+
+// What YOU sent: prefer the text you typed into a field (full, clean) over the
+// request body (clipped, mixed with system prompts). Only trusted if the typed
+// text actually appears inside the request message.
+function arsCleanUser(msg) {
+  msg = String(msg == null ? '' : msg);
+  const now = Date.now(), hits = [];
+  Object.keys(arsTyped).forEach(id => {
+    const x = arsTyped[id];
+    if (now - x.t < 15 * 60000 && x.v.length >= 8 && msg.indexOf(x.v) > -1) hits.push(x);
+  });
+  if (hits.length) {
+    hits.sort((a, b) => b.v.length - a.v.length);
+    const keep = [];
+    hits.forEach(h => { if (!keep.some(k => k.v.indexOf(h.v) > -1)) keep.push(h); });
+    keep.sort((a, b) => a.t - b.t);
+    return keep.map(k => k.v).join('\n');
+  }
+  return arsTail(msg, 700);   // fallback: short chat messages arrive clean anyway
+}
+document.addEventListener('input', e => {
+  const t = e && e.target;
+  if (!t || e._ars || !t.id || /^ars-/.test(t.id)) return;
+  if (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && (!t.type || t.type === 'text'))) {
+    const v = String(t.value || '').trim();
+    if (v.length >= 8) arsTyped[t.id] = { v, t: Date.now() };
+  }
+}, true);
+
+function arsEntryText(c) {
+  const en = D.arsenal.find(x => x.id === c.entryId);
+  return en && en.origin === 'ai' ? arsCave(c.entry) : c.entry;
+}
+function arsLogViewToggle(id) { arsLogViewMap[id] = arsLogViewMap[id] === 'cave' ? null : 'cave'; arsRender(); }
+function arsStatsHTML() {
+  const raw = arsLog.filter(l => l.r !== undefined).length;
+  const cv = arsLog.filter(l => l.tier === 'cave').length, gs = arsLog.filter(l => l.tier === 'gist').length;
+  let orig = 0, saved = 0;
+  arsLog.forEach(l => { if (l.rn && l.rc !== undefined) { orig += l.rn; saved += l.rn - l.rc.length; } });
+  const pct = orig ? Math.round(saved * 100 / orig) : 0;
+  return '<div class="ars-row-m" style="padding:0 18px 8px;margin:0;">' + raw + ' raw · ' + cv + ' caveman · ' + gs + ' gist' + (orig ? ' · aged replies ' + pct + '% smaller' : '') + '</div>';
+}
+
+// drop a stale carry if its entry no longer exists
+if (arsCarry && !D.arsenal.some(x => x.id === arsCarry.entryId)) { arsCarry = null; }
+arsCarryPill();
+arsCompact();
+
+arsMigrate();
+
+// helper: legacy "own Load entries" view for analysis prompts
+function arsIsLoad(e){ return !e.fromSim && e.origin!=='ai' && (!e.chamber || e.chamber==='load'); }
 </script>
 
 <!-- ── ALWAYS-ON-TOP BAR — outside entry/app, above all canvases ── -->

@@ -1555,6 +1555,7 @@ body {
 
     <!-- Arsenal -->
     <button id="ars-btn" onclick="arsToggle()" title="Arsenal" style="background:none;border:none;border-left:1px solid var(--border);padding:0 16px;cursor:pointer;height:100%;flex-shrink:0;color:#c8902a;font-size:15px;line-height:1;">◇</button>
+    <button id="ars-save-btn" onclick="arsSaveHere()" title="Save to Arsenal (with the history of how it got here)" style="background:none;border:none;padding:0 12px 0 2px;cursor:pointer;height:100%;flex-shrink:0;color:#c8902a;font-size:11px;letter-spacing:0.08em;line-height:1;font-family:'DM Mono',monospace;">+save</button>
     <!-- Chamber menu trigger — wave symbol -->
     <button id="nav-menu-btn" onclick="toggleChamberMenu()" style="background:none;border:none;border-left:1px solid var(--border);padding:0 18px;cursor:pointer;display:flex;align-items:center;height:100%;flex-shrink:0;" title="Chambers">
       <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
@@ -11265,6 +11266,7 @@ DR_KEYS.push('dr_lens_history');
 DR_KEYS.push('dr_arsenal_flow');
 DR_KEYS.push('dr_arsenal_archive');
 DR_KEYS.push('dr_ars_log');
+DR_KEYS.push('dr_ars_chain');
 
 // ── KV SYNC SYSTEM ──────────────────────────────────────────────
 // Syncs content data (DR_KEYS) to Cloudflare KV via the worker.
@@ -12281,14 +12283,14 @@ function arsSaveInput() {
   const ch = D.chamber, el = arsActiveInput(ch);
   const t = el ? el.value.trim() : '';
   if (!t) { arsStatus('nothing in the input'); return; }
-  arsenalSave({ text: t, chamber: ch, origin: 'me' });
+  arsSaveWith(t, ch, 'me');
   arsStatus('saved to arsenal'); arsRender();
   try { renderArsenal(); } catch (err) {}
 }
 function arsSaveAI() {
   const ch = D.chamber, t = arsGrabAI(ch);
   if (!t) { arsStatus('no AI reply or selection found'); return; }
-  arsenalSave({ text: t, chamber: ch, origin: 'ai' });
+  arsSaveWith(t, ch, 'ai');
   arsStatus('saved to arsenal'); arsRender();
   try { renderArsenal(); } catch (err) {}
 }
@@ -12370,7 +12372,8 @@ function arsTakeTo(id, dest, mem) {
   };
   (e.trail = e.trail || []).push({ t: T, ch: from, type: 'taken', to: dest, input: arsCap(arsCarry.input, 600), reply: arsCap(arsCarry.reply, 800) });
   if (e.trail.length > 60) e.trail.splice(0, e.trail.length - 60);
-  arsLogFlow(id, from, dest);          // thread: where it came from → where you took it
+  arsLogFlow(id, from, dest);
+  arsChainAdd(from, dest, e.text, 'arsenal');          // thread: where it came from → where you took it
   ls('dr_arsenal', D.arsenal);
   arsToggle(false);
   go(dest);
@@ -12506,6 +12509,7 @@ function arsTrailHTML(e) {
     let h = arsEsc(arsFmtT(x.t)) + ' · ';
     if (x.type === 'taken') h += 'left ' + arsEsc(arsChName(x.ch)) + ' → ' + arsEsc(arsChName(x.to)) + (x.reply ? '<br><span style="color:var(--ink-3);">AI had said: ' + arsEsc(arsCap(x.reply, 160)) + '</span>' : '');
     else if (x.type === 'ai') h += arsEsc(arsChName(x.ch)) + ' AI: ' + (x.r === undefined ? '≈ ' : '') + arsEsc(arsCap(arsReplyOf(x), 200));
+    else if (x.type === 'asked') h += arsEsc(arsChName(x.ch)) + ' you: ' + arsEsc(arsCap(x.text, 200));
     else h += arsEsc(x.type || '');
     return '<div class="ars-row-m" style="text-transform:none;letter-spacing:0.02em;line-height:1.5;">' + h + '</div>';
   }).join('') + '</div>';
@@ -12696,6 +12700,100 @@ function arsStatsHTML() {
   const pct = orig ? Math.round(saved * 100 / orig) : 0;
   return '<div class="ars-row-m" style="padding:0 18px 8px;margin:0;">' + raw + ' raw · ' + cv + ' caveman · ' + gs + ' gist' + (orig ? ' · aged replies ' + pct + '% smaller' : '') + '</div>';
 }
+
+
+// ── CHAIN + SAVE-WITH-HISTORY ─────────────────────────────────────────────
+// Persistent record of explicit hand-offs between chambers: the app's own
+// "→ Aim / → Fire / → Map" buttons (carryTo) and the drawer's take-to. A
+// "chain" = consecutive hops where each hop starts where the last one ended.
+// Save-to-Arsenal reads the chain that ends in the chamber you're in, adds the
+// AI replies produced in each chamber along the way, and files the entry with
+// that whole history — placed after the chamber it came from.
+const ARS_CHAIN_KEY = 'dr_ars_chain';
+let arsChain = (() => { try { return JSON.parse(localStorage.getItem(ARS_CHAIN_KEY) || '[]'); } catch (e) { return []; } })();
+
+function arsChainAdd(from, to, text, via) {
+  const t = Date.now(), last = arsChain[arsChain.length - 1];
+  const same = last && last.to === from && t - last.t < 12 * 3600 * 1000;
+  arsChain.push({ c: same ? last.c : arsId(), from, to, text: arsCap(String(text || '').trim(), 2000), via: via || 'carry', t });
+  if (arsChain.length > 60) arsChain.splice(0, arsChain.length - 60);
+  try { localStorage.setItem(ARS_CHAIN_KEY, JSON.stringify(arsChain)); } catch (e) {}
+}
+// hops of the most recent chain that ends in chamber `ch`, up to that point
+function arsChainTo(ch) {
+  for (let i = arsChain.length - 1; i >= 0; i--) {
+    const h = arsChain[i];
+    if (h.to === ch && Date.now() - h.t < 12 * 3600 * 1000) return arsChain.slice(0, i + 1).filter(x => x.c === h.c);
+  }
+  return [];
+}
+function arsHistoryFor(ch) {
+  const hops = arsChainTo(ch);
+  if (!hops.length) return { trail: [], hops, prev: null };
+  const trail = [];
+  hops.forEach(h => {
+    const isInput = h.via === 'arsenal' || h.from === 'load';
+    trail.push({ t: h.t, ch: h.from, type: 'taken', to: h.to, input: isInput ? arsCap(h.text, 600) : '', reply: isInput ? '' : arsCap(h.text, 800) });
+  });
+  // AI replies produced in each chamber while the information was passing through it
+  const win = {};
+  hops.forEach((h, i) => { const enter = i === 0 ? h.t - 20 * 60000 : hops[i - 1].t; if (!win[h.from]) win[h.from] = [enter, h.t]; });
+  const last = hops[hops.length - 1];
+  win[last.to] = [last.t, Date.now()];
+  arsLog.forEach(l => { const w = win[l.ch]; if (w && l.t >= w[0] && l.t <= w[1]) trail.push({ t: l.t, ch: l.ch, type: 'ai', u: l.u, r: arsReplyOf(l) }); });
+  trail.sort((a, b) => a.t - b.t);
+  return { trail: trail.slice(-24), hops, prev: last.from };
+}
+function arsSaveWith(text, ch, origin, asked) {
+  const h = arsHistoryFor(ch);
+  const trail = h.trail.slice();
+  if (asked && asked !== text) trail.push({ t: Date.now() - 1, ch, type: 'asked', text: arsCap(asked, 600) });
+  const e = arsenalSave({ text, chamber: ch, origin, extra: { trail, after: h.prev || null, chain: h.hops.length ? h.hops[0].c : null } });
+  if (!e) return null;
+  h.hops.forEach(x => { if (x.from !== x.to) arsLogFlow(e.id, x.from, x.to); });   // threads for the whole path
+  return e;
+}
+function arsToast(msg) {
+  let t = document.getElementById('ars-toast');
+  if (!t) {
+    t = document.createElement('div'); t.id = 'ars-toast';
+    t.style.cssText = "position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:rgba(7,6,8,0.96);border:1px solid rgba(200,144,42,0.5);color:#c8902a;font:10px 'DM Mono',monospace;letter-spacing:0.12em;padding:8px 14px;z-index:300;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center;";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(arsToast._t); arsToast._t = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+  arsStatus(msg);
+}
+// One-tap save, available in every chamber (nav bar ◇+).
+// Saves what's in front of you — highlighted text, else the AI reply here, else your input —
+// together with the history of the chain that brought it here.
+function arsSaveHere() {
+  const ch = D.chamber, el = arsActiveInput(ch);
+  const inp = el ? el.value.trim() : '';
+  const reply = arsGrabAI(ch);
+  const text = reply || inp;
+  if (!text) { arsToast('nothing here to save yet'); return; }
+  const e = arsSaveWith(text, ch, reply ? 'ai' : 'me', reply ? inp : '');
+  const hops = e && e.trail ? e.trail.filter(x => x.type === 'taken').length : 0;
+  arsToast('saved to Arsenal' + (hops ? ' · ' + hops + '-step history' : '') + (e && e.after ? ' · after ' + arsChName(e.after) : ''));
+  try { renderArsenal(); } catch (err) {}
+  arsRender();
+}
+// app's own hand-off buttons feed the chain (they only held this in memory before)
+(function () {
+  const _ct = carryTo;
+  carryTo = function (from, to) {
+    let text = '';
+    try {
+      const el = document.getElementById(from === 'load' ? 'load-in' : from + '-resp-body');
+      text = el ? (from === 'load' ? el.value : el.textContent) : '';
+    } catch (e) {}
+    text = String(text || '').trim();
+    const before = D.chamber;
+    _ct(from, to);
+    if (text && D.chamber === to && before !== to) arsChainAdd(from, to, text, 'carry');
+  };
+})();
 
 // drop a stale carry if its entry no longer exists
 if (arsCarry && !D.arsenal.some(x => x.id === arsCarry.entryId)) { arsCarry = null; }

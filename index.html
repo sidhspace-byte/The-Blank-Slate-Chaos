@@ -4446,46 +4446,28 @@ async function callAI(sys, msg, thinkId, respId, bodyId, done, ch){
     return;
   }
 
-  // Call Groq via Worker
-  try {
-    const res = await fetch(workerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: getAIModelForChamber(chamber),
-        messages: [
-          { role: 'system', content: sys },
-          { role: 'user', content: msg }
-        ],
-        max_tokens: 1000
-      })
-    });
-    const data = await res.json();
-    const groqData = data.body ? data.body : data;
-    const reply = groqData.choices?.[0]?.message?.content || groqData.choices?.[0]?.message?.reasoning || '';
-
-    if (!reply) throw new Error('empty response');
-
-    if(body) body.innerHTML = wrapResp(fmtLocal(reply));
+  // Shared client: checks HTTP status, normalises the response, never shows reasoning as the answer
+  const r = await AI.ask({ chamber, system: sys, user: msg, maxTokens: 1000 });
+  if (!r.error) {
+    if(body) body.innerHTML = wrapResp(fmtLocal(r.text));
     if(resp) resp.classList.add('on');
     if(think) think.classList.remove('on');
-    if(done) done(reply);
-
-  } catch(err) {
-    // Fallback to local on error
-    const chamber = thinkId.split('-')[0];
-    let output = '';
-    if (chamber === 'load') output = localLoad(msg);
-    else if (chamber === 'aim') output = localAim(msg);
-    else if (chamber === 'map') output = localMap(msg);
-    else if (chamber === 'fire') output = localFire(msg, sys);
-    else if (chamber === 'reload') output = localReload(msg);
-    else output = '<em>AI unavailable — local response.</em>';
-    if(body) body.innerHTML = wrapResp(fmtLocal(output));
-    if(resp) resp.classList.add('on');
-    if(think) think.classList.remove('on');
-    if(done) done(output);
+    if(done) done(r.text);
+    return;
   }
+  // AI failed → local fallback, but SAY so (it used to look like an AI answer)
+  const lc = thinkId.split('-')[0];
+  let output = '';
+  if (lc === 'load') output = localLoad(msg);
+  else if (lc === 'aim') output = localAim(msg);
+  else if (lc === 'map') output = localMap(msg);
+  else if (lc === 'fire') output = localFire(msg, sys);
+  else if (lc === 'reload') output = localReload(msg);
+  else output = '<em>AI unavailable — local response.</em>';
+  if(body) body.innerHTML = '<p style="font-size:10px;letter-spacing:0.08em;color:#c8902a;margin:0 0 10px;">AI unavailable (' + System.esc(r.error) + ') — showing local response</p>' + wrapResp(fmtLocal(output));
+  if(resp) resp.classList.add('on');
+  if(think) think.classList.remove('on');
+  if(done) done(output);
 }
 
 // ── Load: name what's there precisely ──
@@ -5548,6 +5530,7 @@ const _enter5=enter; enter=function(c){ if(c==='flow')c='wiring'; _enter5(c); if
 // Proven frameworks mapped to variables
 // ====================================
 
+// #region CHAMBER: formulas  — 573 lines, 14 nodes
 const FORMULAS = {
 
   pressure: [
@@ -6131,6 +6114,7 @@ const _go4 = go;
 go = function(c) { _go4(c); if(c==='formulas') initFormulas(); };
 const _enter4 = enter;
 enter = function(c) { _enter4(c); if(c==='formulas') initFormulas(); };
+// #endregion CHAMBER: formulas
 
 
 // ====================================
@@ -6317,6 +6301,7 @@ function toggleSolveDetail(){
   btn.textContent     = shown ? 'Show variable breakdown ->' : 'Hide breakdown';
 }
 
+// #region CHAMBER: sim  — 619 lines, 26 nodes
 async function runSolve(){
   const btn   = document.getElementById('solve-btn');
   const think = document.getElementById('solve-think');
@@ -6978,6 +6963,7 @@ function renderSimLog(){
 function initSim(){ renderSimLog(); }
 
 const _go3=go; go=function(c){ _go3(c); if(c==='sim') initSim(); };
+// #endregion CHAMBER: sim
 const _enter3=enter; enter=function(c){ _enter3(c); if(c==='sim') initSim(); };
 
 document.addEventListener('keydown',e=>{
@@ -8226,6 +8212,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // LENS CHAMBER JS
 // ====================================
 
+// #region CHAMBER: lens  — 460 lines, 23 nodes
 const LENS_LIBRARY = {
   standard: {
     name: 'Standard — 35mm to 85mm', focal: '35–85mm',
@@ -8708,6 +8695,7 @@ Your job: identify what's wrong with the current rig for what they were trying t
     if (output)   { output.style.display = 'block'; output.textContent = 'Worker error: ' + err.message; }
   }
 }
+// #endregion CHAMBER: lens
 
 // ── RIG CHAT ─────────────────────────────────────────────────────
 let rigChatHistory = [];
@@ -10233,6 +10221,7 @@ enter = function(c) {
 // PROJECTS CHAMBER
 // ====================================
 
+// #region CHAMBER: projects  — 238 lines, 19 nodes
 let projects = JSON.parse(localStorage.getItem('dr_projects') || '[]');
 
 function saveProjects() {
@@ -10490,6 +10479,7 @@ function renderProjects() {
 }
 
 function renderProjects_init() { renderProjects(); }
+// #endregion CHAMBER: projects
 
 
 
@@ -11816,45 +11806,23 @@ ${chamberCtx}
 
 Be precise, plain, and direct. Short paragraphs. No bullet points unless explicitly useful. Talk to him like a person, not a tool.`;
 
-  try {
-    const res = await fetch(workerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: getAIModelForChamber(ch),
-        messages: [
-          { role: 'system', content: sys },
-          ...aiHistory[ch]
-        ],
-        max_tokens: 800
-      })
-    });
-
-    const data = await res.json();
-
-    if (data.error) {
-      thinkingDiv.remove();
-      statusEl.className = 'ai-status err';
-      statusEl.textContent = 'Error: ' + (data.error.message || 'unknown');
-      aiHistory[ch].pop(); // remove failed user msg
-    } else {
-      const msg = data.choices?.[0]?.message;
-      const reply = msg?.content || msg?.reasoning || '(no response)';
-      aiHistory[ch].push({ role: 'assistant', content: reply });
-      thinkingDiv.querySelector('.ai-msg-body').textContent = reply;
-      thinkingDiv.classList.remove('thinking');
-      thinkingDiv.querySelector('.ai-msg-role').classList.add('ai');
-      thinkingDiv.querySelector('.ai-msg-body').classList.add('ai');
-      statusEl.className = 'ai-status ok';
-      statusEl.textContent = 'connected';
-      const msgsEl = document.getElementById('ai-msgs-' + ch);
-      msgsEl.scrollTop = msgsEl.scrollHeight;
-    }
-  } catch (err) {
+  const r = await AI.ask({ chamber: ch, system: sys, messages: aiHistory[ch], maxTokens: 800 });
+  if (r.error) {
     thinkingDiv.remove();
     statusEl.className = 'ai-status err';
-    statusEl.textContent = 'Network error — check Worker URL';
-    aiHistory[ch].pop();
+    statusEl.textContent = r.error;
+    aiHistory[ch].pop(); // remove failed user msg
+  } else {
+    const reply = r.text;
+    aiHistory[ch].push({ role: 'assistant', content: reply });
+    thinkingDiv.querySelector('.ai-msg-body').textContent = reply;
+    thinkingDiv.classList.remove('thinking');
+    thinkingDiv.querySelector('.ai-msg-role').classList.add('ai');
+    thinkingDiv.querySelector('.ai-msg-body').classList.add('ai');
+    statusEl.className = 'ai-status ok';
+    statusEl.textContent = 'connected';
+    const msgsEl = document.getElementById('ai-msgs-' + ch);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
   sendBtn.disabled = false;
@@ -11902,6 +11870,134 @@ Be precise, plain, and direct. Short paragraphs. No bullet points unless explici
 
 
 
+// ═══════════════════════════════════════════════════════════════════════════
+// #region CORE — System (bus · chamber registry · router) · AI client
+// Everything chambers share lives here. Chambers move onto this one at a time
+// (see ARCHITECTURE.md); until a chamber is migrated its legacy code keeps working.
+// ═══════════════════════════════════════════════════════════════════════════
+const System = (() => {
+  const handlers = {};
+  return {
+    chambers: {},
+    esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
+    // events: 'reply' {chamber,user,reply,entryId} · 'handoff' {from,to,...}
+    //         'arsenal:save' entry · 'chamber:enter' {id} · 'home'
+    on(ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); },
+    emit(ev, data) { (handlers[ev] || []).slice().forEach(fn => { try { fn(data); } catch (e) { console.error('[bus]', ev, e); } }); }
+  };
+})();
+
+// Chamber contract — only `id` is required, everything else defaults:
+//   input    id of the primary text field        resp      id of the AI response body
+//   aiInput  id of the chat input                onEnter   () => void, runs after go(id)
+//   persist  dr_* keys the chamber owns          handoffs  [{to}] chambers it can pass work to
+System.registerChamber = function (def) {
+  const id = def.id;
+  System.chambers[id] = Object.assign(
+    { input: null, resp: id + '-resp-body', aiInput: 'ai-input-' + id, onEnter: null, persist: [], handoffs: [] },
+    System.chambers[id] || {}, def);
+  return System.chambers[id];
+};
+[ { id: 'load', input: 'load-in', handoffs: [{ to: 'map' }, { to: 'aim' }] },
+  { id: 'map', input: 'map-sit', handoffs: [{ to: 'aim' }] },
+  { id: 'aim', input: 'aim-in', handoffs: [{ to: 'fire' }] },
+  { id: 'fire', input: 'fire-in' },
+  { id: 'reload', input: 'reload-in' },
+  { id: 'sim', input: 'sim-context' },
+  { id: 'formulas', input: 'form-situation' },
+  { id: 'train' }, { id: 'wiring' }, { id: 'projects' }, { id: 'forge' }, { id: 'lens' }
+].forEach(d => System.registerChamber(d));
+
+// ── Router: every chamber gets a link (#/aim), back button steps through chambers ──
+System.router = {
+  silent: false,
+  fromHash() { const m = /^#\/(\w+)/.exec(location.hash || ''); return m && System.chambers[m[1]] ? m[1] : null; },
+  push(id) {
+    try {
+      const target = id ? '#/' + id : location.pathname + location.search;
+      if (id ? location.hash !== target : location.hash !== '') history.pushState(null, '', target);
+    } catch (e) {}
+  },
+  // same path the home map uses (orbEnter hides the home canvas, then enters)
+  open(id) {
+    System.router.silent = true;
+    try {
+      const appOn = document.getElementById('app').classList.contains('on');
+      if (!appOn) orbEnter(id); else if (id !== D.chamber) go(id);
+    } catch (e) { console.error('[router]', e); }
+    System.router.silent = false;
+  }
+};
+(function () {
+  const _go = go, _home = goHome;
+  go = function (c) {
+    _go(c);
+    const id = D.chamber;
+    if (!System.router.silent) System.router.push(id);
+    const def = System.chambers[id];
+    if (def && typeof def.onEnter === 'function') { try { def.onEnter(); } catch (e) { console.error('[onEnter]', id, e); } }
+    System.emit('chamber:enter', { id });
+  };
+  goHome = function () {
+    _home();
+    if (!System.router.silent) System.router.push(null);
+    System.emit('home', {});
+  };
+})();
+window.addEventListener('popstate', () => {
+  const id = System.router.fromHash();
+  if (id) System.router.open(id);
+  else {
+    System.router.silent = true;
+    try { if (document.getElementById('app').classList.contains('on')) goHome(); } catch (e) { console.error('[router]', e); }
+    System.router.silent = false;
+  }
+});
+(function () {
+  const boot = () => { const id = System.router.fromHash(); if (id) setTimeout(() => System.router.open(id), 250); };
+  if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot, { once: true });
+})();
+
+// ── AI client ───────────────────────────────────────────────────────────────
+// One place for: URL + model resolution, HTTP status check, response-shape
+// normalising (body/choices), and reasoning-model token budgets. Never returns
+// the model's reasoning as the answer. Resolves to { text, error, status, model }.
+const AI = {
+  // reasoning models spend max_tokens thinking first — a small cap leaves `content` empty
+  isReasoning(model) { return /gpt-oss|qwen|compound|deepseek-r1|reason|think|\bo[13]\b/i.test(String(model || '')); },
+  tokens(model, wanted) { wanted = wanted || 1000; return AI.isReasoning(model) ? Math.max(wanted, 3000) : wanted; },
+  async ask({ chamber, system, user, messages, maxTokens }) {
+    const url = getWorkerUrlForChamber(chamber) || getWorkerUrl();
+    if (!url) return { text: '', error: 'No Worker URL set' };
+    const model = getAIModelForChamber(chamber);
+    const msgs = [];
+    if (system) msgs.push({ role: 'system', content: system });
+    if (messages) msgs.push(...messages); else if (user != null) msgs.push({ role: 'user', content: String(user) });
+    let res, data;
+    try {
+      res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages: msgs, max_tokens: AI.tokens(model, maxTokens) }) });
+    } catch (e) { return { text: '', error: 'Network error — check Worker URL', model }; }
+    try { data = await res.json(); }
+    catch (e) { return { text: '', error: 'HTTP ' + res.status + ': unreadable response', status: res.status, model }; }
+    const body = data && data.body !== undefined && data.body !== null ? data.body : data;
+    const apiErr = (body && body.error) || (data && data.error);
+    if (!res.ok || apiErr) {
+      const m = apiErr ? (apiErr.message || (typeof apiErr === 'string' ? apiErr : JSON.stringify(apiErr))) : 'request failed';
+      return { text: '', error: 'HTTP ' + res.status + ': ' + String(m).slice(0, 160), status: res.status, model };
+    }
+    const choice = body && body.choices && body.choices[0];
+    const text = ((choice && choice.message && choice.message.content) || '').trim();
+    if (!text) {
+      const why = choice && choice.finish_reason === 'length' ? 'model ran out of tokens before answering (reasoning model?)' : 'empty reply';
+      return { text: '', error: why, status: res.status, model };
+    }
+    return { text, error: null, status: res.status, model };
+  }
+};
+// #endregion CORE
+
+// #region COMPONENT: arsenal — store · flow threads · drawer · activity log · chain · caveman
 // ══════════════════════════════════════════════════════════════
 // ARSENAL v2 — one store, every chamber, flow threads on the map
 // ══════════════════════════════════════════════════════════════
@@ -11959,6 +12055,7 @@ function arsenalSave({ text, title = '', chamber, origin = 'me', extra = {} }) {
   D.arsenal.unshift(e);
   arsTrim();
   ls('dr_arsenal', D.arsenal);
+  System.emit('arsenal:save', e);
   return e;
 }
 
@@ -12074,8 +12171,7 @@ function orbDrawArsenalFlow(ctx, z) {
 
 // ── Chamber helpers ───────────────────────────────────────────
 function arsActiveInput(ch) {
-  const hint = { load:'load-in', map:'map-sit', aim:'aim-in', fire:'fire-in',
-                 reload:'reload-in', sim:'sim-context', formulas:'form-situation' }[ch];
+  const hint = System.chambers[ch] && System.chambers[ch].input;
   let el = hint && document.getElementById(hint);
   if (el && el.offsetParent !== null) return el;
   const host = document.getElementById('ch-' + ch);
@@ -12090,7 +12186,7 @@ function arsAIInput(ch) { const el = document.getElementById('ai-input-' + ch); 
 
 function arsGrabAI(ch) {
   if (_arsSel && Date.now() - _arsSel.at < 90000) { const t = _arsSel.t; _arsSel = null; return t; }
-  const resp = document.getElementById(ch + '-resp-body');
+  const resp = document.getElementById(System.chambers[ch] ? System.chambers[ch].resp : ch + '-resp-body');
   const rt = resp && resp.offsetParent !== null ? resp.innerText.trim() : '';
   if (rt) return rt;
   const msgs = [...document.querySelectorAll('#ai-msgs-' + ch + ' .ai-msg-body.ai')];
@@ -12336,7 +12432,7 @@ let arsCarry = (() => { try { return JSON.parse(localStorage.getItem(ARS_CARRY_K
 function arsCap(s, n) { s = String(s == null ? '' : s).trim(); return s.length > n ? s.slice(0, n) + '…' : s; }
 
 function arsLastReply(ch) {
-  const resp = document.getElementById(ch + '-resp-body');
+  const resp = document.getElementById(System.chambers[ch] ? System.chambers[ch].resp : ch + '-resp-body');
   const rt = resp && resp.offsetParent !== null ? resp.innerText.trim() : '';
   if (rt) return rt;
   const msgs = [...document.querySelectorAll('#ai-msgs-' + ch + ' .ai-msg-body.ai')];
@@ -12489,6 +12585,7 @@ function arsRecordReply(ch, u, r, cid) {
       ls('dr_arsenal', D.arsenal);
     }
   }
+  System.emit('reply', { chamber: ch, user: rec.u, reply: rec.r, entryId: cid || null });
   arsCompact();
   const dr = document.getElementById('ars-drawer');
   if (dr && dr.style.display === 'block') arsRender();
@@ -12717,6 +12814,7 @@ function arsChainAdd(from, to, text, via) {
   const same = last && last.to === from && t - last.t < 12 * 3600 * 1000;
   arsChain.push({ c: same ? last.c : arsId(), from, to, text: arsCap(String(text || '').trim(), 2000), via: via || 'carry', t });
   if (arsChain.length > 60) arsChain.splice(0, arsChain.length - 60);
+  System.emit('handoff', arsChain[arsChain.length - 1]);
   try { localStorage.setItem(ARS_CHAIN_KEY, JSON.stringify(arsChain)); } catch (e) {}
 }
 // hops of the most recent chain that ends in chamber `ch`, up to that point
@@ -12804,6 +12902,7 @@ arsMigrate();
 
 // helper: legacy "own Load entries" view for analysis prompts
 function arsIsLoad(e){ return !e.fromSim && e.origin!=='ai' && (!e.chamber || e.chamber==='load'); }
+// #endregion COMPONENT: arsenal
 </script>
 
 <!-- ── ALWAYS-ON-TOP BAR — outside entry/app, above all canvases ── -->

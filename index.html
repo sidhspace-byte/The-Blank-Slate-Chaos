@@ -6004,16 +6004,13 @@ If no existing formula fits well, derive a new one and label it [NEW].`;
 async function stressTestFormula(formulaName, formulaEquation) {
   const think = document.getElementById('form-think');
   const resp  = document.getElementById('form-resp');
+  const body  = document.getElementById('form-resp-body');
+  // The result box sits at the bottom of the Formulas panel, far from the cards —
+  // bring it into view, otherwise the button looks dead.
+  const bring = (el, block) => { if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block }); };
   if(think) think.classList.add('on');
   if(resp) resp.classList.remove('on');
-
-  const workerUrl = getWorkerUrlForChamber('formulas') || getWorkerUrl();
-  if (!workerUrl) {
-    { const _t=document.getElementById('form-resp-body'); if(_t) _t.textContent='Connect worker to run a stress test.'; }
-    if(resp) resp.classList.add('on');
-    if(think) think.classList.remove('on');
-    return;
-  }
+  bring(think, 'center');
 
   const sys = `You are stress-testing a formula for ${WHO}.
 
@@ -6027,29 +6024,17 @@ For this formula, find:
 
 Be rigorous. The formula should come out sharper, not destroyed.`;
 
-  try {
-    const res = await fetch(workerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: getAIModelForChamber('formulas'),
-        messages: [
-          { role: 'system', content: sys },
-          { role: 'user', content: `Formula: ${formulaName}\nEquation: ${formulaEquation}` }
-        ],
-        max_tokens: 600
-      })
-    });
-    const data = await res.json();
-    const groq = data.body || data;
-    const reply = groq.choices?.[0]?.message?.content || groq.choices?.[0]?.message?.reasoning || 'Stress test unavailable.';
-    { const _t=document.getElementById('form-resp-body'); if(_t) _t.innerHTML=wrapResp(fmtLocal(`**Stress test: ${formulaName}**\n\n${reply}`)); }
-    if(resp) resp.classList.add('on');
-  } catch(e) {
-    { const _t=document.getElementById('form-resp-body'); if(_t) _t.textContent='Stress test failed — check worker connection.'; }
-    if(resp) resp.classList.add('on');
-  }
+  // Shared client: real error reasons, reasoning-model token budget, never shows chain-of-thought as the answer
+  const r = await AI.ask({ chamber: 'formulas', system: sys, user: `Formula: ${formulaName}\nEquation: ${formulaEquation}`, maxTokens: 900 });
   if(think) think.classList.remove('on');
+  if (body) {
+    if (r.error === 'No Worker URL set') body.textContent = 'Connect worker to run a stress test.';
+    else if (r.error) body.innerHTML = '<p style="font-size:10px;letter-spacing:0.08em;color:#c8902a;margin:0;">Stress test failed (' + System.esc(r.error) + ')</p>';
+    else body.innerHTML = wrapResp(fmtLocal(`**Stress test: ${formulaName}**\n\n${r.text}`))
+      + `<div style="margin-top:14px;"><button class="btn-ghost" onclick="document.getElementById('formula-cards').scrollIntoView({behavior:'smooth',block:'start'})">↑ back to formulas</button></div>`;
+  }
+  if(resp) resp.classList.add('on');
+  bring(resp, 'start');
 }
 
 async function generateFormulas() {
